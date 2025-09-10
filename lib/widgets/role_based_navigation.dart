@@ -24,7 +24,7 @@ class RoleBasedNavigation {
       label: 'Tổng quan',
       icon: Icons.dashboard_outlined,
       roles: [
-        UserRole.admin,
+        UserRole.nft_admin,
         UserRole.nhaDauTu,
         UserRole.quanTri,
         UserRole.nguoiKiemDinh,
@@ -36,7 +36,7 @@ class RoleBasedNavigation {
       label: 'Cây trồng',
       icon: Icons.eco_outlined,
       roles: [
-        UserRole.admin,
+        UserRole.nft_admin,
         UserRole.nhaDauTu,
         UserRole.quanTri,
         UserRole.nguoiLamVuon,
@@ -47,7 +47,7 @@ class RoleBasedNavigation {
       label: 'Nhật ký',
       icon: Icons.book_outlined,
       roles: [
-        UserRole.admin,
+        UserRole.nft_admin,
         UserRole.quanTri,
         UserRole.nguoiKiemDinh,
         UserRole.nguoiLamVuon,
@@ -58,7 +58,7 @@ class RoleBasedNavigation {
       label: 'Môi trường',
       icon: Icons.thermostat_outlined,
       roles: [
-        UserRole.admin,
+        UserRole.nft_admin,
         UserRole.quanTri,
         UserRole.nguoiKiemDinh,
         UserRole.nguoiLamVuon,
@@ -69,7 +69,7 @@ class RoleBasedNavigation {
       label: 'Xác thực',
       icon: Icons.verified_outlined,
       roles: [
-        UserRole.admin,
+        UserRole.nft_admin,
         UserRole.quanTri,
         UserRole.nguoiKiemDinh,
       ],
@@ -88,7 +88,7 @@ class RoleBasedNavigation {
     return config.roles.contains(role);
   }
 
-  static NavTab? getFirstAvailableTab(UserRole role) {
+  static NavTab? getFirstAvailableTab( UserRole role) {
     final availableTabs = getAvailableTabs(role);
     return availableTabs.isNotEmpty ? availableTabs.first.id : null;
   }

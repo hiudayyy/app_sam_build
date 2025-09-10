@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:csam_mobile/models/user_model.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user.dart';
 
@@ -12,8 +13,8 @@ class AuthService {
       username: 'admin',
       email: 'admin@ginsengfarm.com',
       fullName: 'Quản trị viên hệ thống',
-      role: UserRole.admin,
-      permissions: User.rolePermissions[UserRole.admin]!,
+      role: UserRole.nft_admin,
+      permissions: User.rolePermissions[UserRole.nft_admin]!,
       avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face',
       lastLogin: '2024-01-15T08:30:00Z',
       isActive: true,
@@ -141,12 +142,15 @@ class AuthService {
   }
 
   // Check permission
-  static bool hasPermission(User? user, Permission permission) {
-    return user?.permissions.contains(permission) ?? false;
-  }
+  // static bool hasPermission(User? user, Permission permission) {
+  //   return user?.permissions.contains(permission) ?? false;
+  // }
 
   // Check role
   static bool hasRole(User? user, UserRole role) {
     return user?.role == role;
+  }
+  static bool hasRolemodel(UserModel? user, UserRole role) {
+    return user?.oneItem?.htTaiKhoan.maVaiTros.any((x) => x.id == role) ?? false;
   }
 }

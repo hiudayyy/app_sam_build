@@ -1,6 +1,12 @@
+import 'dart:ffi';
+
+import 'package:csam_mobile/api/api_login.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../api/api.dart';
+import '../models/login_model.dart';
 import '../models/user.dart';
+import '../models/user_model.dart';
 import '../providers/auth_provider.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -9,6 +15,7 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
+  final api = API();
   final _formKey = GlobalKey<FormState>();
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -21,14 +28,19 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  void _handleLogin() {
+  void _handleLogin() async {
     if (_formKey.currentState!.validate()) {
-      final credentials = LoginCredentials(
-        username: _usernameController.text,
-        password: _passwordController.text,
-      );
+      // final credentials = LoginCredentials(
+      //   username: _usernameController.text,
+      //   password: _passwordController.text,
+      // );
 
-      context.read<AuthProvider>().login(credentials);
+
+      var model = LoginModel(
+          uname: _usernameController.text,
+          pass: _passwordController.text,);
+      var login = await api.login(model);
+      context.read<AuthProvider>().login(model);
     }
   }
 

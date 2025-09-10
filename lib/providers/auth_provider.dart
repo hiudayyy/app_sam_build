@@ -1,14 +1,21 @@
+import 'package:csam_mobile/api/api_login.dart';
 import 'package:flutter/material.dart';
+import '../api/api.dart';
+import '../models/login_model.dart';
 import '../models/user.dart';
+import '../models/user_model.dart';
 import '../services/auth_service.dart';
 
 class AuthProvider extends ChangeNotifier {
+  final api = API();
   User? _user;
+  UserModel? _usermodel;
   bool _isLoading = true;
   String? _error;
 
-  User? get user => _user;
-  bool get isAuthenticated => _user != null;
+  //User? get user => _user;
+  UserModel? get user => _usermodel;
+  bool get isAuthenticated => _usermodel != null;
   bool get isLoading => _isLoading;
   String? get error => _error;
 
@@ -33,17 +40,17 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> login(LoginCredentials credentials) async {
+  Future<void> login(LoginModel credentials) async {
     try {
       _isLoading = true;
       _error = null;
       notifyListeners();
 
-      final user = await AuthService.login(credentials);
-      _user = user;
+      final user = await api.login(credentials);
+      _usermodel = user;
     } catch (e) {
-      _error = e.toString();
-      _user = null;
+    _error = e.toString();
+    _user = null;
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -62,12 +69,13 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  bool hasPermission(Permission permission) {
-    return AuthService.hasPermission(_user, permission);
-  }
+  // bool hasPermission(Permission permission) {
+  //   return AuthService.hasPermission(_user, permission);
+  // }
 
   bool hasRole(UserRole role) {
-    return AuthService.hasRole(_user, role);
+    //return AuthService.hasRole(_user, role);
+    return AuthService.hasRolemodel(_usermodel, role);
   }
 
   void clearError() {

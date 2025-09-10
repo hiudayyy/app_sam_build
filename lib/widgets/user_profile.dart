@@ -1,3 +1,4 @@
+import 'package:csam_mobile/models/user_model.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
@@ -68,7 +69,11 @@ class UserProfile extends StatelessWidget {
                   radius: 16,
                   backgroundColor: Theme.of(context).primaryColor,
                   child: Text(
-                    user.fullName.isNotEmpty ? user.fullName[0].toUpperCase() : '?',
+                    (user.oneItem?.htTaiKhoan.tenTaiKhoan ?? '')
+                        .trim()
+                        .isNotEmpty
+                        ? user.oneItem!.htTaiKhoan.tenTaiKhoan[0].toUpperCase()
+                        : '?',
                     style: TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.w600,
@@ -86,7 +91,7 @@ class UserProfile extends StatelessWidget {
     );
   }
 
-  void _showProfileDialog(BuildContext context, User user) {
+  void _showProfileDialog(BuildContext context, UserModel user) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -96,7 +101,11 @@ class UserProfile extends StatelessWidget {
               radius: 24,
               backgroundColor: Theme.of(context).primaryColor,
               child: Text(
-                user.fullName.isNotEmpty ? user.fullName[0].toUpperCase() : '?',
+                (user.oneItem?.htTaiKhoan.tenTaiKhoan ?? '')
+                    .trim()
+                    .isNotEmpty
+                    ? user.oneItem!.htTaiKhoan.tenTaiKhoan[0].toUpperCase()
+                    : '?',
                 style: TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.w600,
@@ -110,11 +119,11 @@ class UserProfile extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    user.fullName,
+                    user.oneItem?.htTaiKhoan.tenTaiKhoan ?? "",
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
                   ),
                   Text(
-                    user.roleDisplayName,
+                    user.oneItem?.htTaiKhoan.maVaiTros.first.ten ?? "",
                     style: TextStyle(
                       fontSize: 14,
                       color: Colors.grey[600],
@@ -130,11 +139,11 @@ class UserProfile extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildInfoRow('Email', user.email),
+           // _buildInfoRow('Email', user.oneItem.htTaiKhoan.),
+         //   SizedBox(height: 12),
+            _buildInfoRow('Vai trò', user.oneItem?.htTaiKhoan.maVaiTros.first.ten ?? ""),
             SizedBox(height: 12),
-            _buildInfoRow('Vai trò', user.roleDisplayName),
-            SizedBox(height: 12),
-            _buildInfoRow('ID', user.id),
+            _buildInfoRow('ID', user.oneItem?.htTaiKhoan.id ?? ""),
             SizedBox(height: 16),
             Container(
               padding: EdgeInsets.all(12),

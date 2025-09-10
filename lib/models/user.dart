@@ -1,4 +1,4 @@
-enum UserRole { admin, nhaDauTu, quanTri, nguoiKiemDinh, nguoiLamVuon }
+enum UserRole { nft_admin/*admin*/, nhaDauTu, quanTri, nguoiKiemDinh, nguoiLamVuon }
 
 enum Permission {
   viewDashboard,
@@ -76,7 +76,7 @@ class User {
 
   String get roleDisplayName {
     switch (role) {
-      case UserRole.admin:
+      case UserRole.nft_admin:
         return 'Quản trị viên';
       case UserRole.nhaDauTu:
         return 'Nhà đầu tư';
@@ -91,7 +91,7 @@ class User {
 
   String get roleDescription {
     switch (role) {
-      case UserRole.admin:
+      case UserRole.nft_admin:
         return 'Toàn quyền quản trị hệ thống';
       case UserRole.nhaDauTu:
         return 'Theo dõi đầu tư và quản lý cây trồng';
@@ -105,7 +105,7 @@ class User {
   }
 
   static const Map<UserRole, List<Permission>> rolePermissions = {
-    UserRole.admin: [
+    UserRole.nft_admin: [
       Permission.viewDashboard,
       Permission.managePlants,
       Permission.updateDiary,

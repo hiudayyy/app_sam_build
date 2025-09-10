@@ -1,6 +1,7 @@
 import 'package:csam_mobile/screens/plants_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../models/user_model.dart';
 import 'add_plant_screen.dart';
 import 'dashboard_screen.dart';
 import 'diary_management_screen.dart';
@@ -169,8 +170,13 @@ class _HomeScreenState extends State<HomeScreen> {
         }
 
         // Get available tabs based on user permissions
-        final availableTabs = RoleBasedNavigation.getAvailableTabs(
-            authProvider.user!.role); // ✅ Fixed: use .role property
+        final maVaiTros = authProvider.user?.oneItem?.htTaiKhoan.maVaiTros ?? [];
+
+        final availableTabs = maVaiTros
+            .map((v) => RoleUtils.toUserRole(v.id))   // convert id → UserRole
+            .whereType<UserRole>()                   // bỏ null
+            .expand((role) => RoleBasedNavigation.getAvailableTabs(role))
+            .toList();// ✅ Fixed: use .role property
 
         // If current tab is not available, switch to first available tab
         if (availableTabs.isNotEmpty &&
