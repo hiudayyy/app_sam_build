@@ -1,4 +1,4 @@
-enum UserRole { nft_admin/*admin*/, nhaDauTu, quanTri, nguoiKiemDinh, nguoiLamVuon }
+enum UserRole { nft_admin/*admin*/, nhaDauTu, nft_garden, nguoiKiemDinh, nft_user }
 
 enum Permission {
   viewDashboard,
@@ -80,11 +80,11 @@ class User {
         return 'Quản trị viên';
       case UserRole.nhaDauTu:
         return 'Nhà đầu tư';
-      case UserRole.quanTri:
+      case UserRole.nft_garden:
         return 'Quản trị';
       case UserRole.nguoiKiemDinh:
         return 'Người kiểm định';
-      case UserRole.nguoiLamVuon:
+      case UserRole.nft_user:
         return 'Người làm vườn';
     }
   }
@@ -95,11 +95,11 @@ class User {
         return 'Toàn quyền quản trị hệ thống';
       case UserRole.nhaDauTu:
         return 'Theo dõi đầu tư và quản lý cây trồng';
-      case UserRole.quanTri:
+      case UserRole.nft_garden:
         return 'Quản trị vườn và xác thực chất lượng';
       case UserRole.nguoiKiemDinh:
         return 'Kiểm định và xác thực chất lượng';
-      case UserRole.nguoiLamVuon:
+      case UserRole.nft_user:
         return 'Chăm sóc và ghi nhật ký cây trồng';
     }
   }
@@ -123,7 +123,7 @@ class User {
       Permission.viewReports,
       Permission.exportData,
     ],
-    UserRole.quanTri: [
+    UserRole.nft_garden: [
       Permission.viewDashboard,
       Permission.managePlants,
       Permission.updateDiary,
@@ -141,7 +141,7 @@ class User {
       Permission.updateDiary,
       Permission.viewReports,
     ],
-    UserRole.nguoiLamVuon: [
+    UserRole.nft_user: [
       Permission.viewDashboard,
       Permission.managePlants,
       Permission.updateDiary,

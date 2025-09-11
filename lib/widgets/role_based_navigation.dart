@@ -26,9 +26,9 @@ class RoleBasedNavigation {
       roles: [
         UserRole.nft_admin,
         UserRole.nhaDauTu,
-        UserRole.quanTri,
+        UserRole.nft_garden,
         UserRole.nguoiKiemDinh,
-        UserRole.nguoiLamVuon,
+        UserRole.nft_user,
       ],
     ),
     TabConfig(
@@ -38,8 +38,8 @@ class RoleBasedNavigation {
       roles: [
         UserRole.nft_admin,
         UserRole.nhaDauTu,
-        UserRole.quanTri,
-        UserRole.nguoiLamVuon,
+        UserRole.nft_garden,
+        UserRole.nft_user,
       ],
     ),
     TabConfig(
@@ -48,9 +48,9 @@ class RoleBasedNavigation {
       icon: Icons.book_outlined,
       roles: [
         UserRole.nft_admin,
-        UserRole.quanTri,
+        UserRole.nft_garden,
         UserRole.nguoiKiemDinh,
-        UserRole.nguoiLamVuon,
+        UserRole.nft_user,
       ],
     ),
     TabConfig(
@@ -59,9 +59,9 @@ class RoleBasedNavigation {
       icon: Icons.thermostat_outlined,
       roles: [
         UserRole.nft_admin,
-        UserRole.quanTri,
+        UserRole.nft_garden,
         UserRole.nguoiKiemDinh,
-        UserRole.nguoiLamVuon,
+        UserRole.nft_user,
       ],
     ),
     TabConfig(
@@ -70,7 +70,7 @@ class RoleBasedNavigation {
       icon: Icons.verified_outlined,
       roles: [
         UserRole.nft_admin,
-        UserRole.quanTri,
+        UserRole.nft_garden,
         UserRole.nguoiKiemDinh,
       ],
     ),

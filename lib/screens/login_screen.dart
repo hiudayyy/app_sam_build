@@ -30,16 +30,9 @@ class _LoginScreenState extends State<LoginScreen> {
 
   void _handleLogin() async {
     if (_formKey.currentState!.validate()) {
-      // final credentials = LoginCredentials(
-      //   username: _usernameController.text,
-      //   password: _passwordController.text,
-      // );
-
-
       var model = LoginModel(
           uname: _usernameController.text,
           pass: _passwordController.text,);
-      var login = await api.login(model);
       context.read<AuthProvider>().login(model);
     }
   }
@@ -47,7 +40,7 @@ class _LoginScreenState extends State<LoginScreen> {
   void _handleDemoLogin(String username) {
     setState(() {
       _usernameController.text = username;
-      _passwordController.text = 'password123';
+      _passwordController.text = '123';
     });
   }
 
@@ -326,7 +319,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 Row(
                                   children: [
                                     Expanded(
-                                      child: _buildDemoButton('admin_farm', 'Quản trị', authProvider.isLoading),
+                                      child: _buildDemoButton('nft_garden', 'Quản trị', authProvider.isLoading),
                                     ),
                                     SizedBox(width: 12),
                                     Expanded(
@@ -338,7 +331,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 // Third row - 1 button centered
                                 SizedBox(
                                   width: double.infinity,
-                                  child: _buildDemoButton('worker', 'Làm vườn', authProvider.isLoading),
+                                  child: _buildDemoButton('user', 'Làm vườn', authProvider.isLoading),
                                 ),
                               ],
                             );

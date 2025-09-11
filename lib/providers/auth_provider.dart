@@ -27,13 +27,12 @@ class AuthProvider extends ChangeNotifier {
     try {
       _isLoading = true;
       notifyListeners();
-
       final storedUser = await AuthService.getStoredUser();
-      _user = storedUser;
+      _usermodel = storedUser;
       _error = null;
     } catch (e) {
       _error = e.toString();
-      _user = null;
+      _usermodel = null;
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -41,15 +40,23 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<void> login(LoginModel credentials) async {
-    try {
+      try {
       _isLoading = true;
       _error = null;
       notifyListeners();
-
       final user = await api.login(credentials);
-      _usermodel = user;
+      if(user == null){
+        _error = user?.message;
+        _user = null;
+      }else if(user.message == "Ok"){
+        _usermodel = user;
+      }else{
+        _error = user.message;
+        _user = null;
+      }
     } catch (e) {
-    _error = e.toString();
+   // _error = e.toString();
+      _error = "Lỗi không xác định!";
     _user = null;
     } finally {
       _isLoading = false;
@@ -60,6 +67,7 @@ class AuthProvider extends ChangeNotifier {
   Future<void> logout() async {
     try {
       await AuthService.logout();
+      _usermodel = null;
       _user = null;
       _error = null;
       notifyListeners();
@@ -68,6 +76,7 @@ class AuthProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
+
 
   // bool hasPermission(Permission permission) {
   //   return AuthService.hasPermission(_user, permission);

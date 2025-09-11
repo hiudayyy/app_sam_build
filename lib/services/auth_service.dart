@@ -1,11 +1,13 @@
 import 'dart:convert';
+import 'package:csam_mobile/api/api_login.dart';
 import 'package:csam_mobile/models/user_model.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../api/api.dart';
 import '../models/user.dart';
 
 class AuthService {
   static const String _userKey = 'ginseng_user';
-
+  final api = API();
   // Mock users data với 5 roles mới
   static final List<User> _mockUsers = [
     User(
@@ -37,8 +39,8 @@ class AuthService {
       username: 'admin_farm',
       email: 'admin.farm@ginsengfarm.com',
       fullName: 'Trần Thị Quản trị',
-      role: UserRole.quanTri,
-      permissions: User.rolePermissions[UserRole.quanTri]!,
+      role: UserRole.nft_garden,
+      permissions: User.rolePermissions[UserRole.nft_garden]!,
       avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face',
       lastLogin: '2024-01-15T07:45:00Z',
       isActive: true,
@@ -61,8 +63,8 @@ class AuthService {
       username: 'worker',
       email: 'worker@ginsengfarm.com',
       fullName: 'Phạm Thị Làm vườn',
-      role: UserRole.nguoiLamVuon,
-      permissions: User.rolePermissions[UserRole.nguoiLamVuon]!,
+      role: UserRole.nft_user,
+      permissions: User.rolePermissions[UserRole.nft_user]!,
       avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face',
       lastLogin: '2024-01-14T14:10:00Z',
       isActive: true,
@@ -118,16 +120,37 @@ class AuthService {
   }
 
   // Get stored user
-  static Future<User?> getStoredUser() async {
+  static Future<UserModel?> getStoredUser() async {
+    final api = API();
     try {
       final prefs = await SharedPreferences.getInstance();
-      final userJson = prefs.getString(_userKey);
 
-      if (userJson != null) {
-        final userMap = jsonDecode(userJson) as Map<String, dynamic>;
-        return User.fromJson(userMap);
+      // Lấy chuỗi JSON đã lưu
+      String? userJson = prefs.getString(_userKey);
+      if (userJson == null) return null; // chưa login lần nào
+
+      // Parse lại thành UserModel
+      final Map<String, dynamic> json = jsonDecode(userJson);
+      final user = UserModel.fromJson(json);
+
+      // Kiểm tra expiredAuthenticateToken
+      final expiredStr = user.oneItem?.expiredAuthenticateToken;
+      if (expiredStr != null && expiredStr.isNotEmpty) {
+        final expired = DateTime.tryParse(expiredStr);
+
+        if (expired != null) {
+          if (DateTime.now().isBefore(expired)) {
+            // Token còn hạn
+            return user;
+          } else {
+            // Token hết hạn -> xoá user khỏi prefs
+            api.resetToken(user);
+          }
+        }
       }
-      return null;
+
+      // Nếu không có expiredAuthenticateToken thì coi như token còn hiệu lực
+      return user;
     } catch (e) {
       // Clear corrupted data
       await logout();
@@ -136,10 +159,10 @@ class AuthService {
   }
 
   // Check if user is logged in
-  static Future<bool> isLoggedIn() async {
-    final user = await getStoredUser();
-    return user != null && user.isActive;
-  }
+  // static Future<bool> isLoggedIn() async {
+  //   final user = await getStoredUser();
+  //   return user != null && user.isActive;
+  // }
 
   // Check permission
   // static bool hasPermission(User? user, Permission permission) {

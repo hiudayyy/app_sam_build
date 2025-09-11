@@ -34,11 +34,15 @@ class UserModel {
 class OneItem {
   final String authenticateToken;
   final List<FuncsTagActive> funcsTagActives;
+  final String expiredAuthenticateToken;
+  final String refreshToken;
   final HTTaiKhoan htTaiKhoan;
 
   OneItem({
     required this.authenticateToken,
     required this.funcsTagActives,
+    required this.expiredAuthenticateToken,
+    required this.refreshToken,
     required this.htTaiKhoan,
   });
 
@@ -48,6 +52,9 @@ class OneItem {
       funcsTagActives: (json['funcsTagActives'] as List<dynamic>? ?? [])
           .map((e) => FuncsTagActive.fromJson(e))
           .toList(),
+      expiredAuthenticateToken: json['expiredAuthenticateToken'] ?? '',
+      refreshToken: json['refreshToken'] ?? '',
+
       htTaiKhoan: HTTaiKhoan.fromJson(json['htTaiKhoan']),
     );
   }
@@ -56,10 +63,13 @@ class OneItem {
     return {
       'authenticateToken': authenticateToken,
       'funcsTagActives': funcsTagActives.map((e) => e.toJson()).toList(),
+      'expiredAuthenticateToken': expiredAuthenticateToken,
+      'refreshToken':refreshToken,
       'htTaiKhoan': htTaiKhoan.toJson(),
     };
   }
 }
+
 
 class FuncsTagActive {
   final String tenController;
@@ -141,16 +151,16 @@ class VaiTro {
 class RoleUtils {
   static UserRole? toUserRole(String id) {
     switch (id) {
-      case "admin":
+      case "nft_admin":
         return UserRole.nft_admin;
       case "nhaDauTu":
         return UserRole.nhaDauTu;
-      case "quanTri":
-        return UserRole.quanTri;
+      case "nft_garden":
+        return UserRole.nft_garden;
       case "nguoiKiemDinh":
         return UserRole.nguoiKiemDinh;
-      case "nguoiLamVuon":
-        return UserRole.nguoiLamVuon;
+      case "nft_user":
+        return UserRole.nft_user;
       default:
         return null; // không map được
     }
