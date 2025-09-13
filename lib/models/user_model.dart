@@ -4,112 +4,36 @@ import 'package:intl/intl.dart';
 import 'message_enum.dart';
 
 class UserModel {
-  final MessCode messCode;
-  final String message;
-  final OneItem? oneItem;
-
-  UserModel({
-    required this.messCode,
-    required this.message,
-    this.oneItem,
-  });
-
-  factory UserModel.fromJson(Map<String, dynamic> json) {
-    return UserModel(
-      messCode: MessCode.values[json['messCode']],
-      message: json['message'] ?? '',
-      oneItem: json['oneItem'] != null ? OneItem.fromJson(json['oneItem']) : null,
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'messCode': messCode.index,
-      'message': message,
-      'oneItem': oneItem?.toJson(),
-    };
-  }
-}
-
-class OneItem {
-  final String authenticateToken;
-  final List<FuncsTagActive> funcsTagActives;
-  final String expiredAuthenticateToken;
-  final String refreshToken;
-  final HTTaiKhoan htTaiKhoan;
-
-  OneItem({
-    required this.authenticateToken,
-    required this.funcsTagActives,
-    required this.expiredAuthenticateToken,
-    required this.refreshToken,
-    required this.htTaiKhoan,
-  });
-
-  factory OneItem.fromJson(Map<String, dynamic> json) {
-    return OneItem(
-      authenticateToken: json['authenticateToken'] ?? '',
-      funcsTagActives: (json['funcsTagActives'] as List<dynamic>? ?? [])
-          .map((e) => FuncsTagActive.fromJson(e))
-          .toList(),
-      expiredAuthenticateToken: json['expiredAuthenticateToken'] ?? '',
-      refreshToken: json['refreshToken'] ?? '',
-
-      htTaiKhoan: HTTaiKhoan.fromJson(json['htTaiKhoan']),
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'authenticateToken': authenticateToken,
-      'funcsTagActives': funcsTagActives.map((e) => e.toJson()).toList(),
-      'expiredAuthenticateToken': expiredAuthenticateToken,
-      'refreshToken':refreshToken,
-      'htTaiKhoan': htTaiKhoan.toJson(),
-    };
-  }
-}
-
-
-class FuncsTagActive {
-  final String tenController;
-  final String funcsTagActive;
-
-  FuncsTagActive({
-    required this.tenController,
-    required this.funcsTagActive,
-  });
-
-  factory FuncsTagActive.fromJson(Map<String, dynamic> json) {
-    return FuncsTagActive(
-      tenController: json['tenController'] ?? '',
-      funcsTagActive: json['funcsTagActive'] ?? '',
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'tenController': tenController,
-      'funcsTagActive': funcsTagActive,
-    };
-  }
-}
-
-class HTTaiKhoan {
   final String id;
   final String tenTaiKhoan;
+  final String matKhau;
+  final String ngayKhoiTao;
+  final int trangThai;
+  final String sdt;
+  final String email;
   final List<VaiTro> maVaiTros;
 
-  HTTaiKhoan({
+  UserModel({
     required this.id,
     required this.tenTaiKhoan,
+    required this.matKhau,
+    required this.ngayKhoiTao,
+    required this.trangThai,
+    required this.sdt,
+    required this.email,
     required this.maVaiTros,
   });
 
-  factory HTTaiKhoan.fromJson(Map<String, dynamic> json) {
-    return HTTaiKhoan(
+
+  factory UserModel.fromJson(Map<String, dynamic> json) {
+    return UserModel(
       id: json['id'] ?? '',
       tenTaiKhoan: json['tenTaiKhoan'] ?? '',
+      matKhau: json['matKhau'] ?? '',
+      ngayKhoiTao: json['ngayKhoiTao'] ?? '',
+      trangThai: json['trangThai'] ?? 0,
+      sdt: json['sdt'] ?? '',
+      email: json['email'] ?? '',
       maVaiTros: (json['maVaiTros'] as List<dynamic>? ?? [])
           .map((e) => VaiTro.fromJson(e))
           .toList(),
@@ -120,7 +44,22 @@ class HTTaiKhoan {
     return {
       'id': id,
       'tenTaiKhoan': tenTaiKhoan,
+      'matKhau': matKhau,
+      'ngayKhoiTao': ngayKhoiTao,
+      'trangThai': trangThai,
+      'sdt': sdt,
+      'email': email,
       'maVaiTros': maVaiTros.map((e) => e.toJson()).toList(),
+    };
+  }
+  Map<String, dynamic> toJsondk() {
+    return {
+      "tenTaiKhoan": tenTaiKhoan,
+      "matKhau": matKhau,
+      "ngayKhoiTao": DateTime.now().toIso8601String(), // chuẩn ISO 8601
+      "trangThai": trangThai,
+      "sdt": sdt,
+      "email": email,
     };
   }
 }
@@ -128,16 +67,19 @@ class HTTaiKhoan {
 class VaiTro {
   final String id;
   final String ten;
+  final String? moTa;
 
   VaiTro({
     required this.id,
     required this.ten,
+    this.moTa,
   });
 
   factory VaiTro.fromJson(Map<String, dynamic> json) {
     return VaiTro(
       id: json['id'] ?? '',
       ten: json['ten'] ?? '',
+      moTa: json['moTa'],
     );
   }
 
@@ -145,9 +87,11 @@ class VaiTro {
     return {
       'id': id,
       'ten': ten,
+      'moTa': moTa,
     };
   }
 }
+
 class RoleUtils {
   static UserRole? toUserRole(String id) {
     switch (id) {

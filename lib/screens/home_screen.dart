@@ -170,7 +170,7 @@ class _HomeScreenState extends State<HomeScreen> {
         }
 
         // Get available tabs based on user permissions
-        final maVaiTros = authProvider.user?.oneItem?.htTaiKhoan.maVaiTros ?? [];
+        final maVaiTros = authProvider.user?.maVaiTros ?? [];
 
         final availableTabs = maVaiTros
             .map((v) => RoleUtils.toUserRole(v.id))   // convert id → UserRole

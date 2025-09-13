@@ -1,6 +1,7 @@
-import 'dart:ffi';
+import 'dart:ffi' hide Size;
 
 import 'package:csam_mobile/api/api_login.dart';
+import 'package:csam_mobile/screens/register_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../api/api.dart';
@@ -20,6 +21,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
+  bool _showRegister = false;
 
   @override
   void dispose() {
@@ -46,6 +48,15 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_showRegister) {
+      return RegisterScreen(
+        onSwitchToLogin: () {
+          setState(() {
+            _showRegister = false;
+          });
+        },
+      );
+    }
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
@@ -262,6 +273,50 @@ class _LoginScreenState extends State<LoginScreen> {
                                 ),
                               );
                             },
+                          ),
+                          Container(
+                            padding: EdgeInsets.only(top: 16),
+                            decoration: BoxDecoration(
+                              border: Border(
+                                top: BorderSide(color: Colors.grey[300]!),
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  'Chưa có tài khoản? ',
+                                  style: TextStyle(
+                                    color: Colors.grey[600],
+                                    fontSize: 14,
+                                  ),
+                                ),
+                                Consumer<AuthProvider>(
+                                  builder: (context, authProvider, child) {
+                                    return TextButton(
+                                      onPressed: authProvider.isLoading ? null : () {
+                                        setState(() {
+                                          _showRegister = true;
+                                        });
+                                      },
+                                      style: TextButton.styleFrom(
+                                        foregroundColor: Color(0xFF16A34A),
+                                        padding: EdgeInsets.zero,
+                                        minimumSize: const Size(0, 0),
+                                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                      ),
+                                      child: Text(
+                                        'Đăng ký ngay',
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ],
+                            ),
                           ),
                         ],
                       ),

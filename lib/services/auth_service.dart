@@ -3,6 +3,7 @@ import 'package:csam_mobile/api/api_login.dart';
 import 'package:csam_mobile/models/user_model.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../api/api.dart';
+import '../models/kttoken.dart';
 import '../models/user.dart';
 
 class AuthService {
@@ -73,45 +74,45 @@ class AuthService {
   ];
 
   // Login method
-  static Future<User> login(LoginCredentials credentials) async {
-    // Simulate API call delay
-    await Future.delayed(Duration(seconds: 1));
-
-    // Find user by username
-    final user = _mockUsers.firstWhere(
-          (u) => u.username == credentials.username,
-      orElse: () => throw Exception('Tên đăng nhập không tồn tại'),
-    );
-
-    if (!user.isActive) {
-      throw Exception('Tài khoản đã bị khóa');
-    }
-
-    // Simple password check (in real app, this would be hashed)
-    if (credentials.password != 'password123') {
-      throw Exception('Mật khẩu không chính xác');
-    }
-
-    // Update last login
-    final updatedUser = User(
-      id: user.id,
-      username: user.username,
-      email: user.email,
-      fullName: user.fullName,
-      role: user.role,
-      permissions: user.permissions,
-      avatar: user.avatar,
-      lastLogin: DateTime.now().toIso8601String(),
-      isActive: user.isActive,
-      createdAt: user.createdAt,
-    );
-
-    // Store in SharedPreferences
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_userKey, jsonEncode(updatedUser.toJson()));
-
-    return updatedUser;
-  }
+  // static Future<User> login(LoginCredentials credentials) async {
+  //   // Simulate API call delay
+  //   await Future.delayed(Duration(seconds: 1));
+  //
+  //   // Find user by username
+  //   // final user = _mockUsers.firstWhere(
+  //   //       (u) => u.username == credentials.username,
+  //   //   orElse: () => throw Exception('Tên đăng nhập không tồn tại'),
+  //   // );
+  //
+  //   // if (!user.isActive) {
+  //   //   throw Exception('Tài khoản đã bị khóa');
+  //   // }
+  //
+  //   // Simple password check (in real app, this would be hashed)
+  //   // if (credentials.password != 'password123') {
+  //   //   throw Exception('Mật khẩu không chính xác');
+  //   // }
+  //
+  //   // Update last login
+  //   // final updatedUser = User(
+  //   //   id: user.id,
+  //   //   username: user.username,
+  //   //   email: user.email,
+  //   //   fullName: user.fullName,
+  //   //   role: user.role,
+  //   //   permissions: user.permissions,
+  //   //   avatar: user.avatar,
+  //   //   lastLogin: DateTime.now().toIso8601String(),
+  //   //   isActive: user.isActive,
+  //   //   createdAt: user.createdAt,
+  //   // );
+  //
+  //   // Store in SharedPreferences
+  //   final prefs = await SharedPreferences.getInstance();
+  //   await prefs.setString(_userKey, jsonEncode(updatedUser.toJson()));
+  //
+  //   return updatedUser;
+  // }
 
   // Logout method
   static Future<void> logout() async {
@@ -131,17 +132,19 @@ class AuthService {
 
       // Parse lại thành UserModel
       final Map<String, dynamic> json = jsonDecode(userJson);
-      final user = UserModel.fromJson(json);
-
+      final user = Kttoken.fromJson(json);
+      if(user.authenticateToken == ""){
+        return null;
+      }
       // Kiểm tra expiredAuthenticateToken
-      final expiredStr = user.oneItem?.expiredAuthenticateToken;
-      if (expiredStr != null && expiredStr.isNotEmpty) {
+      final expiredStr = user.expiredAuthenticateToken;
+      if (expiredStr.isNotEmpty) {
         final expired = DateTime.tryParse(expiredStr);
 
         if (expired != null) {
           if (DateTime.now().isBefore(expired)) {
             // Token còn hạn
-            return user;
+            return user.htTaiKhoan;
           } else {
             // Token hết hạn -> xoá user khỏi prefs
             api.resetToken(user);
@@ -150,7 +153,7 @@ class AuthService {
       }
 
       // Nếu không có expiredAuthenticateToken thì coi như token còn hiệu lực
-      return user;
+      return user.htTaiKhoan;
     } catch (e) {
       // Clear corrupted data
       await logout();
@@ -173,7 +176,7 @@ class AuthService {
   static bool hasRole(User? user, UserRole role) {
     return user?.role == role;
   }
-  static bool hasRolemodel(UserModel? user, UserRole role) {
-    return user?.oneItem?.htTaiKhoan.maVaiTros.any((x) => x.id == role) ?? false;
+  static bool hasRolemodel(Kttoken? user, UserRole role) {
+    return user?.htTaiKhoan.maVaiTros.any((x) => x.id == role) ?? false;
   }
 }

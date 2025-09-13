@@ -1,6 +1,7 @@
 import 'package:csam_mobile/api/api_login.dart';
 import 'package:flutter/material.dart';
 import '../api/api.dart';
+import '../models/kttoken.dart';
 import '../models/login_model.dart';
 import '../models/user.dart';
 import '../models/user_model.dart';
@@ -8,20 +9,22 @@ import '../services/auth_service.dart';
 
 class AuthProvider extends ChangeNotifier {
   final api = API();
-  User? _user;
+ // User? _user;
   UserModel? _usermodel;
+  Kttoken? _kttoken;
   bool _isLoading = true;
   String? _error;
 
+  AuthProvider() {
+    _checkStoredUser();
+  }
   //User? get user => _user;
   UserModel? get user => _usermodel;
   bool get isAuthenticated => _usermodel != null;
   bool get isLoading => _isLoading;
   String? get error => _error;
 
-  AuthProvider() {
-    _checkStoredUser();
-  }
+
 
   Future<void> _checkStoredUser() async {
     try {
@@ -47,17 +50,18 @@ class AuthProvider extends ChangeNotifier {
       final user = await api.login(credentials);
       if(user == null){
         _error = user?.message;
-        _user = null;
+        _usermodel = null;
       }else if(user.message == "Ok"){
-        _usermodel = user;
+        _usermodel = user.oneItem?.htTaiKhoan;
       }else{
         _error = user.message;
-        _user = null;
+        _usermodel = null;
       }
     } catch (e) {
    // _error = e.toString();
       _error = "Lỗi không xác định!";
-    _user = null;
+      print(_error);
+      _usermodel = null;
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -68,7 +72,7 @@ class AuthProvider extends ChangeNotifier {
     try {
       await AuthService.logout();
       _usermodel = null;
-      _user = null;
+    //  _user = null;
       _error = null;
       notifyListeners();
     } catch (e) {
@@ -77,14 +81,28 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-
+  Future<String?> register(UserModel credentials) async {
+    try {
+      notifyListeners();
+      var item = await api.register(credentials);
+      _usermodel = null;
+      _error = null;
+      if(item?.message != "OK"){
+        return item?.message;
+      }
+    } catch (e) {
+      _error = e.toString();
+      return _error;
+      notifyListeners();
+    }
+  }
   // bool hasPermission(Permission permission) {
   //   return AuthService.hasPermission(_user, permission);
   // }
 
   bool hasRole(UserRole role) {
     //return AuthService.hasRole(_user, role);
-    return AuthService.hasRolemodel(_usermodel, role);
+    return AuthService.hasRolemodel(_kttoken, role);
   }
 
   void clearError() {

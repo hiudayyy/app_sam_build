@@ -69,10 +69,10 @@ class UserProfile extends StatelessWidget {
                   radius: 16,
                   backgroundColor: Theme.of(context).primaryColor,
                   child: Text(
-                    (user.oneItem?.htTaiKhoan.tenTaiKhoan ?? '')
+                    (user.tenTaiKhoan ?? '')
                         .trim()
                         .isNotEmpty
-                        ? user.oneItem!.htTaiKhoan.tenTaiKhoan[0].toUpperCase()
+                        ? user.tenTaiKhoan[0].toUpperCase()
                         : '?',
                     style: TextStyle(
                       color: Colors.white,
@@ -101,10 +101,10 @@ class UserProfile extends StatelessWidget {
               radius: 24,
               backgroundColor: Theme.of(context).primaryColor,
               child: Text(
-                (user.oneItem?.htTaiKhoan.tenTaiKhoan ?? '')
+                (user.tenTaiKhoan ?? '')
                     .trim()
                     .isNotEmpty
-                    ? user.oneItem!.htTaiKhoan.tenTaiKhoan[0].toUpperCase()
+                    ? user.tenTaiKhoan[0].toUpperCase()
                     : '?',
                 style: TextStyle(
                   color: Colors.white,
@@ -119,11 +119,11 @@ class UserProfile extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    user.oneItem?.htTaiKhoan.tenTaiKhoan ?? "",
+                    user.tenTaiKhoan ?? "",
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
                   ),
                   Text(
-                    user.oneItem?.htTaiKhoan.maVaiTros.first.ten ?? "",
+                     "",
                     style: TextStyle(
                       fontSize: 14,
                       color: Colors.grey[600],
@@ -139,11 +139,9 @@ class UserProfile extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-           // _buildInfoRow('Email', user.oneItem.htTaiKhoan.),
-         //   SizedBox(height: 12),
-            _buildInfoRow('Vai trò', user.oneItem?.htTaiKhoan.maVaiTros.first.ten ?? ""),
+            _buildInfoRow('Email', user.email),
             SizedBox(height: 12),
-            _buildInfoRow('ID', user.oneItem?.htTaiKhoan.id ?? ""),
+            _buildInfoRow('ID', user.id ?? ""),
             SizedBox(height: 16),
             Container(
               padding: EdgeInsets.all(12),

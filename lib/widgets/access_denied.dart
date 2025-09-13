@@ -97,7 +97,7 @@ class AccessDenied extends StatelessWidget {
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            (user.oneItem?.htTaiKhoan.tenTaiKhoan ?? ""),
+                            (user.tenTaiKhoan ?? ""),
                             style: const TextStyle(
                               fontWeight: FontWeight.w600,
                               fontSize: 14,
