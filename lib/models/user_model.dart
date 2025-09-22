@@ -11,7 +11,7 @@ class UserModel {
   final int trangThai;
   final String sdt;
   final String email;
-  final List<VaiTro> maVaiTros;
+  final List<htPhanQuyenTaiKhoan> htPhanQuyenTaiKhoans;
 
   UserModel({
     required this.id,
@@ -21,7 +21,7 @@ class UserModel {
     required this.trangThai,
     required this.sdt,
     required this.email,
-    required this.maVaiTros,
+    required this.htPhanQuyenTaiKhoans,
   });
 
 
@@ -34,8 +34,8 @@ class UserModel {
       trangThai: json['trangThai'] ?? 0,
       sdt: json['sdt'] ?? '',
       email: json['email'] ?? '',
-      maVaiTros: (json['maVaiTros'] as List<dynamic>? ?? [])
-          .map((e) => VaiTro.fromJson(e))
+      htPhanQuyenTaiKhoans: (json['htPhanQuyenTaiKhoans'] as List<dynamic>? ?? [])
+          .map((e) => htPhanQuyenTaiKhoan.fromJson(e))
           .toList(),
     );
   }
@@ -49,7 +49,7 @@ class UserModel {
       'trangThai': trangThai,
       'sdt': sdt,
       'email': email,
-      'maVaiTros': maVaiTros.map((e) => e.toJson()).toList(),
+      'htPhanQuyenTaiKhoans': htPhanQuyenTaiKhoans.map((e) => e.toJson()).toList(),
     };
   }
   Map<String, dynamic> toJsondk() {
@@ -64,30 +64,34 @@ class UserModel {
   }
 }
 
-class VaiTro {
-  final String id;
-  final String ten;
-  final String? moTa;
+class htPhanQuyenTaiKhoan {
+  final String maTaiKhoan;
+  final String? hT_TaiKhoan;
+  final String maVaiTro;
+  final String? hT_VaiTro;
 
-  VaiTro({
-    required this.id,
-    required this.ten,
-    this.moTa,
+  htPhanQuyenTaiKhoan({
+    required this.maTaiKhoan,
+    this.hT_TaiKhoan,
+    required this.maVaiTro,
+    this.hT_VaiTro,
   });
 
-  factory VaiTro.fromJson(Map<String, dynamic> json) {
-    return VaiTro(
-      id: json['id'] ?? '',
-      ten: json['ten'] ?? '',
-      moTa: json['moTa'],
+  factory htPhanQuyenTaiKhoan.fromJson(Map<String, dynamic> json) {
+    return htPhanQuyenTaiKhoan(
+      maTaiKhoan: json['maTaiKhoan'] ?? '',
+      hT_TaiKhoan: json['hT_TaiKhoan'],
+      maVaiTro: json['maVaiTro'] ?? '',
+      hT_VaiTro: json['hT_VaiTro'],
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
-      'id': id,
-      'ten': ten,
-      'moTa': moTa,
+      'maTaiKhoan': maTaiKhoan,
+      'hT_TaiKhoan': hT_TaiKhoan,
+      'maVaiTro': maVaiTro,
+      'hT_VaiTro':hT_VaiTro,
     };
   }
 }
@@ -97,8 +101,8 @@ class RoleUtils {
     switch (id) {
       case "nft_admin":
         return UserRole.nft_admin;
-      case "nhaDauTu":
-        return UserRole.nhaDauTu;
+      case "nft_invester":
+        return UserRole.nft_invester;
       case "nft_garden":
         return UserRole.nft_garden;
       case "nguoiKiemDinh":

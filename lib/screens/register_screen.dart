@@ -102,7 +102,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         tenTaiKhoan: _usernameController.text.trim(),
         matKhau: _passwordController.text,
         sdt: _phoneController.text.trim(),
-        email: _emailController.text.trim(), id: '', ngayKhoiTao: DateTime.now().toString(), trangThai: 0, maVaiTros: []
+        email: _emailController.text.trim(), id: '', ngayKhoiTao: DateTime.now().toString(), trangThai: 0, htPhanQuyenTaiKhoans: []
       );
 
       final authProvider = context.read<AuthProvider>();

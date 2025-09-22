@@ -6,6 +6,7 @@ import 'add_plant_screen.dart';
 import 'dashboard_screen.dart';
 import 'diary_management_screen.dart';
 import 'environment_management_screen.dart';
+import 'investor_plant_view_screen.dart';
 import 'verification_screen.dart';
 import 'plant_detail_screen.dart';
 import 'batch_diary_update_screen.dart';
@@ -170,10 +171,10 @@ class _HomeScreenState extends State<HomeScreen> {
         }
 
         // Get available tabs based on user permissions
-        final maVaiTros = authProvider.user?.maVaiTros ?? [];
+        final maVaiTros = authProvider.user?.htPhanQuyenTaiKhoans ?? [];
 
         final availableTabs = maVaiTros
-            .map((v) => RoleUtils.toUserRole(v.id))   // convert id → UserRole
+            .map((v) => RoleUtils.toUserRole(v.maVaiTro))   // convert id → UserRole
             .whereType<UserRole>()                   // bỏ null
             .expand((role) => RoleBasedNavigation.getAvailableTabs(role))
             .toList();// ✅ Fixed: use .role property
@@ -228,7 +229,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             actions: [
               // Show batch diary button only on plants tab
-              if (_currentTab == NavTab.plants)
+              if (_currentTab == NavTab.plants && !maVaiTros.any((role) => role.maVaiTro == "nft_invester"))
                 Padding(
                   padding: EdgeInsets.only(right: 8),
                   child: ElevatedButton(

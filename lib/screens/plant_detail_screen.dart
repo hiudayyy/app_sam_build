@@ -197,7 +197,7 @@ class PlantDetailScreen extends StatelessWidget {
               icon: Icons.calendar_today,
               label: 'Ngày trồng',
               value: plant.ngayTrong != null
-                  ? DateFormat('dd/MM/yyyy').format(plant.ngayTrong!) // ✅ Fixed: plant.ngayTrong is already DateTime
+                  ? DateFormat('dd/MM/yyyy').format(DateTime.parse(plant.ngayTrong!))
                   : 'Chưa xác định',
             ),
             _buildDetailRow(

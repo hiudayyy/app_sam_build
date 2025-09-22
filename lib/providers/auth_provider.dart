@@ -1,5 +1,8 @@
+import 'dart:io';
+
 import 'package:csam_mobile/api/api_login.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart';
 import '../api/api.dart';
 import '../models/kttoken.dart';
 import '../models/login_model.dart';
@@ -58,9 +61,13 @@ class AuthProvider extends ChangeNotifier {
         _usermodel = null;
       }
     } catch (e) {
-   // _error = e.toString();
-      _error = "Lỗi không xác định!";
-      print(_error);
+        if (e is SocketException) {
+          _error = e.message; // "Connection refused"
+        } else if (e is ClientException) {
+          _error = e.message;
+        } else {
+          _error = "Lỗi không xác định!";
+        }
       _usermodel = null;
     } finally {
       _isLoading = false;
@@ -92,8 +99,9 @@ class AuthProvider extends ChangeNotifier {
       }
     } catch (e) {
       _error = e.toString();
-      return _error;
       notifyListeners();
+      return _error;
+
     }
   }
   // bool hasPermission(Permission permission) {

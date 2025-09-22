@@ -28,8 +28,8 @@ class AuthService {
       username: 'investor',
       email: 'investor@ginsengfarm.com',
       fullName: 'Nguyễn Văn Đầu tư',
-      role: UserRole.nhaDauTu,
-      permissions: User.rolePermissions[UserRole.nhaDauTu]!,
+      role: UserRole.nft_invester,
+      permissions: User.rolePermissions[UserRole.nft_invester]!,
       avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face',
       lastLogin: '2024-01-15T09:15:00Z',
       isActive: true,
@@ -139,7 +139,7 @@ class AuthService {
       // Kiểm tra expiredAuthenticateToken
       final expiredStr = user.expiredAuthenticateToken;
       if (expiredStr.isNotEmpty) {
-        final expired = DateTime.tryParse(expiredStr);
+        final expired = parseCustomDate(expiredStr);
 
         if (expired != null) {
           if (DateTime.now().isBefore(expired)) {
@@ -177,6 +177,18 @@ class AuthService {
     return user?.role == role;
   }
   static bool hasRolemodel(Kttoken? user, UserRole role) {
-    return user?.htTaiKhoan.maVaiTros.any((x) => x.id == role) ?? false;
+    return user?.htTaiKhoan.htPhanQuyenTaiKhoans.any((x) => x.maVaiTro == role) ?? false;
   }
+}
+
+DateTime? parseCustomDate(String input) {
+  if (input.length != 14) return null;
+  return DateTime(
+    int.parse(input.substring(0, 4)),   // yyyy
+    int.parse(input.substring(4, 6)),   // MM
+    int.parse(input.substring(6, 8)),   // dd
+    int.parse(input.substring(8, 10)),  // HH
+    int.parse(input.substring(10, 12)), // mm
+    int.parse(input.substring(12, 14)), // ss
+  );
 }

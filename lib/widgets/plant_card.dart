@@ -101,7 +101,7 @@ class PlantCard extends StatelessWidget {
                   _buildDetailRow(
                     icon: Icons.calendar_today,
                     text: plant.ngayTrong != null
-                        ? 'Trồng: ${DateFormat('dd/MM/yyyy').format(plant.ngayTrong!)}'
+                        ? 'Trồng: ${DateFormat('dd/MM/yyyy').format(DateTime.parse(plant.ngayTrong!))}'
                         : 'Chưa có ngày trồng',
                   ),
                   SizedBox(height: 8),

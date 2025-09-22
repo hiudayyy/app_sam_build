@@ -25,7 +25,7 @@ class RoleBasedNavigation {
       icon: Icons.dashboard_outlined,
       roles: [
         UserRole.nft_admin,
-        UserRole.nhaDauTu,
+        UserRole.nft_invester,
         UserRole.nft_garden,
         UserRole.nguoiKiemDinh,
         UserRole.nft_user,
@@ -37,9 +37,9 @@ class RoleBasedNavigation {
       icon: Icons.eco_outlined,
       roles: [
         UserRole.nft_admin,
-        UserRole.nhaDauTu,
         UserRole.nft_garden,
         UserRole.nft_user,
+        UserRole.nft_invester,
       ],
     ),
     TabConfig(

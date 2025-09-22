@@ -16,23 +16,7 @@ extension APIExtension on API {
     var body = jsonEncode(model.toJsonGet());
     final response = await http.post(
       Uri.parse(linkURL),
-      headers: <String, String>{
-        "accept":
-        "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
-        "accept-language": "en-US,en;q=0.9,vi;q=0.8",
-        "cache-control": "max-age=0",
-        "content-type": "application/json",
-        "priority": "u=1, i",
-        "sec-ch-ua":
-        "\"Chromium\";v=\"128\", \"Not;A=Brand\";v=\"24\", \"Microsoft Edge\";v=\"128\"",
-        "sec-ch-ua-mobile": "?0",
-        "sec-ch-ua-platform": "\"Windows\"",
-        "sec-fetch-dest": "empty",
-        "sec-fetch-mode": "cors",
-        "sec-fetch-site": "cross-site",
-        "upgrade-insecure-requests": "1",
-        "referrer-policy": "strict-origin-when-cross-origin",
-      },
+      headers: headerSvkt1,
       body: body,
     );
     if (response.statusCode == 200) {
@@ -48,7 +32,6 @@ extension APIExtension on API {
       }
       return data;
     } else {
-      print('Lỗi khi gọi API: ${response.statusCode} - $linkURL');
       return null;
     }
   }
@@ -57,23 +40,9 @@ extension APIExtension on API {
     var body = jsonEncode(model.toJson());
     final response = await http.post(
       Uri.parse(linkURL),
-      headers: <String, String>{
-        "accept":
-        "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
-        "accept-language": "en-US,en;q=0.9,vi;q=0.8",
-        "cache-control": "max-age=0",
-        "content-type": "application/json",
-        "priority": "u=1, i",
-        "sec-ch-ua":
-        "\"Chromium\";v=\"128\", \"Not;A=Brand\";v=\"24\", \"Microsoft Edge\";v=\"128\"",
-        "sec-ch-ua-mobile": "?0",
-        "sec-ch-ua-platform": "\"Windows\"",
-        "sec-fetch-dest": "empty",
-        "sec-fetch-mode": "cors",
-        "sec-fetch-site": "cross-site",
-        "upgrade-insecure-requests": "1",
-        "referrer-policy": "strict-origin-when-cross-origin",
-        "authenticateToken": model.refreshToken ?? "",
+      headers: {
+        ...headerSvkt1,
+        "authenticateToken": model.refreshToken ?? "" ,
       },
       body: body,
     );
@@ -88,7 +57,6 @@ extension APIExtension on API {
       }
       return data;
     } else {
-      print('Lỗi khi gọi API: ${response.statusCode} - $linkURL');
       return null;
     }
   }
@@ -98,23 +66,7 @@ extension APIExtension on API {
     var body = jsonEncode(model.toJsondk());
     final response = await http.post(
       Uri.parse(linkURL),
-      headers: <String, String>{
-        "accept":
-        "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
-        "accept-language": "en-US,en;q=0.9,vi;q=0.8",
-        "cache-control": "max-age=0",
-        "content-type": "application/json",
-        "priority": "u=1, i",
-        "sec-ch-ua":
-        "\"Chromium\";v=\"128\", \"Not;A=Brand\";v=\"24\", \"Microsoft Edge\";v=\"128\"",
-        "sec-ch-ua-mobile": "?0",
-        "sec-ch-ua-platform": "\"Windows\"",
-        "sec-fetch-dest": "empty",
-        "sec-fetch-mode": "cors",
-        "sec-fetch-site": "cross-site",
-        "upgrade-insecure-requests": "1",
-        "referrer-policy": "strict-origin-when-cross-origin",
-      },
+      headers: headerSvkt1,
       body: body,
     );
     if (response.statusCode == 200) {
@@ -125,8 +77,6 @@ extension APIExtension on API {
       );
       return data;
     } else {
-      print('Lỗi khi gọi API: ${response.statusCode} - $linkURL');
-      print('Chi tiết lỗi: ${response.body}');
       return null;
     }
   }

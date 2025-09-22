@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
-import '../models/cay_sam.dart';
 import '../data/mock_data.dart';
 
 class BatchDiaryUpdateScreen extends StatefulWidget {
@@ -69,32 +67,6 @@ class _BatchDiaryUpdateScreenState extends State<BatchDiaryUpdateScreen> {
     });
   }
 
-  void _selectByStatus(String status) {
-    List<String> plantIds = [];
-
-    if (status == 'needs_update') {
-      // Plants that need update (older than 7 days)
-      final now = DateTime.now();
-      plantIds = MockData.mockPlants
-          .where((plant) {
-        // Since we don't have lastUpdate field, use ngayTrong as fallback
-        final daysSince = now.difference(plant.ngayTrong ?? now).inDays;
-        return daysSince > 7;
-      })
-          .map((plant) => plant.id)
-          .toList();
-    } else if (status == 'weak') {
-      // Plants with poor health status
-      plantIds = MockData.mockPlants
-          .where((plant) => plant.trangThai == TrangThaiCay.yeu || plant.trangThai == TrangThaiCay.benh)
-          .map((plant) => plant.id)
-          .toList();
-    }
-
-    setState(() {
-      _selectedPlantIds = plantIds;
-    });
-  }
 
   void _togglePlantSelection(String plantId) {
     setState(() {

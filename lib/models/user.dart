@@ -1,4 +1,4 @@
-enum UserRole { nft_admin/*admin*/, nhaDauTu, nft_garden, nguoiKiemDinh, nft_user }
+enum UserRole { nft_admin/*admin*/, nft_invester, nft_garden, nguoiKiemDinh, nft_user }
 
 enum Permission {
   viewDashboard,
@@ -78,7 +78,7 @@ class User {
     switch (role) {
       case UserRole.nft_admin:
         return 'Quản trị viên';
-      case UserRole.nhaDauTu:
+      case UserRole.nft_invester:
         return 'Nhà đầu tư';
       case UserRole.nft_garden:
         return 'Quản trị';
@@ -93,7 +93,7 @@ class User {
     switch (role) {
       case UserRole.nft_admin:
         return 'Toàn quyền quản trị hệ thống';
-      case UserRole.nhaDauTu:
+      case UserRole.nft_invester:
         return 'Theo dõi đầu tư và quản lý cây trồng';
       case UserRole.nft_garden:
         return 'Quản trị vườn và xác thực chất lượng';
@@ -117,7 +117,7 @@ class User {
       Permission.viewReports,
       Permission.exportData,
     ],
-    UserRole.nhaDauTu: [
+    UserRole.nft_invester: [
       Permission.viewDashboard,
       Permission.managePlants,
       Permission.viewReports,
