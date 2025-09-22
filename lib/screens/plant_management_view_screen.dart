@@ -1,5 +1,6 @@
 import 'package:csam_mobile/api/api_caytrong.dart';
 import 'package:csam_mobile/models/vuontrong/losamcamera_model.dart';
+import 'package:csam_mobile/screens/plant_detail_screen.dart';
 import 'package:flutter/material.dart';
 import '../api/api.dart';
 import '../models/camera.dart';
@@ -260,9 +261,9 @@ class _PlantManagementViewScreenState extends State<PlantManagementViewScreen> {
       padding: const EdgeInsets.all(16.0),
       child: Column(
         children: [
-          if(currentLevel == NavigationLevel.grid)
-          _buildAgeGroupStats(),
-          const SizedBox(height: 16),
+          // if(currentLevel == NavigationLevel.grid)
+          // _buildAgeGroupStats(),
+
           /*_buildOverallStats(),
           const SizedBox(height: 16),*/
           Expanded(
@@ -297,10 +298,10 @@ class _PlantManagementViewScreenState extends State<PlantManagementViewScreen> {
 
   Widget _buildAgeGroupStats() {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+      padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 6),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
+        // borderRadius: BorderRadius.circular(10),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.05),
@@ -324,16 +325,16 @@ class _PlantManagementViewScreenState extends State<PlantManagementViewScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Expanded(
-                child: _buildAgeGroupItem(FontAwesomeIcons.seedling, '1-3(N)'/*, losamchitiet?.firstWhere((e) => e.id == 1).soLuong ?? 0*/, Colors.green[400]!),
+                child: _buildAgeGroupItem(FontAwesomeIcons.seedling, '1-3(N)', losamchitiet.sl(1), Colors.green[400]!),
               ),
               Expanded(
-                child: _buildAgeGroupItem(FontAwesomeIcons.leaf, '4-6(N)'/*, losamchitiet?.firstWhere((e) => e.id == 2).soLuong ?? 0*/, Colors.green[600]!),
+                child: _buildAgeGroupItem(FontAwesomeIcons.leaf, '4-6(N)', losamchitiet.sl(2), Colors.green[600]!),
               ),
               Expanded(
-                child: _buildAgeGroupItem(Icons.park, '7-8(N)'/*, losamchitiet?.firstWhere((e) => e.id == 3).soLuong ?? 0*/, Colors.green[700]!),
+                child: _buildAgeGroupItem(Icons.park, '7-8(N)', losamchitiet.sl(3), Colors.green[700]!),
               ),
               Expanded(
-                child: _buildAgeGroupItem(Icons.forest, '9-10(N)'/*, losamchitiet?.firstWhere((e) => e.id == 4).soLuong ?? 0*/, Colors.green[800]!),
+                child: _buildAgeGroupItem(Icons.forest, '9-10(N)', losamchitiet.sl(4), Colors.green[800]!),
               ),
             ],
           ),
@@ -342,12 +343,12 @@ class _PlantManagementViewScreenState extends State<PlantManagementViewScreen> {
     );
   }
 
-  Widget _buildAgeGroupItem(IconData icon, String label/*, int? count*/, Color color) {
+  Widget _buildAgeGroupItem(IconData icon, String label, int? count, Color color) {
     return Container(
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
         color: Colors.grey[100],
-        borderRadius: BorderRadius.circular(8),
+        // borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
         children: [
@@ -366,7 +367,7 @@ class _PlantManagementViewScreenState extends State<PlantManagementViewScreen> {
               borderRadius: BorderRadius.circular(12),
             ),
             child: Text(
-              /*count.toString() ??*/ "0",
+              count.toString() ?? "0",
               style: const TextStyle(fontSize: 10),
             ),
           ),
@@ -748,7 +749,9 @@ class _PlantManagementViewScreenState extends State<PlantManagementViewScreen> {
         }
 
         final listcaysam = snapshot.data;
-          losamchitiet = listcaysam?.loSamChiTiets;
+
+        losamchitiet = listcaysam?.loSamChiTiets;
+
         final areaPlants = listcaysam?.caySams ?? [];
 
         final allPlantPositions = areaPlants
@@ -759,13 +762,15 @@ class _PlantManagementViewScreenState extends State<PlantManagementViewScreen> {
         return SingleChildScrollView(
           child: Column(
             children: [
-              Text("Tên lô: ${listcaysam?.tenLo ?? 'Chưa có'}"),
+              _buildAgeGroupStats(),
+              const SizedBox(height: 16),
+              Text("Tên lô: ${listcaysam?.tenLo ?? 'Chưa có'}",style: TextStyle(fontWeight: FontWeight.w600,fontSize: 16),),
               const SizedBox(height: 16),
               _buildLegend(listcaysam),
               const SizedBox(height: 16),
               _buildPlantGrid(areaPlants, allPlantPositions),
+              const SizedBox(height: 16),
               if (selectedPlant != null) ...[
-                const SizedBox(height: 16),
                 _buildSelectedPlantDetails(areaPlants),
               ],
             ],
@@ -1097,11 +1102,33 @@ class _PlantManagementViewScreenState extends State<PlantManagementViewScreen> {
                             child: AspectRatio(
                               aspectRatio: 1,
                               child: GestureDetector(
-                                onTap: hasPlant ? () {
-                                  setState(() {
-                                    selectedPlant = selectedPlant == plant?.caySamId ? null : plant?.caySamId;
-                                  });
-                                } : null,
+                                onTap: hasPlant
+                                    ? () {
+                                  final selected = areaPlants?.firstWhere(
+                                        (p) => p.caySamId == plant?.caySamId,
+                                    orElse: () => CaySamModel(
+                                      caySamId: '',
+                                      loSamId: 0,
+                                      viTriTrongLo: '',
+                                      tuoiCayId: 0,
+                                    ),
+                                  );
+
+                                  if (selected != null && selected.caySamId.isNotEmpty) {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => PlantDetailScreen(
+                                          plant: selected,
+                                          onBack: () {
+                                            Navigator.pop(context);
+                                          },
+                                        ),
+                                      ),
+                                    );
+                                  }
+                                }
+                                    : null,
                                 child: Container(
                                   margin: const EdgeInsets.symmetric(horizontal: 2),
                                   decoration: BoxDecoration(
@@ -1189,10 +1216,16 @@ class _PlantManagementViewScreenState extends State<PlantManagementViewScreen> {
   Widget _buildSelectedPlantDetails(List<CaySamModel>? areaPlants) {
     final plant = areaPlants?.firstWhere(
           (p) => p.caySamId == selectedPlant,
-      orElse: () => CaySamModel( caySamId: '', loSamId: 0, viTriTrongLo: '', tuoiCayId: 0),
+      orElse: () => CaySamModel(
+        caySamId: '',
+        loSamId: 0,
+        viTriTrongLo: '',
+        tuoiCayId: 0,
+      ),
     );
 
-    if (plant == null || (plant.caySamId.isEmpty ?? true)) {
+    // Nếu không tìm thấy cây
+    if (plant == null || plant.caySamId.isEmpty) {
       return const SizedBox();
     }
 
@@ -1226,7 +1259,19 @@ class _PlantManagementViewScreenState extends State<PlantManagementViewScreen> {
                 ),
               ),
               ElevatedButton.icon(
-                onPressed: () => widget.onPlantSelect(plant.caySamId),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => PlantDetailScreen(
+                        plant: plant,
+                        onBack: () {
+                          Navigator.pop(context);
+                        },
+                      ),
+                    ),
+                  );
+                },
                 icon: const Icon(Icons.visibility, size: 16),
                 label: const Text('Chi tiết'),
                 style: ElevatedButton.styleFrom(
@@ -1242,33 +1287,22 @@ class _PlantManagementViewScreenState extends State<PlantManagementViewScreen> {
           GridView.count(
             crossAxisCount: 2,
             shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
             childAspectRatio: 3,
             crossAxisSpacing: 16,
             mainAxisSpacing: 12,
-            // physics: const NeverScrollableScrollPhysics(),
             children: [
               _buildDetailItem('Vị trí', plant.viTriTrongLo ?? 'N/A'),
-              //Chờ trường trạng thái
-              /*_buildDetailItem('Trạng thái', plant.trangThai?.displayName ?? 'Chưa xác định'),*/
               _buildDetailItem('Tuổi cây', '$ageGroup ($age năm)'),
-              //Làm sau
-              /*_buildDetailItem('Nhà đầu tư', plant.investorId != null ? 'Có' : 'Chưa có'),*/
             ],
           ),
           const SizedBox(height: 12),
           _buildDetailItem('Tên cây', plant.blockChain ?? ''),
-          const SizedBox(height: 12),
-          //làm sau
-          /*_buildDetailItem(
-            'Ngày trồng',
-            plant.ngayTrong != null
-                ? DateTime.parse(plant.ngayTrong!).toString().split(' ')[0]
-                : 'N/A',
-          ),*/
         ],
       ),
     );
   }
+
 
   Widget _buildDetailItem(String label, String value) {
     return Column(
@@ -1321,4 +1355,17 @@ class _AreaWithStats {
     required this.plantCount,
     required this.plantsWithInvestors,
   });
+}
+extension LoSamChiTietExt on List<LoSamChiTietModel>? {
+  int sl(int id) =>
+      this?.firstWhere(
+            (e) => e.id == id,
+        orElse: () => LoSamChiTietModel(
+          id: 0,
+          loSamId: 0,
+          loSamLoaiTuoiId: 0,
+          soLuong: 0,
+          trangThai: 0,
+        ),
+      ).soLuong ?? 0;
 }

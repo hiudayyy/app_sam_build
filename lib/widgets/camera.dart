@@ -42,7 +42,7 @@ class _CameraViewState extends State<CameraView> {
                   Text(
                     'Danh sách camera (${widget.cameras.length})',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w600,fontSize: MediaQuery.of(context).size.width * 0.027
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -91,9 +91,9 @@ class _CameraViewState extends State<CameraView> {
                                             children: [
                                               Text(
                                                 camera.loSamLoaiCamera?.ten ?? "",
-                                                style: const TextStyle(
+                                                style:  TextStyle(
                                                   fontWeight: FontWeight.w500,
-                                                  fontSize: 14,
+                                                    fontSize: MediaQuery.of(context).size.width * 0.024
                                                 ),
                                               ),
                                               Row(

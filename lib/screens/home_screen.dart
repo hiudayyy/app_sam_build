@@ -158,16 +158,16 @@ class _HomeScreenState extends State<HomeScreen> {
             orElse: () => CaySam.empty(),
           );
 
-          if (plant.id.isNotEmpty) {
-            return PlantDetailScreen(
-              plant: plant,
-              onBack: () {
-                setState(() {
-                  _selectedPlantId = null;
-                });
-              },
-            );
-          }
+          // if (plant.id.isNotEmpty) {
+          //   return PlantDetailScreen(
+          //     plant: plant,
+          //     onBack: () {
+          //       setState(() {
+          //         _selectedPlantId = null;
+          //       });
+          //     },
+          //   );
+          // }
         }
 
         // Get available tabs based on user permissions

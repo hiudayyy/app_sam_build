@@ -3,10 +3,11 @@ import 'package:intl/intl.dart';
 import '../models/cay_sam.dart';
 import '../models/nhat_ky.dart';
 import '../models/moi_truong.dart';
+import '../models/vuontrong/caysam_model.dart';
 import '../models/xac_thuc.dart';
 
 class PlantDetailScreen extends StatelessWidget {
-  final CaySam plant;
+  final CaySamModel plant;
   final CaySamNhatKy? diary;
   final CaySamMoiTruong? environment;
   final CaySamXacThuc? verification;
@@ -24,7 +25,7 @@ class PlantDetailScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(plant.tenCay ?? 'Chi tiết cây'),
+        title: Text(plant.maCaySam ?? 'Chi tiết cây'),
         leading: IconButton(
           icon: Icon(Icons.arrow_back),
           onPressed: onBack,
@@ -78,7 +79,7 @@ class PlantDetailScreen extends StatelessWidget {
   }
 
   Widget _buildPlantHeader() {
-    final status = plant.trangThai ?? TrangThaiCay.khoeMauh;
+    // final status = plant.trangThai ?? TrangThaiCay.khoeMauh;
 
     return Card(
       child: Padding(
@@ -121,7 +122,7 @@ class PlantDetailScreen extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        plant.tenCay ?? 'Không có tên',
+                        plant.maCaySam ?? 'Không có tên',
                         style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
@@ -129,7 +130,7 @@ class PlantDetailScreen extends StatelessWidget {
                       ),
                       SizedBox(height: 4),
                       Text(
-                        'ID: ${plant.id}',
+                        'ID: ${plant.maCaySam}',
                         style: TextStyle(
                           color: Colors.grey[600],
                           fontSize: 14,
@@ -138,32 +139,32 @@ class PlantDetailScreen extends StatelessWidget {
                     ],
                   ),
                 ),
-                Container(
-                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: status.color.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        status.icon,
-                        size: 16,
-                        color: status.color,
-                      ),
-                      SizedBox(width: 4),
-                      Text(
-                        status.displayName,
-                        style: TextStyle(
-                          color: status.color,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                // Container(
+                //   padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                //   decoration: BoxDecoration(
+                //     color: status.color.withOpacity(0.1),
+                //     borderRadius: BorderRadius.circular(20),
+                //   ),
+                //   child: Row(
+                //     mainAxisSize: MainAxisSize.min,
+                //     children: [
+                //       Icon(
+                //         status.icon,
+                //         size: 16,
+                //         color: status.color,
+                //       ),
+                //       SizedBox(width: 4),
+                //       Text(
+                //         status.displayName,
+                //         style: TextStyle(
+                //           color: status.color,
+                //           fontSize: 14,
+                //           fontWeight: FontWeight.w600,
+                //         ),
+                //       ),
+                //     ],
+                //   ),
+                // ),
               ],
             ),
           ],
@@ -191,19 +192,19 @@ class PlantDetailScreen extends StatelessWidget {
             _buildDetailRow(
               icon: Icons.eco,
               label: 'Loại cây',
-              value: plant.loaiCay ?? 'Không xác định',
+              value: /*plant.loaiCay ?? */'Không xác định',
             ),
-            _buildDetailRow(
-              icon: Icons.calendar_today,
-              label: 'Ngày trồng',
-              value: plant.ngayTrong != null
-                  ? DateFormat('dd/MM/yyyy').format(DateTime.parse(plant.ngayTrong!))
-                  : 'Chưa xác định',
-            ),
+            // _buildDetailRow(
+            //   icon: Icons.calendar_today,
+            //   label: 'Ngày trồng',
+            //   value: plant.ngayTrong != null
+            //       ? DateFormat('dd/MM/yyyy').format(DateTime.parse(plant.ngayTrong!))
+            //       : 'Chưa xác định',
+            // ),
             _buildDetailRow(
               icon: Icons.location_on,
               label: 'Vị trí',
-              value: plant.viTri ?? 'Chưa xác định',
+              value: plant.viTriTrongLo ?? 'Chưa xác định',
             ),
             if (plant.blockChain != null)
               _buildDetailRow(

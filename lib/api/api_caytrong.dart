@@ -124,6 +124,81 @@ extension APIExtension on API {
       return null;
     }
   }
+  Future<ApiResponse<LoSamModel>?> addLoSam(
+      LoSamModel loSam, {
+        List<int>? fileBytes,
+        String? fileName,
+      }) async {
+    String url = "${host}api/VuonTrong/AddLoSam";
+
+    final bodyJson = {
+      "LoSam": {
+        "MaLo": loSam.maLo,
+        "TenLo": loSam.tenLo,
+        "SoHang": loSam.soHang,
+        "SoCot": loSam.soCot,
+        "DienTich": loSam.dienTich,
+        "GhiChu": loSam.ghiChu,
+        "Loai": loSam.loai,
+        "TrangThai": loSam.trangThai,
+        "VuonTrong_ID": loSam.vuonTrongId,
+        "Ngay": loSam.ngay?.toIso8601String(),
+      },
+      "LoSamChiTiets":
+      loSam.loSamChiTiets?.map((e) => e.toJson()).toList() ?? [],
+      "LoSamCameras":
+      loSam.loSamCameras?.map((e) => e.toJson()).toList() ?? [],
+    };
+
+    final prefs = await SharedPreferences.getInstance();
+    final userJson = prefs.getString("ginseng_user");
+    Kttoken? user;
+    if (userJson != null) {
+      final Map<String, dynamic> json = jsonDecode(userJson);
+      user = Kttoken.fromJson(json);
+    }
+
+    var request = http.MultipartRequest("POST", Uri.parse(url));
+
+    request.headers.addAll({
+      ...headerSvkt1,
+      "AuthenticateToken": user?.authenticateToken ?? "",
+      "FuncsTagActive": user?.funcsTagActives.firstWhere(
+            (x) => x.tenController.toLowerCase() == "vuontrong",
+        orElse: () => FuncTagActive(
+          tenController: "",
+          tenActions: "",
+          funcsTagActive: "",
+        ),
+      ).funcsTagActive ??
+          "",
+    });
+
+    request.fields['modelJson'] = jsonEncode(bodyJson);
+
+    if (fileBytes != null && fileName != null) {
+      request.files.add(http.MultipartFile.fromBytes(
+        'file',
+        fileBytes,
+        filename: fileName,
+      ));
+    }
+
+    final response = await request.send();
+    final respStr = await response.stream.bytesToString();
+
+    if (response.statusCode == 200) {
+      final jsonRes = jsonDecode(respStr);
+      return ApiResponse<LoSamModel>.fromJson(
+        jsonRes,
+            (json) => LoSamModel.fromJson(json),
+      );
+    } else {
+      print("Lỗi: ${response.statusCode} - $respStr");
+      return null;
+    }
+  }
+
   Future<LoSamModel?> getLoSamById(int id) async {
     String linkURL = "${host}api/VuonTrong/GetLoSam/$id";
     final uri = Uri.parse(linkURL);
