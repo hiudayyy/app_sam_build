@@ -218,39 +218,39 @@ class MockData {
   ];
 
   static List<CaySamNhatKy> mockDiary = [
-    CaySamNhatKy(
-      nhatKyId: 'NK001',
-      ngayGhi: '2024-12-01',
-      anhTongQuan: 'https://images.unsplash.com/photo-1589110254547-202e8e05be49?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxnaW5zZW5nJTIwcGxhbnRzJTIwY3VsdGl2YXRpb258ZW58MXx8fHwxNzU3MTMwNTkzfDA&ixlib=rb-4.1.0&q=80&w=400',
-      soLa: 12,
-      tinhTrang: TinhTrang(song: true, nguDong: false, chet: false),
-      diemSucKhoe: 5,
-      maNguoiGhi: 'NV001',
-    ),
-    CaySamNhatKy(
-      nhatKyId: 'NK002',
-      ngayGhi: '2024-12-01',
-      soLa: 10,
-      tinhTrang: TinhTrang(song: true, nguDong: false, chet: false),
-      diemSucKhoe: 4,
-      maNguoiGhi: 'NV001',
-    ),
-    CaySamNhatKy(
-      nhatKyId: 'NK007',
-      ngayGhi: '2024-12-05',
-      soLa: 8,
-      tinhTrang: TinhTrang(song: true, nguDong: false, chet: false),
-      diemSucKhoe: 2,
-      maNguoiGhi: 'NV002',
-    ),
-    CaySamNhatKy(
-      nhatKyId: 'NK008',
-      ngayGhi: '2024-12-01',
-      soLa: 0,
-      tinhTrang: TinhTrang(song: false, nguDong: false, chet: true),
-      diemSucKhoe: 0,
-      maNguoiGhi: 'NV003',
-    ),
+    // CaySamNhatKy(
+    //   nhatKyId: 'NK001',
+    //   ngayGhi: '2024-12-01',
+    //   hinhAnhTongQuan: 'https://images.unsplash.com/photo-1589110254547-202e8e05be49?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxnaW5zZW5nJTIwcGxhbnRzJTIwY3VsdGl2YXRpb258ZW58MXx8fHwxNzU3MTMwNTkzfDA&ixlib=rb-4.1.0&q=80&w=400',
+    //   soLa: 12,
+    //   tinhTrang: TinhTrang(song: true, nguDong: false, chet: false),
+    //   diemSucKhoe: 5,
+    //   maNguoiGhi: 'NV001',
+    // ),
+    // CaySamNhatKy(
+    //   nhatKyId: 'NK002',
+    //   ngayGhi: '2024-12-01',
+    //   soLa: 10,
+    //   tinhTrang: TinhTrang(song: true, nguDong: false, chet: false),
+    //   diemSucKhoe: 4,
+    //   maNguoiGhi: 'NV001',
+    // ),
+    // CaySamNhatKy(
+    //   nhatKyId: 'NK007',
+    //   ngayGhi: '2024-12-05',
+    //   soLa: 8,
+    //   tinhTrang: TinhTrang(song: true, nguDong: false, chet: false),
+    //   diemSucKhoe: 2,
+    //   maNguoiGhi: 'NV002',
+    // ),
+    // CaySamNhatKy(
+    //   nhatKyId: 'NK008',
+    //   ngayGhi: '2024-12-01',
+    //   soLa: 0,
+    //   tinhTrang: TinhTrang(song: false, nguDong: false, chet: true),
+    //   diemSucKhoe: 0,
+    //   maNguoiGhi: 'NV003',
+    // ),
   ];
 
   static List<CaySamMoiTruong> mockEnvironment = [

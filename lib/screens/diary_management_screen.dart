@@ -33,7 +33,7 @@ class _DiaryManagementScreenState extends State<DiaryManagementScreen> with Tick
   void _initializeDiaryEntries() {
     _diaryEntries = MockData.mockDiary.map((diary) {
       final plant = MockData.mockPlants.firstWhere(
-            (p) => p.nhatKyId == diary.nhatKyId,
+            (p) => p.nhatKyId == diary.id,
         orElse: () => CaySam.empty(),
       );
       final lastUpdateDate = DateTime.parse(diary.ngayGhi);
@@ -135,7 +135,7 @@ class _DiaryManagementScreenState extends State<DiaryManagementScreen> with Tick
     // Show individual edit form
     if (_showIndividualEdit != null) {
       final entry = _diaryEntries.firstWhere(
-            (e) => e.diary.nhatKyId == _showIndividualEdit,
+            (e) => e.diary.id == _showIndividualEdit,
         orElse: () => _diaryEntries.first,
       );
       return _buildIndividualEditForm(entry);
@@ -575,7 +575,7 @@ class _DiaryManagementScreenState extends State<DiaryManagementScreen> with Tick
               ],
             ),
             trailing: Icon(Icons.chevron_right, color: Colors.grey.shade400),
-            onTap: () => _handleIndividualEdit(entry.diary.nhatKyId),
+            onTap: () => _handleIndividualEdit(entry.diary.id.toString()),
           ),
         );
       }).toList(),
@@ -702,7 +702,7 @@ class _DiaryManagementScreenState extends State<DiaryManagementScreen> with Tick
                     title: Text(entry.plant?.tenCay ?? ''),
                     subtitle: Text(entry.plant?.id ?? ''),
                     trailing: Icon(Icons.chevron_right, color: Colors.grey.shade400),
-                    onTap: () => _handleIndividualEdit(entry.diary.nhatKyId),
+                    onTap: () => _handleIndividualEdit(entry.diary.id.toString()),
                   ),
                 );
               },
@@ -879,9 +879,9 @@ class _IndividualEditFormState extends State<IndividualEditForm> {
       'soLa': widget.entry.diary.soLa.toString(),
       'diemSucKhoe': widget.entry.diary.diemSucKhoe.toString(),
       'tinhTrang': {
-        'song': widget.entry.diary.tinhTrang.song,
-        'nguDong': widget.entry.diary.tinhTrang.nguDong,
-        'chet': widget.entry.diary.tinhTrang.chet,
+        'song': widget.entry.diary.tinhTrang,
+        'nguDong': widget.entry.diary.tinhTrang,
+        'chet': widget.entry.diary.tinhTrang,
       },
       'ghiChu': widget.entry.diary.ghiChu ?? '',
     };

@@ -1,75 +1,53 @@
 class CaySamNhatKy {
-  final String nhatKyId;
+  final int id;
+  final String caySamId;
+  final String taiKhoanId;
   final String ngayGhi;
-  final String? anhTongQuan;
+  final String hinhAnhTongQuan;
+  final String hinhAnhChiTiet;
   final int soLa;
-  final TinhTrang tinhTrang;
   final int diemSucKhoe;
-  final String maNguoiGhi;
+  final int tinhTrang; // giữ nguyên int
   final String? ghiChu;
 
   CaySamNhatKy({
-    required this.nhatKyId,
+    required this.id,
+    required this.caySamId,
+    required this.taiKhoanId,
     required this.ngayGhi,
-    this.anhTongQuan,
+    required this.hinhAnhTongQuan,
+    required this.hinhAnhChiTiet,
     required this.soLa,
-    required this.tinhTrang,
     required this.diemSucKhoe,
-    required this.maNguoiGhi,
+    required this.tinhTrang,
     this.ghiChu,
   });
 
   factory CaySamNhatKy.fromJson(Map<String, dynamic> json) {
     return CaySamNhatKy(
-      nhatKyId: json['nhatKyId'],
-      ngayGhi: json['ngayGhi'],
-      anhTongQuan: json['anhTongQuan'],
-      soLa: json['soLa'],
-      tinhTrang: TinhTrang.fromJson(json['tinhTrang']),
-      diemSucKhoe: json['diemSucKhoe'],
-      maNguoiGhi: json['maNguoiGhi'],
-      ghiChu: json['ghiChu'],
+      id: json['id'] as int,
+      caySamId: json['caySamId'] as String,
+      taiKhoanId: json['taiKhoanId'] as String,
+      ngayGhi: json['ngayGhi'] as String,
+      hinhAnhTongQuan: json['hinhAnhTongQuan'],
+      hinhAnhChiTiet: json['hinhAnhChiTiet'],
+      soLa: json['soLa'] as int,
+      diemSucKhoe: json['diemSucKhoe'] as int,
+      tinhTrang: json['tinhTrang'] as int,
+      ghiChu: json['ghiChu'] as String?,
     );
   }
 
-  Map<String, dynamic> toJson() {
-    return {
-      'nhatKyId': nhatKyId,
-      'ngayGhi': ngayGhi,
-      'anhTongQuan': anhTongQuan,
-      'soLa': soLa,
-      'tinhTrang': tinhTrang.toJson(),
-      'diemSucKhoe': diemSucKhoe,
-      'maNguoiGhi': maNguoiGhi,
-      'ghiChu': ghiChu,
-    };
-  }
-}
-
-class TinhTrang {
-  final bool song;
-  final bool nguDong;
-  final bool chet;
-
-  TinhTrang({
-    required this.song,
-    required this.nguDong,
-    required this.chet,
-  });
-
-  factory TinhTrang.fromJson(Map<String, dynamic> json) {
-    return TinhTrang(
-      song: json['song'] ?? false,
-      nguDong: json['nguDong'] ?? false,
-      chet: json['chet'] ?? false,
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'song': song,
-      'nguDong': nguDong,
-      'chet': chet,
-    };
-  }
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'caySamId': caySamId,
+    'taiKhoanId': taiKhoanId,
+    'ngayGhi': ngayGhi,
+    'hinhAnhTongQuan': hinhAnhTongQuan,
+    'hinhAnhChiTiet': hinhAnhChiTiet,
+    'soLa': soLa,
+    'diemSucKhoe': diemSucKhoe,
+    'tinhTrang': tinhTrang,
+    'ghiChu': ghiChu,
+  };
 }

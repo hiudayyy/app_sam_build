@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:csam_mobile/screens/plants_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -77,7 +79,7 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  void _handleAddPlantSubmit(Map<String, dynamic> plantData) {
+  void _handleAddPlantSubmit(Map<String, dynamic> plantData,List<File?> image) {
     print('New plant added: $plantData');
     setState(() {
       _showAddPlantForm = false;

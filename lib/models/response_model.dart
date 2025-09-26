@@ -47,6 +47,22 @@ class ApiResponse<T> {
           : null,
     );
   }
+  factory ApiResponse.fromJsonNoModel(
+      Map<String, dynamic> json,
+      ) {
+    return ApiResponse<T>(
+      messCode: messCodeFromInt(json['messCode'] ?? 0),
+      typeRp: json['typeRp']?.toString() ?? '',
+      message: json['message']?.toString() ?? '',
+      messageGoiY: json['messageGoiY']?.toString() ?? '',
+      dataPage: json['dataPage'] != null
+          ? DataPage.fromJson(json['dataPage'] as Map<String, dynamic>)
+          : null,
+      lstOptionModelType: (json['lstOptionModelType'] as List<dynamic>?)
+          ?.map((e) => OptionModelType.fromJson(e as Map<String, dynamic>))
+          .toList(),
+    );
+  }
 
   Map<String, dynamic> toJson(
       Map<String, dynamic> Function(T) toJsonT,

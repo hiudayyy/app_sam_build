@@ -1,3 +1,5 @@
+import 'package:csam_mobile/models/nhat_ky.dart';
+
 class CaySamModel {
   final String caySamId;
   final int loSamId;
@@ -6,6 +8,7 @@ class CaySamModel {
   final String? blockChain;
   final String? maCaySam;
   final int? tuoiCayId;
+  final List<CaySamNhatKy?> caySamNhatKys;
 
   CaySamModel({
     required this.caySamId,
@@ -15,6 +18,7 @@ class CaySamModel {
     this.blockChain,
     this.maCaySam,
     this.tuoiCayId,
+    required this.caySamNhatKys,
   });
 
   factory CaySamModel.fromJson(Map<String, dynamic> json) {
@@ -26,6 +30,10 @@ class CaySamModel {
       blockChain: json['blockChain'],
       maCaySam: json['maCaySam'],
       tuoiCayId: json['tuoiCay_ID'] ?? 0,
+      caySamNhatKys: (json['caySamNhatKys'] as List<dynamic>? ?? [])
+          .where((e) => e != null)
+          .map((e) => CaySamNhatKy.fromJson(e as Map<String, dynamic>))
+          .toList(),
     );
   }
 
@@ -38,6 +46,7 @@ class CaySamModel {
       'blockChain': blockChain,
       'maCaySam': maCaySam,
       'tuoiCay_ID': tuoiCayId,
+      'caySamNhatKys': caySamNhatKys,
     };
   }
 }
