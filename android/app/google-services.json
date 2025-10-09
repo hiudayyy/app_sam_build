@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "525482222879",
+    "project_id": "sam-nft-e4e59",
+    "storage_bucket": "sam-nft-e4e59.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:525482222879:android:56c77ea722565fc9a33c2a",
+        "android_client_info": {
+          "package_name": "com.example.csam_mobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBhz3bwHwCCb0bgeNqeAtajrXCeKTJB1qA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

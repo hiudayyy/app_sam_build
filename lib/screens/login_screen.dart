@@ -2,6 +2,7 @@ import 'dart:ffi' hide Size;
 
 import 'package:csam_mobile/api/api_login.dart';
 import 'package:csam_mobile/screens/register_screen.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../api/api.dart';
@@ -31,6 +32,8 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _handleLogin() async {
+    var token = await FirebaseMessaging.instance.getToken();
+    print(token);
     if (_formKey.currentState!.validate()) {
       var model = LoginModel(
           uname: _usernameController.text,
