@@ -3,6 +3,8 @@ class LoSamCameraModel {
   final int loSamId;
   final int loSamLoaiCameraId;
   final String rtsp;
+  final String userName;
+  final String password;
   final String url;
   final int trangThai;
   final String? loSam;
@@ -13,6 +15,8 @@ class LoSamCameraModel {
     required this.loSamId,
     required this.loSamLoaiCameraId,
     required this.rtsp,
+    required this.userName,
+    required this.password,
     required this.url,
     required this.trangThai,
     this.loSam,
@@ -25,6 +29,8 @@ class LoSamCameraModel {
       loSamId: json['loSamId'] ?? 0,
       loSamLoaiCameraId: json['loSamLoaiCameraId'] ?? 0,
       rtsp: json['rtsp'] ?? '',
+      userName: json['userName'] ?? '',
+      password: json['password'] ?? '',
       url: json['url'] ?? '',
       trangThai: json['trangThai'] ?? 0,
       loSam: json['loSam'],
@@ -40,6 +46,8 @@ class LoSamCameraModel {
       'loSamId': loSamId,
       'loSamLoaiCameraId': loSamLoaiCameraId,
       'rtsp': rtsp,
+      'userName': userName,
+      'password' : password,
       'url': url,
       'trangThai': trangThai,
       'loSam': loSam,

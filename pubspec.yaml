@@ -36,6 +36,7 @@ dependencies:
   # Images & Camera
   image_picker: ^1.0.5
   cached_network_image: ^3.3.0
+  video_player: ^2.7.0
 
   # Sensors & IoT
   sensors_plus: ^6.1.2   # nâng từ 4.0.x lên bản mới
@@ -49,6 +50,10 @@ dependencies:
   flutter_form_builder: ^10.2.0
   form_builder_validators: ^11.2.0   # giữ nguyên (đã khớp intl 0.20.x)
 
+  # firebase
+  firebase_core: ^4.1.1
+  firebase_messaging: ^16.0.2
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -58,6 +63,9 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+
+  assets:
+    - assets/images/
 
   # Uncomment and add asset paths when you have actual assets
   # assets:

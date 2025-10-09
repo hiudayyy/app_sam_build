@@ -31,8 +31,12 @@ class _PlantsScreenNewState extends State<PlantsScreenNew> {
 
         // Logic kiểm tra role investor giống như trong React
         if (user?.htPhanQuyenTaiKhoans.any((r) => r.maVaiTro == "nft_invester") == true){
-          return InvestorPlantViewScreen(
-            plants: MockData.mockPlants,
+          // return InvestorPlantViewScreen(
+          //   plants: MockData.mockPlants,
+          //   onPlantSelect: widget.onPlantSelected,
+          // );
+          return PlantManagementViewScreen(
+            // plants: MockData.mockPlants,
             onPlantSelect: widget.onPlantSelected,
           );
         } else {

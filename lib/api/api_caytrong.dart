@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import '../models/caysamuser_model.dart';
 import '../models/kttoken.dart';
 import '../models/login_model.dart';
 import '../models/response_model.dart';
@@ -66,7 +67,117 @@ extension APIExtension on API {
         return null;
       }
     }
-  Future<List<LoSamModel>?> listLoSam({
+    Future<ApiResponse<VuonTrongModel>?> addVuonTrong({
+      required VuonTrongModel model,
+    }) async {
+      final url = Uri.parse("${host}api/VuonTrong/AddVuonTrong");
+
+      try {
+        // 🔹 Lấy thông tin user
+        final prefs = await SharedPreferences.getInstance();
+        final userJson = prefs.getString("ginseng_user");
+        Kttoken? user;
+        if (userJson != null) {
+          final Map<String, dynamic> json = jsonDecode(userJson);
+          user = Kttoken.fromJson(json);
+        }
+
+        // 🔹 Header
+        final headers = {
+          ...headerSvkt1,
+          "Content-Type": "application/json",
+          "AuthenticateToken": user?.authenticateToken ?? "",
+          "FuncsTagActive": user?.funcsTagActives.firstWhere(
+                (x) => x.tenController.toLowerCase() == "vuontrong",
+            orElse: () => FuncTagActive(
+              tenController: "",
+              tenActions: "",
+              funcsTagActive: "",
+            ),
+          ).funcsTagActive ?? "",
+        };
+
+        // 🔹 Gửi request POST
+        final response =
+        await http.post(url, headers: headers, body: jsonEncode(model.toJson()));
+
+        // 🔹 Xử lý kết quả
+        if (response.statusCode == 200) {
+          final responseJson = jsonDecode(response.body);
+
+          // parse thẳng như listVuonTrong
+          final data = ApiResponse<VuonTrongModel>.fromJson(
+            responseJson,
+                (json) => VuonTrongModel.fromJson(json),
+          );
+
+          return data;
+        } else {
+          print("❌ Lỗi API: ${response.statusCode} - ${response.body}");
+          return null;
+        }
+      } catch (e) {
+        print("⚠️ Lỗi khi thêm vườn trồng: $e");
+        return null;
+      }
+    }
+    Future<ApiResponse<VuonTrongModel>?> editVuonTrong({
+      required VuonTrongModel model,
+    }) async {
+      final url = Uri.parse("${host}api/VuonTrong/EditVuonTrong");
+
+      try {
+        // 🔹 Lấy thông tin user
+        final prefs = await SharedPreferences.getInstance();
+        final userJson = prefs.getString("ginseng_user");
+        Kttoken? user;
+        if (userJson != null) {
+          final Map<String, dynamic> json = jsonDecode(userJson);
+          user = Kttoken.fromJson(json);
+        }
+
+        // 🔹 Header
+        final headers = {
+          ...headerSvkt1,
+          "Content-Type": "application/json",
+          "AuthenticateToken": user?.authenticateToken ?? "",
+          "FuncsTagActive": user?.funcsTagActives.firstWhere(
+                (x) => x.tenController.toLowerCase() == "vuontrong",
+            orElse: () => FuncTagActive(
+              tenController: "",
+              tenActions: "",
+              funcsTagActive: "",
+            ),
+          ).funcsTagActive ?? "",
+        };
+
+        // 🔹 Gửi request POST
+        final response =
+        await http.post(url, headers: headers, body: jsonEncode(model.toJson()));
+
+        // 🔹 Xử lý kết quả
+        if (response.statusCode == 200) {
+          final responseJson = jsonDecode(response.body);
+
+          // parse thẳng như listVuonTrong
+          final data = ApiResponse<VuonTrongModel>.fromJson(
+            responseJson,
+                (json) => VuonTrongModel.fromJson(json),
+          );
+
+          return data;
+        } else {
+          print("❌ Lỗi API: ${response.statusCode} - ${response.body}");
+          return null;
+        }
+      } catch (e) {
+        print("⚠️ Lỗi khi Chỉnh sửa vườn trồng: $e");
+        return null;
+      }
+    }
+
+
+    Future<List<LoSamModel>?> listLoSam({
     String? status,
     int? rowCount,
     int? skip,
@@ -179,6 +290,63 @@ extension APIExtension on API {
         return null;
       }
     }
+    Future<ApiResponse<LoSamModel>?> editLoSam({
+      required int id,
+      required Map<String, dynamic> data,
+      List<int>? fileBytes,
+      String? fileName,
+    }) async {
+      final url = Uri.parse("${host}api/VuonTrong/EditLoSam/$id");
+
+      // 🔹 lấy token
+      final prefs = await SharedPreferences.getInstance();
+      final userJson = prefs.getString("ginseng_user");
+      Kttoken? user;
+      if (userJson != null) {
+        user = Kttoken.fromJson(jsonDecode(userJson));
+      }
+
+      // 🔹 multipart request
+      var request = http.MultipartRequest("POST", url);
+      request.headers.addAll({
+        ...headerSvkt1,
+        "AuthenticateToken": user?.authenticateToken ?? "",
+        "FuncsTagActive": user?.funcsTagActives.firstWhere(
+              (x) => x.tenController.toLowerCase() == "vuontrong",
+          orElse: () => FuncTagActive(
+            tenController: "",
+            tenActions: "",
+            funcsTagActive: "",
+          ),
+        ).funcsTagActive ?? "",
+      });
+
+      // 🔹 convert data sang JSON chuẩn
+      request.fields['modelJson'] = jsonEncode(data);
+
+      // 🔹 thêm file nếu có
+      if (fileBytes != null && fileName != null) {
+        request.files.add(
+          http.MultipartFile.fromBytes('file', fileBytes, filename: fileName),
+        );
+      }
+
+      // 🔹 gửi request
+      final response = await request.send();
+      final respStr = await response.stream.bytesToString();
+
+      if (response.statusCode == 200) {
+        final jsonRes = jsonDecode(respStr);
+        return ApiResponse<LoSamModel>.fromJson(
+          jsonRes,
+              (json) => LoSamModel.fromJson(json),
+        );
+      } else {
+        print("❌ Lỗi: ${response.statusCode} - $respStr");
+        return null;
+      }
+    }
+
 
 
     Future<LoSamModel?> getLoSamById(int id) async {
@@ -224,6 +392,44 @@ extension APIExtension on API {
       return null;
     }
   }
+    Future<ApiResponse<CaySamUserModel>?> getCaySamsByUser() async {
+      final url = Uri.parse("${host}api/HeThong/GetCaySamsByUser");
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        final userJson = prefs.getString("ginseng_user");
+        Kttoken? user;
+        if (userJson != null) {
+          user = Kttoken.fromJson(jsonDecode(userJson));
+        }
+        final headers = {
+          ...headerSvkt1,
+          "AuthenticateToken": user?.authenticateToken ?? "",
+          "FuncsTagActive": user?.funcsTagActives.firstWhere(
+                (x) => x.tenController.toLowerCase() == "hethong",
+            orElse: () => FuncTagActive(
+              tenController: "",
+              tenActions: "",
+              funcsTagActive: "",
+            ),
+          ).funcsTagActive ?? "",
+        };
 
+        final response = await http.get(url, headers: headers);
+
+        if (response.statusCode == 200) {
+          final responseJson = jsonDecode(response.body);
+          return ApiResponse<CaySamUserModel>.fromJson(
+            responseJson,
+                (json) => CaySamUserModel.fromJson(json),
+          );
+        } else {
+          print("❌ Lỗi API: ${response.statusCode} - ${response.body}");
+          return null;
+        }
+      } catch (e) {
+        print("❌ Exception khi gọi API: $e");
+        return null;
+      }
+    }
 
 }

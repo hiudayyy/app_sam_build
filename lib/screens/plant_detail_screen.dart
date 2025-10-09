@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:csam_mobile/api/api_caysam.dart';
@@ -6,20 +7,24 @@ import 'package:csam_mobile/api/api_option.dart';
 import 'package:csam_mobile/models/vuontrong/caysam_model.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../api/api.dart';
 import '../models/cay_sam.dart';
+import '../models/kttoken.dart';
 import '../models/nhat_ky.dart';
 import '../models/moi_truong.dart';
 import '../models/option_model.dart';
 import '../models/xac_thuc.dart';
 import '../data/mock_data.dart';
 import 'add_plant_screen.dart';
+import 'diary_list_screen.dart';
 class PlantDetailScreen extends StatefulWidget {
   final CaySamModel plant;
   final CaySamNhatKy? diary;
   final CaySamMoiTruong? environment;
   final CaySamXacThuc? verification;
   final VoidCallback onBack;
+
 
   const PlantDetailScreen({
     Key? key,
@@ -40,6 +45,7 @@ class _State extends State<PlantDetailScreen> {
   List<OptionModel> OptionLoSamLoaiTuoi = [];
   List<OptionModel> OptionLoSamTinhTrang = [];
   List<OptionModel> OptionLoSamDiemSucKhoe = [];
+  Kttoken? user;
   @override
   void initState() {
     super.initState();
@@ -47,27 +53,46 @@ class _State extends State<PlantDetailScreen> {
   }
 
   // Helper function to get current month diary entries
-  List<CaySamNhatKy?> getCurrentMonthDiaryEntries() {
+  List<CaySamNhatKy> getCurrentMonthDiaryEntries() {
     final now = DateTime.now();
     final currentMonth = now.month;
     final currentYear = now.year;
 
     final filtered = (widget.plant.caySamNhatKys ?? [])
         .where((entry) {
-      final entryDate = DateTime.parse(entry!.ngayGhi);
+      if (entry == null || entry.ngayGhi == null) return false;
+
+      final entryDate = DateTime.tryParse(entry.ngayGhi!);
+      if (entryDate == null) return false;
+
       return entryDate.month == currentMonth &&
           entryDate.year == currentYear;
     })
+        .cast<CaySamNhatKy>() // vì entry ban đầu là CaySamNhatKy?
         .toList();
+
     return filtered;
   }
+
 
   // Helper to get latest diary entry
   CaySamNhatKy? getLatestDiaryEntry(List<CaySamNhatKy?> entries) {
     if (entries.isEmpty) return null;
-    entries.sort((a, b) => DateTime.parse(b!.ngayGhi).compareTo(DateTime.parse(a!.ngayGhi)));
+
+    entries.sort((a, b) {
+      final dateA = DateTime.tryParse(a?.ngayGhi ?? '');
+      final dateB = DateTime.tryParse(b?.ngayGhi ?? '');
+
+      if (dateA == null && dateB == null) return 0;
+      if (dateA == null) return 1; // a null -> b lớn hơn
+      if (dateB == null) return -1; // b null -> a lớn hơn
+
+      return dateB.compareTo(dateA);
+    });
+
     return entries.first;
   }
+
   Future<void> _initializeData() async {
     final api = API();
     final apiOptinlt = await api.OptionLoSamLoaiTuoi();
@@ -88,6 +113,11 @@ class _State extends State<PlantDetailScreen> {
         OptionLoSamDiemSucKhoe = apiOptindsk;
       });
     }
+    final prefs = await SharedPreferences.getInstance();
+    final userJson = prefs.getString("ginseng_user");
+    if (userJson != null) {
+      user = Kttoken.fromJson(jsonDecode(userJson));
+    }
   }
 
   @override
@@ -100,9 +130,12 @@ class _State extends State<PlantDetailScreen> {
     final avgHealth = currentMonthEntries.isNotEmpty
         ? (currentMonthEntries.fold<double>(0.0, (sum, entry) => sum + entry!.diemSucKhoe) / currentMonthEntries.length).round() / 10.0
         : 0.0;
-    final lastUpdate = latestEntry != null
-        ? DateFormat('dd/MM/yyyy').format(DateTime.parse(latestEntry.ngayGhi))
+    final lastUpdate = latestEntry?.ngayGhi != null
+        ? (DateTime.tryParse(latestEntry!.ngayGhi!) != null
+        ? DateFormat('dd/MM/yyyy').format(DateTime.parse(latestEntry.ngayGhi!))
+        : 'Chưa có')
         : 'Chưa có';
+
 
     return Scaffold(
       body: Column(
@@ -476,50 +509,90 @@ class _State extends State<PlantDetailScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  '$totalEntries bản ghi trong tháng',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey[600],
-                  ),
-                ),
                 Row(
                   children: [
-                    OutlinedButton(
-                      onPressed: () => _handleDiaryListClick(),
-                      style: OutlinedButton.styleFrom(
-                        padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                        minimumSize: Size(0, 0),
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    OutlinedButton.icon(
+                      onPressed: _handleDiaryListClick,
+                      icon: const Icon(
+                        Icons.list_alt_rounded,
+                        size: 14,
+                        color: Colors.blue,
                       ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.list, size: 12),
-                          SizedBox(width: 4),
-                          Text('List nhật ký', style: TextStyle(fontSize: 12)),
-                        ],
+                      label: const Text(
+                        'Lịch sử nhật ký',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.blue,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(color: Colors.blue.shade300, width: 1),
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        backgroundColor: Colors.blue.shade50.withOpacity(0.2),
+                      ).copyWith(
+                        overlayColor: WidgetStateProperty.all(Colors.blue.shade100.withOpacity(0.3)),
                       ),
                     ),
                     SizedBox(width: 8),
-                    ElevatedButton(
-                      onPressed: () => _handleUpdateDiaryClick(plant,context),
-                      style: ElevatedButton.styleFrom(
-                        padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                        minimumSize: Size(0, 0),
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        backgroundColor: Colors.blue,
-                        foregroundColor: Colors.white,
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.add, size: 12),
-                          SizedBox(width: 4),
-                          Text('Cập nhật', style: TextStyle(fontSize: 12)),
+                    Row(
+                      children: [
+                        if (user?.htTaiKhoan.htPhanQuyenTaiKhoans.any(
+                              (pq) => pq.maVaiTro != "nft_invester" && pq.maVaiTro == "nft_admin",
+                        ) ??
+                            false) ...[
+                          if (latestEntry?.hinhAnhChiTiet != null)
+                            ElevatedButton(
+                              onPressed: plant != null
+                                  ? () => _handleUpdateDiaryClick(plant, context)
+                                  : null, // ✅ chỉ gọi khi plant khác null
+                              style: ElevatedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                minimumSize: Size.zero,
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                backgroundColor: Colors.blue.shade600,
+                                foregroundColor: Colors.white,
+                              ),
+                              child: const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.edit, size: 12),
+                                  SizedBox(width: 4),
+                                  Text('Cập nhật', style: TextStyle(fontSize: 12)),
+                                ],
+                              ),
+                            ),
+
+                          const SizedBox(width: 8),
+
+                          ElevatedButton(
+                            onPressed: plant != null
+                                ? () => _handleAddDiaryClick(plant, context)
+                                : null, // ✅ an toàn hơn
+                            style: ElevatedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                              minimumSize: Size.zero,
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              backgroundColor: Colors.green.shade600,
+                              foregroundColor: Colors.white,
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.add, size: 12),
+                                SizedBox(width: 4),
+                                Text('Thêm mới', style: TextStyle(fontSize: 12)),
+                              ],
+                            ),
+                          ),
                         ],
-                      ),
-                    ),
+                      ],
+                    )
                   ],
                 ),
               ],
@@ -728,7 +801,7 @@ class _State extends State<PlantDetailScreen> {
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(8),
                             child: Image.network(
-                              latestEntry.hinhAnhTongQuan,
+                              latestEntry.hinhAnhTongQuan ?? "",
                               fit: BoxFit.cover,
                               errorBuilder: (context, error, stackTrace) {
                                 return Container(
@@ -750,7 +823,7 @@ class _State extends State<PlantDetailScreen> {
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(8),
                             child: Image.network(
-                              latestEntry.hinhAnhChiTiet,
+                              latestEntry.hinhAnhChiTiet ?? "",
                               fit: BoxFit.cover,
                               errorBuilder: (context, error, stackTrace) {
                                 return Container(
@@ -761,6 +834,7 @@ class _State extends State<PlantDetailScreen> {
                             ),
                           ),
                         ),
+
                       ],
                     ),
                   ],
@@ -787,17 +861,30 @@ class _State extends State<PlantDetailScreen> {
                         ),
                       ),
                       SizedBox(height: 16),
-                      ElevatedButton(
-                        onPressed: () => _handleUpdateDiaryClick(plant, context),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.add, size: 16),
-                            SizedBox(width: 4),
-                            Text('Cập nhật nhật ký'),
-                          ],
+                      if (user?.htTaiKhoan.htPhanQuyenTaiKhoans.any(
+                            (pq) => pq.maVaiTro != "nft_invester" && pq.maVaiTro == "nft_admin",
+                      ) ??
+                          false)
+                        ElevatedButton(
+                          onPressed: plant != null
+                              ? () => _handleUpdateDiaryClick(plant!, context)
+                              : null, // ✅ an toàn
+                          style: ElevatedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                            minimumSize: Size.zero,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            backgroundColor: Colors.blue,
+                            foregroundColor: Colors.white,
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.add, size: 16),
+                              SizedBox(width: 4),
+                              Text('Cập nhật nhật ký'),
+                            ],
+                          ),
                         ),
-                      ),
                     ],
                   ),
                 ),
@@ -1046,9 +1133,19 @@ class _State extends State<PlantDetailScreen> {
   }
 
   void _handleDiaryListClick() {
-    // TODO: Navigate to diary list view or open modal
-    print('Show diary list for plant: ${widget.plant.caySamId}');
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => DiaryListScreen(
+          plant: widget.plant,   // 👈 truyền model CaySam
+          onBack: () {
+            Navigator.pop(context); // quay lại khi bấm back
+          },
+        ),
+      ),
+    );
   }
+
 
   void _handleUpdateDiaryClick(CaySamModel plant, BuildContext context) {
     Navigator.of(context).push(
@@ -1066,29 +1163,163 @@ class _State extends State<PlantDetailScreen> {
       ),
     );
   }
+  void _handleAddDiaryClick(CaySamModel plant, BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => AddPlantScreen(
+          onSubmit: _handleAddNhatKySubmit,
+          onCancel: () {
+            Navigator.of(context).pop();
+          },
+          gridPosition: plant.viTriTrongLo,
+          losamId: plant.loSamId ?? 0,
+          EditNhatKy: "edit",
+          areaId: "",
+          caysam: plant,
+        ),
+      ),
+    );
+  }
   void _handleAddPlantSubmit(
       Map<String, dynamic> plantData,
       List<File?> images,
       ) async {
     try {
       // 🔹 Gọi API
-      final apiResponse = await API().editCaySam(
-        id:widget.plant.caySamId,
+      final nhatKy = widget.plant.caySamNhatKys.isNotEmpty == true
+          ? widget.plant.caySamNhatKys.first
+          : null;
+      if (nhatKy?.ngayGhi != null){
+        final ngayGhi = DateTime.tryParse(nhatKy!.ngayGhi!);
+        final now = DateTime.now();
+
+        if (ngayGhi != null &&
+            ngayGhi.year == now.year &&
+            ngayGhi.month == now.month) {
+          final apiResponse = await API().editCaySam(
+            id:widget.plant.caySamId,
+            data: plantData,
+            files: images,
+          );
+
+          if (apiResponse != null && apiResponse.message == "OK") {
+            // ✅ Thành công
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  '🌱 Chỉnh sửa cây mới thành công!',
+                ),
+                backgroundColor: Colors.green,
+              ),
+            );
+            widget.onBack.call();
+            Navigator.of(context).pop();
+            setState(() {
+              // _futureLoSam = API().getLoSamById(selectedZone!.loSamId);
+            }); // refresh UI nếu cần
+          } else {
+            // ❌ Lỗi từ server
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Không thể thêm cây sâm (${apiResponse?.message}).'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        }else{
+          final apiResponse = await API().addNhatKy(
+            data: plantData,
+            files: images,
+          );
+
+          if (apiResponse != null && apiResponse.message == "OK") {
+            // ✅ Thành công
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  '🌱 Cây ${plantData['gridPosition']} đã được thêm nhật ký!',
+                ),
+                backgroundColor: Colors.green,
+              ),
+            );
+
+            setState(() {
+              // _futureLoSam = API().getLoSamById(selectedZone!.loSamId);
+            }); // refresh UI nếu cần
+          } else {
+            // ❌ Lỗi từ server
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Thêm nhật ký không thành công :(${apiResponse?.message}).'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        }
+      }else{
+        final apiResponse = await API().addNhatKy(
+          data: plantData,
+          files: images,
+        );
+
+        if (apiResponse != null && apiResponse.message == "OK") {
+          // ✅ Thành công
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                '🌱 Cây ${plantData['gridPosition']} đã được thêm nhật ký!',
+              ),
+              backgroundColor: Colors.green,
+            ),
+          );
+
+          Navigator.of(context).pop();
+          setState(() {
+            // _futureLoSam = API().getLoSamById(selectedZone!.loSamId);
+          }); // refresh UI nếu cần
+        } else {
+          // ❌ Lỗi từ server
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Thêm nhật ký không thành công :(${apiResponse?.message}).'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+
+    } catch (e) {
+      // ❌ Lỗi mạng hoặc exception khác
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Lỗi kết nối: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+  void _handleAddNhatKySubmit(
+      Map<String, dynamic> plantData,
+      List<File?> images,
+      ) async {
+    try {
+      final apiResponse = await API().addNhatKy(
         data: plantData,
         files: images,
       );
 
       if (apiResponse != null && apiResponse.message == "OK") {
         // ✅ Thành công
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              '🌱 Cây mới đã được thêm vào vị trí ${plantData['gridPosition']}!',
+              '🌱 Cây đã được thêm nhật ký!',
             ),
             backgroundColor: Colors.green,
           ),
         );
-
+        widget.onBack.call();
         Navigator.of(context).pop();
         setState(() {
           // _futureLoSam = API().getLoSamById(selectedZone!.loSamId);
@@ -1097,7 +1328,7 @@ class _State extends State<PlantDetailScreen> {
         // ❌ Lỗi từ server
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Không thể thêm cây sâm.'),
+            content: Text('Thêm nhật ký không thành công :(${apiResponse?.message}).'),
             backgroundColor: Colors.red,
           ),
         );

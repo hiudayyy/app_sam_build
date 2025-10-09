@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/cupertino.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/kttoken.dart';
@@ -12,7 +13,6 @@ extension APIExtension on API {
   static const String _userKey = 'ginseng_user';
   Future<ApiResponse<Kttoken>?> login(LoginModel model) async {
     String linkURL = "${host}api/Home/DangNhap";
-
     var body = jsonEncode(model.toJsonGet());
     final response = await http.post(
       Uri.parse(linkURL),

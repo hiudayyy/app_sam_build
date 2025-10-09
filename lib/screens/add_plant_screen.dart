@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:csam_mobile/api/api_option.dart';
@@ -5,7 +6,9 @@ import 'package:csam_mobile/models/vuontrong/caysam_model.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
 
 import '../api/api.dart';
 import '../models/option_model.dart';
@@ -17,6 +20,7 @@ class AddPlantScreen extends StatefulWidget {
   final int? losamId;
   final String? areaId;
   final CaySamModel? caysam;
+  final String? EditNhatKy;
 
   const AddPlantScreen({
     Key? key,
@@ -26,6 +30,7 @@ class AddPlantScreen extends StatefulWidget {
     this.losamId,
     this.areaId,
     this.caysam,
+    this.EditNhatKy,
   }) : super(key: key);
 
   @override
@@ -46,6 +51,8 @@ class _AddPlantScreenState extends State<AddPlantScreen> {
     int? _sola;
   File? _selectedImageTQ;
   File? _selectedImageCT;
+  String? _selectedImageTQUrl;
+  String? _selectedImageCTUrl;
   final ImagePicker _picker = ImagePicker();
   List<OptionModel> OptionLoSamLoaiTuoi = [];
   List<OptionModel> OptionLoSamTinhTrang = [];
@@ -60,11 +67,13 @@ class _AddPlantScreenState extends State<AddPlantScreen> {
   void _removeImageTQ() {
     setState(() {
       _selectedImageTQ = null;
+      _selectedImageTQUrl = null; // xóa luôn URL nếu muốn
     });
   }
   void _removeImageCT() {
     setState(() {
       _selectedImageCT = null;
+      _selectedImageCTUrl = null; // xóa luôn URL nếu có
     });
   }
   Future<void> _showImagePickerDialogTQ() async {
@@ -155,6 +164,7 @@ class _AddPlantScreenState extends State<AddPlantScreen> {
       if (image != null) {
         setState(() {
           _selectedImageTQ = File(image.path);
+          _selectedImageTQUrl = null; // reset URL
         });
       }
     } catch (e) {
@@ -169,6 +179,13 @@ class _AddPlantScreenState extends State<AddPlantScreen> {
     }
   }
 
+  Future<File> base64ToFile(String base64Str, String filename) async {
+    final bytes = base64Decode(base64Str);
+    final dir = await getTemporaryDirectory();
+    final file = File('${dir.path}/$filename');
+    await file.writeAsBytes(bytes);
+    return file;
+  }
   Future<void> _takePhotoTQ() async {
     try {
       final XFile? image = await _picker.pickImage(
@@ -181,6 +198,7 @@ class _AddPlantScreenState extends State<AddPlantScreen> {
       if (image != null) {
         setState(() {
           _selectedImageTQ = File(image.path);
+          _selectedImageTQUrl = null; // reset URL
         });
       }
     } catch (e) {
@@ -206,6 +224,7 @@ class _AddPlantScreenState extends State<AddPlantScreen> {
       if (image != null) {
         setState(() {
           _selectedImageCT = File(image.path);
+          _selectedImageCTUrl = null; // reset URL để hiển thị ảnh mới
         });
       }
     } catch (e) {
@@ -232,6 +251,7 @@ class _AddPlantScreenState extends State<AddPlantScreen> {
       if (image != null) {
         setState(() {
           _selectedImageCT = File(image.path);
+          _selectedImageCTUrl = null; // reset URL để hiển thị ảnh mới
         });
       }
     } catch (e) {
@@ -287,19 +307,38 @@ class _AddPlantScreenState extends State<AddPlantScreen> {
         OptionLoSamDiemSucKhoe = apiOptindsk;
       });
     }
-    if(widget.caysam != null){
+    _tuoicay = widget.caysam?.tuoiCayId.toString() ?? "";
+    if(widget.caysam != null && widget.EditNhatKy == null){
       _viTriController.text = widget.caysam?.viTriTrongLo ?? "";
       _maCayController.text = widget.caysam?.maCaySam ?? "";
-      _tuoicay = widget.caysam?.tuoiCayId.toString() ?? "";
       _soLaController.text = widget.caysam?.caySamNhatKys.first?.soLa.toString() ?? "";
       _diemSucKhoe = widget.caysam?.caySamNhatKys.first?.diemSucKhoe.toString() ?? "";
       _tinhTrang = widget.caysam?.caySamNhatKys.first?.tinhTrang.toString() ?? "";
-      _selectedImageTQ = widget.caysam?.caySamNhatKys.first?.hinhAnhTongQuan != null
-          ? File(widget.caysam!.caySamNhatKys.first!.hinhAnhTongQuan!)
-          : null;
-      _selectedImageCT = widget.caysam?.caySamNhatKys.first?.hinhAnhChiTiet != null
+      final hinhTQ = widget.caysam?.caySamNhatKys.first?.hinhAnhTongQuan;
+      final hinhCT = widget.caysam?.caySamNhatKys.first?.hinhAnhChiTiet;
+      if (hinhTQ != null) {
+        if (hinhTQ.startsWith('http')) {
+          _selectedImageTQUrl = hinhTQ;   // URL từ server
+          _selectedImageTQ = null;
+        } else {
+          _selectedImageTQ = await base64ToFile(hinhTQ, "anh_tq.jpg"); // base64
+          _selectedImageTQUrl = null;
+        }
+      }
+
+      // Ảnh chi tiết
+      if (hinhCT != null) {
+        if (hinhCT.startsWith('http')) {
+          _selectedImageCTUrl = hinhCT;
+          _selectedImageCT = null;
+        } else {
+          _selectedImageCT = await base64ToFile(hinhCT, "anh_ct.jpg");
+          _selectedImageCTUrl = null;
+        }
+      }
+/*      _selectedImageCT = widget.caysam?.caySamNhatKys.first?.hinhAnhChiTiet != null
           ? File(widget.caysam!.caySamNhatKys.first!.hinhAnhChiTiet!)
-          : null;
+          : null;*/
     }
   }
   @override
@@ -352,18 +391,39 @@ class _AddPlantScreenState extends State<AddPlantScreen> {
       );
     }
   }
+  void _handleSubmitnktm() {
+    if (_formKey.currentState!.validate()) {
+      final plantData = {
+          "CaySamId": widget.caysam?.caySamId,
+          "NgayGhi": DateTime.now().toIso8601String(),
+          "SoLa": int.parse(_soLaController.text ?? ""),
+          "DiemSucKhoe": int.parse(_diemSucKhoe ?? ""),
+          "TinhTrang":  int.parse(_tinhTrang ?? "")
+        };
+      widget.onSubmit(
+        plantData,
+        [_selectedImageTQ, _selectedImageCT],
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-      widget.caysam != null
-      ? "Cập nhật nhật ký"
-          : 'Thêm cây mới${widget.gridPosition != null ? ' - Ô ${widget.gridPosition}' : ''}',
-      ),
-
-      backgroundColor: widget.caysam != null ? Colors.blue.shade600:Colors.green.shade600,
+              () {
+            // Nếu chưa có cây
+            if (widget.caysam == null) {
+              return 'Thêm cây mới${widget.gridPosition != null ? ' - Ô ${widget.gridPosition}' : ''}';
+            }
+              if (widget.EditNhatKy == null) {
+                return "Cập nhật nhật ký";
+              }
+            return 'Thêm mới nhật ký${widget.gridPosition != null ? ' - Ô ${widget.gridPosition}' : ''}';
+          }(),
+        ),
+        backgroundColor: widget.caysam != null ? Colors.blue.shade600:Colors.green.shade600,
         foregroundColor: Colors.white,
         leading: IconButton(
           icon: Icon(Icons.close),
@@ -424,7 +484,7 @@ class _AddPlantScreenState extends State<AddPlantScreen> {
                 ),
                 SizedBox(height: 16),
                 DropdownButtonFormField<String>(
-                    value: _tuoicay, // biến state lưu giá trị hiện tại
+                  value: OptionLoSamLoaiTuoi.any((opt) => opt.value == _tuoicay) ? _tuoicay : null,
                   decoration: const InputDecoration(
                     labelText: 'Tuổi của cây trồng',
                     border: OutlineInputBorder(),
@@ -466,10 +526,9 @@ class _AddPlantScreenState extends State<AddPlantScreen> {
                     });
                   },
                 ),
-
                 SizedBox(height: 16),
                 DropdownButtonFormField<String>(
-                  value: _diemSucKhoe,
+                  value: OptionLoSamDiemSucKhoe.any((opt) => opt.value == _diemSucKhoe) ? _diemSucKhoe : null,
                   decoration: const InputDecoration(
                     labelText: 'Sức khỏe',
                     border: OutlineInputBorder(),
@@ -520,7 +579,7 @@ class _AddPlantScreenState extends State<AddPlantScreen> {
                 ),
                 SizedBox(height: 16),
                 DropdownButtonFormField<String>(
-                  value: _tinhTrang,
+                  value: OptionLoSamTinhTrang.any((opt) => opt.value == _tinhTrang) ? _tinhTrang : null,
                   decoration: const InputDecoration(
                     labelText: 'Tình Trạng',
                     border: OutlineInputBorder(),
@@ -588,33 +647,35 @@ class _AddPlantScreenState extends State<AddPlantScreen> {
                             borderRadius: BorderRadius.circular(8),
                             color: Colors.grey.shade50,
                           ),
-                          child: _selectedImageTQ != null
+                          child: _selectedImageTQ != null || _selectedImageTQUrl != null
                               ? ClipRRect(
                             borderRadius: BorderRadius.circular(8),
                             child: Stack(
                               children: [
-                                Image.file(
-                                  _selectedImageTQ!,
-                                  width: double.infinity,
-                                  height: double.infinity,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) {
-                                    return Container(
-                                      width: double.infinity,
-                                      height: double.infinity,
-                                      color: Colors.grey.shade200,
-                                      alignment: Alignment.center,
-                                      child: Text(
-                                        'Ảnh lỗi',
-                                        style: TextStyle(
-                                          color: Colors.red.shade400,
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                ),
+                                // Nếu có URL thì ưu tiên hiển thị từ server
+                                if (_selectedImageTQUrl != null)
+                                  Image.network(
+                                    _selectedImageTQUrl!,
+                                    width: double.infinity,
+                                    height: double.infinity,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (context, error, stackTrace) {
+                                      return _buildErrorImage();
+                                    },
+                                  )
+                                // Nếu có File local thì hiển thị File
+                                else if (_selectedImageTQ != null)
+                                  Image.file(
+                                    _selectedImageTQ!,
+                                    width: double.infinity,
+                                    height: double.infinity,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (context, error, stackTrace) {
+                                      return _buildErrorImage();
+                                    },
+                                  ),
+
+                                // Nút xóa ảnh
                                 Positioned(
                                   top: 8,
                                   right: 8,
@@ -626,7 +687,8 @@ class _AddPlantScreenState extends State<AddPlantScreen> {
                                         shape: BoxShape.circle,
                                       ),
                                       padding: const EdgeInsets.all(4),
-                                      child: const Icon(Icons.close, color: Colors.white, size: 20),
+                                      child: const Icon(Icons.close,
+                                          color: Colors.white, size: 20),
                                     ),
                                   ),
                                 ),
@@ -647,6 +709,7 @@ class _AddPlantScreenState extends State<AddPlantScreen> {
                               ),
                             ],
                           )
+
                         ),
                         SizedBox(height: 16),
 
@@ -702,34 +765,35 @@ class _AddPlantScreenState extends State<AddPlantScreen> {
                             borderRadius: BorderRadius.circular(8),
                             color: Colors.grey.shade50,
                           ),
-                          child: _selectedImageCT != null
+                          child: _selectedImageCT != null || _selectedImageCTUrl != null
                               ? ClipRRect(
                             borderRadius: BorderRadius.circular(8),
                             child: Stack(
                               children: [
-                                Image.file(
-                                  _selectedImageCT!,
-                                  width: double.infinity,
-                                  height: double.infinity,
-                                  fit: BoxFit.cover,
-                                  // 👇 Thêm xử lý lỗi ảnh
-                                  errorBuilder: (context, error, stackTrace) {
-                                    return Container(
-                                      width: double.infinity,
-                                      height: double.infinity,
-                                      color: Colors.grey.shade200,
-                                      alignment: Alignment.center,
-                                      child: Text(
-                                        'Ảnh lỗi',
-                                        style: TextStyle(
-                                          color: Colors.red.shade400,
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                ),
+                                // Nếu có URL thì ưu tiên hiển thị từ server
+                                if (_selectedImageCTUrl != null)
+                                  Image.network(
+                                    _selectedImageCTUrl!,
+                                    width: double.infinity,
+                                    height: double.infinity,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (context, error, stackTrace) {
+                                      return _buildErrorImage();
+                                    },
+                                  )
+                                // Nếu có File local thì hiển thị File
+                                else if (_selectedImageCT != null)
+                                  Image.file(
+                                    _selectedImageCT!,
+                                    width: double.infinity,
+                                    height: double.infinity,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (context, error, stackTrace) {
+                                      return _buildErrorImage();
+                                    },
+                                  ),
+
+                                // Nút xóa ảnh
                                 Positioned(
                                   top: 8,
                                   right: 8,
@@ -741,11 +805,8 @@ class _AddPlantScreenState extends State<AddPlantScreen> {
                                         shape: BoxShape.circle,
                                       ),
                                       padding: const EdgeInsets.all(4),
-                                      child: const Icon(
-                                        Icons.close,
-                                        color: Colors.white,
-                                        size: 20,
-                                      ),
+                                      child: const Icon(Icons.close,
+                                          color: Colors.white, size: 20),
                                     ),
                                   ),
                                 ),
@@ -765,7 +826,7 @@ class _AddPlantScreenState extends State<AddPlantScreen> {
                                 ),
                               ),
                             ],
-                          )
+                          ),
                         ),
                         SizedBox(height: 16),
 
@@ -815,15 +876,35 @@ class _AddPlantScreenState extends State<AddPlantScreen> {
                     SizedBox(width: 16),
                     Expanded(
                       child: ElevatedButton.icon(
-                        onPressed: widget.caysam == null ? _handleSubmit : _handleSubmitnk,
+                        onPressed: () {
+                          if (widget.caysam == null) {
+                            _handleSubmit();
+                          } else {
+                            if (widget.EditNhatKy == null) {
+                              _handleSubmitnk(); // cập nhật
+                            } else {
+                              _handleSubmitnktm();
+                            }
+                          }
+                        },
                         icon: const Icon(Icons.save),
-                        label: Text(
-                          widget.caysam == null ? 'Lưu cây mới' : 'Cập nhật Nhật Ký',
-                        ),
+                        label: Text(() {
+                          if (widget.caysam == null) {
+                            return 'Lưu cây mới';
+                          }
+                            if (widget.EditNhatKy == null) {
+                              return 'Cập nhật Nhật ký';
+                            }
+                          return 'Thêm mới Nhật ký';
+                        }()),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: widget.caysam == null
-                              ? Colors.green.shade600
-                              : Colors.blue.shade600,
+                          backgroundColor: () {
+                            if (widget.caysam == null) return Colors.green.shade600;
+                              if (widget.EditNhatKy == null) {
+                                return Colors.blue.shade600; // cập nhật
+                              }
+                            return Colors.green.shade600; // thêm mới
+                          }(),
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 16),
                         ),
@@ -839,4 +920,21 @@ class _AddPlantScreenState extends State<AddPlantScreen> {
       ),
     );
   }
+  Widget _buildErrorImage() {
+    return Container(
+      width: double.infinity,
+      height: double.infinity,
+      color: Colors.grey.shade200,
+      alignment: Alignment.center,
+      child: Text(
+        'Ảnh lỗi',
+        style: TextStyle(
+          color: Colors.red.shade400,
+          fontSize: 16,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+
 }

@@ -77,13 +77,17 @@ class AuthWrapper extends StatelessWidget {
                     width: 64,
                     height: 64,
                     decoration: BoxDecoration(
-                      color: Color(0xFF16A34A),
+                      color: /*Color(0xFF16A34A)*/ Colors.green.shade300,
                       borderRadius: BorderRadius.circular(16),
                     ),
-                    child: Icon(
-                      Icons.eco,
-                      color: Colors.white,
-                      size: 32,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(16),
+                      child: Image.asset(
+                        'assets/images/samnghigia.png',
+                        width: 32,
+                        height: 32,
+                        fit: BoxFit.contain,
+                      ),
                     ),
                   ),
                   SizedBox(height: 24),

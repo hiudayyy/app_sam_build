@@ -1,10 +1,10 @@
 class CaySamNhatKy {
   final int id;
-  final String caySamId;
-  final String taiKhoanId;
-  final String ngayGhi;
-  final String hinhAnhTongQuan;
-  final String hinhAnhChiTiet;
+  final String? caySamId;
+  final String? taiKhoanId;
+  final String? ngayGhi;
+  final String? hinhAnhTongQuan;
+  final String? hinhAnhChiTiet;
   final int soLa;
   final int diemSucKhoe;
   final int tinhTrang; // giữ nguyên int
@@ -26,9 +26,9 @@ class CaySamNhatKy {
   factory CaySamNhatKy.fromJson(Map<String, dynamic> json) {
     return CaySamNhatKy(
       id: json['id'] as int,
-      caySamId: json['caySamId'] as String,
-      taiKhoanId: json['taiKhoanId'] as String,
-      ngayGhi: json['ngayGhi'] as String,
+      caySamId: json['caySamId'] as String?,
+      taiKhoanId: json['taiKhoanId'] as String?,
+      ngayGhi: json['ngayGhi'] as String?,
       hinhAnhTongQuan: json['hinhAnhTongQuan'],
       hinhAnhChiTiet: json['hinhAnhChiTiet'],
       soLa: json['soLa'] as int,

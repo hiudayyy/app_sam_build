@@ -25,7 +25,7 @@ class AuthService {
     ),
     User(
       id: '2',
-      username: 'investor',
+      username: 'invester',
       email: 'investor@ginsengfarm.com',
       fullName: 'Nguyễn Văn Đầu tư',
       role: UserRole.nft_invester,

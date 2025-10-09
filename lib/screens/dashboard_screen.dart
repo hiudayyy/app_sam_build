@@ -1,21 +1,54 @@
+import 'package:csam_mobile/api/api_dashboard.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../api/api.dart';
 import '../models/cay_sam.dart';
+import '../models/dashboard/dashboard_model.dart';
 import '../models/user.dart';
 import '../providers/auth_provider.dart';
 
-class DashboardScreen extends StatelessWidget {
+class DashboardScreen extends StatefulWidget {
+  // final List<CaySam> plants;
   final List<CaySam> plants;
 
-  DashboardScreen({required this.plants});
+  const DashboardScreen({
+    Key? key,
+    // required this.plants,
+    required this.plants
+  }) : super(key: key);
 
   @override
+  State<DashboardScreen> createState() =>
+      _DashboardScreenState();
+}
+
+class _DashboardScreenState extends State<DashboardScreen>
+  with TickerProviderStateMixin {
+  DashBoardtotal? numbertotal ;
+  @override
+  void initState() {
+    super.initState();
+    _initializeData();
+  }
+  Future<void> _initializeData() async {
+    // Calculate plant statistics
+
+    final api = API();
+    final apifarm = await api.getDashBoardSam();
+    if (!mounted) return;
+    if(apifarm?.oneItem != null){
+      setState(() {
+        numbertotal = apifarm?.oneItem;
+      });
+    }
+  }
+  @override
   Widget build(BuildContext context) {
-    final totalPlants = plants.length;
-    final healthyPlants = plants.where((p) => p.trangThai == TrangThaiCay.khoeMauh).length;
-    final weakPlants = plants.where((p) => p.trangThai == TrangThaiCay.yeu).length;
-    final sickPlants = plants.where((p) => p.trangThai == TrangThaiCay.benh).length;
-    final deadPlants = plants.where((p) => p.trangThai == TrangThaiCay.chet).length;
+    final totalPlants = widget.plants.length;
+    final healthyPlants = widget.plants.where((p) => p.trangThai == TrangThaiCay.khoeMauh).length;
+    final weakPlants = widget.plants.where((p) => p.trangThai == TrangThaiCay.yeu).length;
+    final sickPlants = widget.plants.where((p) => p.trangThai == TrangThaiCay.benh).length;
+    final deadPlants = widget.plants.where((p) => p.trangThai == TrangThaiCay.chet).length;
 
     final healthPercentage = totalPlants > 0 ? (healthyPlants / totalPlants) * 100 : 0.0;
 
@@ -44,35 +77,35 @@ class DashboardScreen extends StatelessWidget {
                 children: [
                   _buildStatCard(
                     context,
-                    icon: Icons.eco,
-                    title: 'Tổng số cây',
-                    value: totalPlants.toString(),
+                    icon: Icons.business,
+                    title: 'Tổng số vườn',
+                    value: numbertotal?.totalVuonTrong.toString() ?? "",
                     color: Colors.green,
                     backgroundColor: Colors.green.shade100,
                   ),
                   _buildStatCard(
                     context,
-                    icon: Icons.trending_up,
-                    title: 'Khỏe mạnh',
-                    value: healthyPlants.toString(),
+                    icon: Icons.map,
+                    title: 'Tổng số lô',
+                    value: numbertotal?.totalLoSam.toString() ?? "",
                     color: Colors.green.shade600,
+                    backgroundColor: Colors.green.shade100,
+                  ),
+                  _buildStatCard(
+                    context,
+                    icon: Icons.eco,
+                    title: 'Tổng số cây',
+                    value: numbertotal?.totalCaySam.toString() ?? "",
+                    color: Colors.green,
                     backgroundColor: Colors.green.shade100,
                   ),
                   _buildStatCard(
                     context,
                     icon: Icons.warning,
                     title: 'Cần chú ý',
-                    value: (weakPlants + sickPlants).toString(),
+                    value: numbertotal?.totalSuckhoeYeu.toString() ?? "",
                     color: Colors.yellow.shade600,
                     backgroundColor: Colors.yellow.shade100,
-                  ),
-                  _buildStatCard(
-                    context,
-                    icon: Icons.shield,
-                    title: 'Tỷ lệ khỏe',
-                    value: '${healthPercentage.round()}%',
-                    color: Colors.blue.shade600,
-                    backgroundColor: Colors.blue.shade100,
                   ),
                 ],
               ),

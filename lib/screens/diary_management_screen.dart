@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import '../data/mock_data.dart';
 import '../models/cay_sam.dart';
 import '../models/nhat_ky.dart';
@@ -36,17 +37,20 @@ class _DiaryManagementScreenState extends State<DiaryManagementScreen> with Tick
             (p) => p.nhatKyId == diary.id,
         orElse: () => CaySam.empty(),
       );
-      final lastUpdateDate = DateTime.parse(diary.ngayGhi);
+
+      final parsedDate = DateTime.tryParse(diary.ngayGhi ?? "");
+      final lastUpdateDate = parsedDate ?? DateTime.now(); // fallback = hôm nay
       final daysSinceUpdate = DateTime.now().difference(lastUpdateDate).inDays;
 
       return DiaryEntry(
         diary: diary,
         plant: plant.id.isNotEmpty ? plant : null,
         needsReview: daysSinceUpdate > 7,
-        lastUpdate: diary.ngayGhi,
+        lastUpdate: diary.ngayGhi ?? "", // vẫn giữ string gốc
       );
     }).toList();
   }
+
 
   List<DiaryEntry> get _filteredEntries {
     return _diaryEntries.where((entry) {
@@ -558,8 +562,13 @@ class _DiaryManagementScreenState extends State<DiaryManagementScreen> with Tick
                       style: TextStyle(color: Colors.grey.shade600, fontSize: MediaQuery.of(context).size.width * 0.03,),
                     ),
                     Text(
-                      DateTime.parse(entry.diary.ngayGhi).toLocal().toString().split(' ')[0],
-                      style: TextStyle(fontSize: MediaQuery.of(context).size.width * 0.03,),
+                      entry.diary.ngayGhi != null && entry.diary.ngayGhi!.isNotEmpty
+                          ? DateFormat('dd/MM/yyyy')
+                          .format(DateTime.parse(entry.diary.ngayGhi!).toLocal())
+                          : "",
+                      style: TextStyle(
+                        fontSize: MediaQuery.of(context).size.width * 0.03,
+                      ),
                     ),
                     SizedBox(width: MediaQuery.of(context).size.width * 0.03,),
                     Text(

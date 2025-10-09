@@ -74,3 +74,19 @@ enum CameraType {
   detail,
   security,
 }
+class CameraStreamResponse {
+  final String uri;
+  final String content;
+
+  CameraStreamResponse({
+    required this.uri,
+    required this.content,
+  });
+
+  factory CameraStreamResponse.fromJson(Map<String, dynamic> json) {
+    return CameraStreamResponse(
+      uri: json["uri"] ?? "",
+      content: json["content"] ?? "",
+    );
+  }
+}

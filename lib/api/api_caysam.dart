@@ -187,6 +187,159 @@ extension APIExtension on API {
       return null;
     }
   }
+  Future<List<CaySamNhatKy>> getNhatKysbyid(String id) async {
+    String linkURL = "${host}api/CaySam/GetNhatKyByCaySamId/$id";
+    final uri = Uri.parse(linkURL);
 
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final userJson = prefs.getString("ginseng_user");
+      Kttoken? user;
+      if (userJson != null) {
+        final Map<String, dynamic> json = jsonDecode(userJson);
+        user = Kttoken.fromJson(json);
+      }
 
+      final headers = {
+        ...headerSvkt1,
+        "AuthenticateToken": user?.authenticateToken ?? "",
+        "FuncsTagActive": user?.funcsTagActives.firstWhere(
+              (x) => x.tenController.toLowerCase() == "caysam",
+          orElse: () => FuncTagActive(
+            tenController: "",
+            tenActions: "",
+            funcsTagActive: "",
+          ),
+        ).funcsTagActive ?? "",
+      };
+
+      final response = await http.get(uri, headers: headers);
+      if (response.statusCode == 200) {
+        Map<String, dynamic> responseJson = jsonDecode(response.body);
+
+        final data = ApiResponse<CaySamNhatKy>.fromJson(
+          responseJson,
+              (json) => CaySamNhatKy.fromJson(json),
+        );
+
+        return data.items ?? []; // ✅ trả về list
+      } else {
+        print("Lỗi API: ${response.statusCode} - ${response.body}");
+        return [];
+      }
+    } catch (e) {
+      print("Exception khi gọi API: $e");
+      return [];
+    }
+  }
+
+  Future<ApiResponse<CaySamModel>?> addNhatKy({
+    required Map<String, dynamic> data, // modelJson
+    required List<File?> files,          // BE yêu cầu đúng 2 ảnh
+  }) async {
+    final url = Uri.parse("${host}api/CaySam/AddNhatKyByCaySamId");
+    final prefs = await SharedPreferences.getInstance();
+    final userJson = prefs.getString("ginseng_user");
+    Kttoken? user;
+    if (userJson != null) {
+      user = Kttoken.fromJson(jsonDecode(userJson));
+    }
+    var request = http.MultipartRequest("POST", url);
+    request.headers.addAll({
+      ...headerSvkt1,
+      "AuthenticateToken": user?.authenticateToken ?? "",
+      "FuncsTagActive": user?.funcsTagActives.firstWhere(
+            (x) => x.tenController.toLowerCase() == "caysam",
+        orElse: () => FuncTagActive(
+          tenController: "",
+          tenActions: "",
+          funcsTagActive: "",
+        ),
+      ).funcsTagActive ?? "",
+    });
+    print(jsonEncode(data));
+    request.fields['modelJson'] = jsonEncode(data);
+    for (var file in files) {
+      if(file != null){
+        final fileBytes = await file.readAsBytes();
+        final fileName = file.path.split('/').last;
+        request.files.add(
+          http.MultipartFile.fromBytes(
+            'files',
+            fileBytes,
+            filename: fileName,
+          ),
+        );
+      }else{
+        print("❌ Lỗi: ảnh");
+      }
+    }
+    final response = await request.send();
+    final respStr = await response.stream.bytesToString();
+    if (response.statusCode == 200) {
+
+      final jsonRes = jsonDecode(respStr);
+      return ApiResponse<CaySamModel>.fromJson(
+        jsonRes,
+            (json) => CaySamModel.fromJson(json),
+      );
+
+    } else {
+      print("❌ Lỗi: ${response.statusCode} - $respStr");
+      return null;
+    }
+  }
+  Future<ApiResponse<String>?> updateLoSamChiTietByLoSamId({
+    required int id,
+    required Map<String, dynamic> data,
+  }) async {
+    final url = Uri.parse(
+      "${host}api/VuonTrong/UpdateLoSamChiTietByLoSamId/$id"
+          "?modelJson=${Uri.encodeComponent(jsonEncode(data))}",
+    );
+
+    final prefs = await SharedPreferences.getInstance();
+    final userJson = prefs.getString("ginseng_user");
+    Kttoken? user;
+    if (userJson != null) {
+      user = Kttoken.fromJson(jsonDecode(userJson));
+    }
+
+    final headers = {
+      ...headerSvkt1,
+      "AuthenticateToken": user?.authenticateToken ?? "",
+      "FuncsTagActive": user?.funcsTagActives.firstWhere(
+            (x) => x.tenController.toLowerCase() == "vuontrong",
+        orElse: () => FuncTagActive(
+          tenController: "",
+          tenActions: "",
+          funcsTagActive: "",
+        ),
+      ).funcsTagActive ?? "",
+    };
+
+    try {
+      final response = await http.post(url, headers: headers);
+
+      if (response.statusCode == 200) {
+        // API trả về JSON => parse thẳng về ApiResponse
+        final respJson = jsonDecode(response.body);
+
+        return ApiResponse<String>.fromJson(
+          respJson,
+              (json) => json.toString(), // vì API trả về text/plain hoặc string
+        );
+      } else {
+        print("❌ Lỗi: ${response.statusCode} - ${response.body}");
+        final respJson = jsonDecode(response.body);
+        return ApiResponse<String>.fromJson(
+          respJson,
+              (json) => json.toString(),
+        );
+      }
+    } catch (e) {
+      print("❌ Exception: $e");
+      return null;
+    }
+  }
 }

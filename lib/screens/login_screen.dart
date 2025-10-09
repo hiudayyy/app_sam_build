@@ -79,22 +79,26 @@ class _LoginScreenState extends State<LoginScreen> {
                 // Logo and Title
                 Column(
                   children: [
-                    Container(
-                      width: 64,
-                      height: 64,
-                      decoration: BoxDecoration(
-                        color: Color(0xFF16A34A),
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Icon(
-                        Icons.eco,
-                        color: Colors.white,
-                        size: 32,
-                      ),
+                  Container(
+                  width: 64,
+                  height: 64,
+                  decoration: BoxDecoration(
+                    color: /*Color(0xFF16A34A)*/ Colors.green.shade300,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: Image.asset(
+                      'assets/images/samnghigia.png',
+                      width: 32,
+                      height: 32,
+                      fit: BoxFit.contain,
                     ),
-                    SizedBox(height: 16),
+                  ),
+                ),
+              SizedBox(height: 16),
                     Text(
-                      'Sâm Ngọc Linh',
+                      'Sâm Ngọc Linh Nghị gia',
                       style: TextStyle(
                         fontSize: 28,
                         fontWeight: FontWeight.bold,
@@ -103,7 +107,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     SizedBox(height: 8),
                     Text(
-                      'Số hóa Sâm Ngọc Linh - Quốc bảo Việt Nam',
+                      'Sâm thật, giá trị thật',
                       style: TextStyle(
                         color: Colors.grey[600],
                         fontSize: 16,
@@ -365,7 +369,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                     ),
                                     SizedBox(width: 12),
                                     Expanded(
-                                      child: _buildDemoButton('investor', 'Nhà đầu tư', authProvider.isLoading),
+                                      child: _buildDemoButton('invester', 'Nhà đầu tư', authProvider.isLoading),
                                     ),
                                   ],
                                 ),

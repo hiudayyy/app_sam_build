@@ -199,19 +199,24 @@ class _HomeScreenState extends State<HomeScreen> {
             title: Row(
               children: [
                 Container(
-                  padding: EdgeInsets.all(8),
+                  padding: EdgeInsets.all(2),
                   decoration: BoxDecoration(
                     color: Colors.green.shade600,
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Icon(Icons.eco, color: Colors.white, size: 20),
+                  child: Image.asset(
+                    'assets/images/samnghigia.png',
+                    width: 34,
+                    height: 34,
+                    fit: BoxFit.contain,
+                  ),
                 ),
                 SizedBox(width: 12),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Sâm Ngọc Linh',
+                      'Sâm Ngọc Linh Nghị gia',
                       style: TextStyle(
                         fontSize: MediaQuery.of(context).size.width * 0.04,
                         fontWeight: FontWeight.bold,
@@ -219,7 +224,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ),
                     Text(
-                      'Số hóa Sâm Ngọc Linh - Quốc bảo Việt Nam',
+                      'Sâm thật, giá trị thật',
                       style: TextStyle(
                         fontSize: MediaQuery.of(context).size.width * 0.025,
                         color: Colors.grey.shade600,
@@ -231,24 +236,24 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             actions: [
               // Show batch diary button only on plants tab
-              if (_currentTab == NavTab.plants && !maVaiTros.any((role) => role.maVaiTro == "nft_invester"))
-                Padding(
-                  padding: EdgeInsets.only(right: 8),
-                  child: ElevatedButton(
-                    onPressed: () => _handleAddNewPlant(),
-                    style: ElevatedButton.styleFrom(
-                      padding: EdgeInsets.all(8), // padding cho icon
-                      minimumSize: Size(32, 32), // đảm bảo nút không quá nhỏ
-                      shape: RoundedRectangleBorder(
-                        borderRadius:
-                            BorderRadius.circular(8), // bo góc nếu cần
-                      ),
-                    ),
-                    child: Icon(Icons.add, size: 18,color: Colors.black87,),
-                  ),
-                )
-              // Show batch diary button on diary tab
-              else
+              // if (_currentTab == NavTab.plants && !maVaiTros.any((role) => role.maVaiTro == "nft_invester"))
+              //   Padding(
+              //     padding: EdgeInsets.only(right: 8),
+              //     child: ElevatedButton(
+              //       onPressed: () => _handleAddNewPlant(),
+              //       style: ElevatedButton.styleFrom(
+              //         padding: EdgeInsets.all(8), // padding cho icon
+              //         minimumSize: Size(32, 32), // đảm bảo nút không quá nhỏ
+              //         shape: RoundedRectangleBorder(
+              //           borderRadius:
+              //               BorderRadius.circular(8), // bo góc nếu cần
+              //         ),
+              //       ),
+              //       child: Icon(Icons.add, size: 18,color: Colors.black87,),
+              //     ),
+              //   )
+              // // Show batch diary button on diary tab
+              // else
                 // Show UserProfile for other cases
                 Padding(
                   padding: EdgeInsets.only(right: 8),
