@@ -16,6 +16,7 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
+        isCoreLibraryDesugaringEnabled = true
     }
 
     kotlinOptions {
@@ -44,4 +45,15 @@ android {
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    // Nếu bạn dùng Firebase Messaging
+    implementation("com.google.firebase:firebase-messaging:23.4.0")
+
+    // Nếu bạn dùng flutter_local_notifications
+    implementation("com.google.android.gms:play-services-base:18.2.0")
+
+    // ✅ Dòng quan trọng để bật desugaring
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
 }

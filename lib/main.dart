@@ -4,6 +4,8 @@ import 'package:csam_mobile/services/http_override.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 import 'firebase_options.dart';
 import 'providers/auth_provider.dart';
@@ -41,8 +43,85 @@ Future<void> main() async {
   runApp(MyApp());
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
+
+  @override
+  MyAppState createState() => MyAppState();
+}
+
+class MyAppState extends State<MyApp> {
+  final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+      FlutterLocalNotificationsPlugin();
+
+  @override
+  void initState() {
+    super.initState();
+    requestNotificationPermission();
+    setupLocalNotifications();
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+      RemoteNotification? notification = message.notification;
+      AndroidNotification? android = message.notification?.android;
+      if (notification != null && android != null) {
+        print("Nhận thông báo: ${notification.title}");
+        flutterLocalNotificationsPlugin.show(
+          notification.hashCode,
+          notification.title,
+          notification.body,
+          NotificationDetails(
+            android: AndroidNotificationDetails(
+              'high_importance_channel',
+              'Thông báo quan trọng',
+              importance: Importance.high,
+              priority: Priority.high,
+            ),
+          ),
+        );
+      }
+    });
+    handleInitialMessage();
+    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+      print("Ứng dụng mở từ thông báo!");
+    });
+  }
+
+  void requestNotificationPermission() async {
+    if (await Permission.notification.request().isGranted) {
+      print("Đã cấp quyền thông báo!");
+    }
+  }
+
+  void setupLocalNotifications() async {
+    const AndroidInitializationSettings androidSettings =
+        AndroidInitializationSettings('@mipmap/ic_launcher');
+
+    const AndroidNotificationChannel channel = AndroidNotificationChannel(
+      'high_importance_channel', // ID duy nhất
+      'Thông báo quan trọng', // Tên hiển thị cho người dùng
+      description: 'Dùng cho các thông báo quan trọng.',
+      importance: Importance.high,
+    );
+
+    final InitializationSettings initSettings = InitializationSettings(
+      android: androidSettings,
+    );
+    await flutterLocalNotificationsPlugin.initialize(initSettings);
+
+    await flutterLocalNotificationsPlugin
+        .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>()
+        ?.createNotificationChannel(channel);
+  }
+
+  void handleInitialMessage() async {
+    RemoteMessage? initialMessage =
+    await FirebaseMessaging.instance.getInitialMessage();
+
+    if (initialMessage != null) {
+      print("handleInitialMesssage");
+    }
+  }
+
 
   @override
   Widget build(BuildContext context) {
