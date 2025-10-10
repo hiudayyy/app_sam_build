@@ -346,9 +346,6 @@ extension APIExtension on API {
         return null;
       }
     }
-
-
-
     Future<LoSamModel?> getLoSamById(int id) async {
     String linkURL = "${host}api/VuonTrong/GetLoSam/$id";
     final uri = Uri.parse(linkURL);

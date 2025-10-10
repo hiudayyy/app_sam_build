@@ -1,4 +1,6 @@
 import 'package:csam_mobile/api/api_dashboard.dart';
+import 'package:csam_mobile/screens/plant_management_view_screen.dart';
+import 'package:csam_mobile/screens/plants_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../api/api.dart';
@@ -6,6 +8,10 @@ import '../models/cay_sam.dart';
 import '../models/dashboard/dashboard_model.dart';
 import '../models/user.dart';
 import '../providers/auth_provider.dart';
+import '../widgets/listcaysam.dart';
+import '../widgets/listcayyeu.dart';
+import '../widgets/listlosam.dart';
+import 'home_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   // final List<CaySam> plants;
@@ -82,6 +88,14 @@ class _DashboardScreenState extends State<DashboardScreen>
                     value: numbertotal?.totalVuonTrong.toString() ?? "",
                     color: Colors.green,
                     backgroundColor: Colors.green.shade100,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => HomeScreen(tabcurrent: 2,),
+                        ),
+                      );
+                    },
                   ),
                   _buildStatCard(
                     context,
@@ -90,6 +104,14 @@ class _DashboardScreenState extends State<DashboardScreen>
                     value: numbertotal?.totalLoSam.toString() ?? "",
                     color: Colors.green.shade600,
                     backgroundColor: Colors.green.shade100,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => DanhSachLoSamPage(),
+                        ),
+                      );
+                    },
                   ),
                   _buildStatCard(
                     context,
@@ -98,14 +120,30 @@ class _DashboardScreenState extends State<DashboardScreen>
                     value: numbertotal?.totalCaySam.toString() ?? "",
                     color: Colors.green,
                     backgroundColor: Colors.green.shade100,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => DanhSachCaySamPage(),
+                        ),
+                      );
+                    },
                   ),
                   _buildStatCard(
                     context,
                     icon: Icons.warning,
-                    title: 'Cần chú ý',
+                    title: 'Cây yếu',
                     value: numbertotal?.totalSuckhoeYeu.toString() ?? "",
-                    color: Colors.yellow.shade600,
+                    color: Colors.yellow.shade700,
                     backgroundColor: Colors.yellow.shade100,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => DanhSachCayYeuPage(),
+                        ),
+                      );
+                    },
                   ),
                 ],
               ),
@@ -289,57 +327,116 @@ class _DashboardScreenState extends State<DashboardScreen>
       },
     );
   }
-
-  Widget _buildStatCard(BuildContext context,{
-
-    required IconData icon,
-    required String title,
-    required String value,
-    required Color color,
-    required Color backgroundColor,
-  }) {
-    return Card(
-      child: Padding(
-        padding: EdgeInsets.all(16),
-        child: Row(
-          children: [
-            Container(
-              padding: EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: backgroundColor,
-                borderRadius: BorderRadius.circular(8),
+  Widget _buildStatCard(
+      BuildContext context, {
+        required IconData icon,
+        required String title,
+        required String value,
+        required Color color,
+        required Color backgroundColor,
+        VoidCallback? onTap, // 👈 thêm callback khi nhấn
+      }) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(12),
+      onTap: onTap, // 👈 dùng khi click
+      child: Card(
+        elevation: 2,
+        shadowColor: Colors.grey.shade300,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: backgroundColor,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(icon, size: 28, color: color),
               ),
-              child: Icon(icon, size: 24, color: color),
-            ),
-            SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                      fontSize: MediaQuery.of(context).size.width * 0.03,
-                      color: Colors.grey.shade600,
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: MediaQuery.of(context).size.width * 0.035,
+                        color: Colors.grey.shade700,
+                      ),
                     ),
-                  ),
-                  SizedBox(height: 4),
-                  Text(
-                    value,
-                    style: TextStyle(
-                      fontSize: MediaQuery.of(context).size.width * 0.05,
-                      fontWeight: FontWeight.w600,
+                    const SizedBox(height: 4),
+                    Text(
+                      value,
+                      style: TextStyle(
+                        fontSize: MediaQuery.of(context).size.width * 0.05,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
+
+  // Widget _buildStatCard(BuildContext context,{
+  //
+  //   required IconData icon,
+  //   required String title,
+  //   required String value,
+  //   required Color color,
+  //   required Color backgroundColor,
+  // }) {
+  //   return Card(
+  //     child: Padding(
+  //       padding: EdgeInsets.all(16),
+  //       child: Row(
+  //         children: [
+  //           Container(
+  //             padding: EdgeInsets.all(8),
+  //             decoration: BoxDecoration(
+  //               color: backgroundColor,
+  //               borderRadius: BorderRadius.circular(8),
+  //             ),
+  //             child: Icon(icon, size: 24, color: color),
+  //           ),
+  //           SizedBox(width: 12),
+  //           Expanded(
+  //             child: Column(
+  //               crossAxisAlignment: CrossAxisAlignment.start,
+  //               mainAxisAlignment: MainAxisAlignment.center,
+  //               children: [
+  //                 Text(
+  //                   title,
+  //                   style: TextStyle(
+  //                     fontSize: MediaQuery.of(context).size.width * 0.03,
+  //                     color: Colors.grey.shade600,
+  //                   ),
+  //                 ),
+  //                 SizedBox(height: 4),
+  //                 Text(
+  //                   value,
+  //                   style: TextStyle(
+  //                     fontSize: MediaQuery.of(context).size.width * 0.05,
+  //                     fontWeight: FontWeight.w600,
+  //                   ),
+  //                 ),
+  //               ],
+  //             ),
+  //           ),
+  //         ],
+  //       ),
+  //     ),
+  //   );
+  // }
 
   Widget _buildHealthIndicator(BuildContext context, String label, int count, Color color) {
     return Column(

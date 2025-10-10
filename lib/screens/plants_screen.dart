@@ -35,16 +35,10 @@ class _PlantsScreenNewState extends State<PlantsScreenNew> {
           //   plants: MockData.mockPlants,
           //   onPlantSelect: widget.onPlantSelected,
           // );
-          return PlantManagementViewScreen(
-            // plants: MockData.mockPlants,
-            onPlantSelect: widget.onPlantSelected,
-          );
+          return PlantManagementViewScreen();
         } else {
           // Giao diện quản lý thường cho các role khác
-          return PlantManagementViewScreen(
-            // plants: MockData.mockPlants,
-            onPlantSelect: widget.onPlantSelected,
-          );
+          return PlantManagementViewScreen();
         }
       },
     );

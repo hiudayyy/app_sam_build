@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/kttoken.dart';
 import '../models/login_model.dart';
+import '../models/message_enum.dart';
 import '../models/response_model.dart';
 import '../models/user_model.dart';
 import '../models/vuontrong/caysam_model.dart';
@@ -339,6 +340,121 @@ extension APIExtension on API {
       }
     } catch (e) {
       print("❌ Exception: $e");
+      return null;
+    }
+  }
+  Future<ApiResponse<CaySamModel>?> ListCaySamRatYeu() async {
+    final url = Uri.parse("${host}api/CaySam/ListCaySamRatYeu");
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final userJson = prefs.getString("ginseng_user");
+      Kttoken? user;
+      if (userJson != null) {
+        user = Kttoken.fromJson(jsonDecode(userJson));
+      }
+
+      final headers = {
+        ...headerSvkt1,
+        "AuthenticateToken": user?.authenticateToken ?? "",
+        "FuncsTagActive": user?.funcsTagActives.firstWhere(
+              (x) => x.tenController.toLowerCase() == "caysam",
+          orElse: () => FuncTagActive(
+            tenController: "",
+            tenActions: "",
+            funcsTagActive: "",
+          ),
+        ).funcsTagActive ?? "",
+      };
+
+      final response = await http.get(url, headers: headers);
+
+      if (response.statusCode == 200) {
+        final responseJson = jsonDecode(response.body);
+
+        final data = ApiResponse<CaySamModel>.fromJson(
+          responseJson,
+              (json) => CaySamModel.fromJson(json),
+        );
+
+        print("✅ Tổng số cây yếu: ${data.items?.length ?? 0}");
+        return data;
+      } else {
+        print("❌ Lỗi API: ${response.statusCode} - ${response.body}");
+        return ApiResponse<CaySamModel>(
+          messCode: MessCode.Unknown,
+          typeRp: "error",
+          message: "Lỗi khi gọi API",
+          messageGoiY: response.body,
+          items: [],
+        );
+      }
+    } catch (e) {
+      print("❌ Exception khi gọi API: $e");
+      return ApiResponse<CaySamModel>(
+        messCode: MessCode.Unknown,
+        typeRp: "error",
+        message: "Lỗi exception: $e",
+        messageGoiY: "",
+        items: [],
+      );
+    }
+  }
+  Future<ApiResponse<CaySamModel>?> listCaySam({
+    String? status,
+    int? rowCount,
+    int? skip,
+    int? top,
+    List<String>? orderBy,
+    List<String>? searchBy,
+  }) async {
+    String linkURL = "${host}api/CaySam/ListCaySam";
+    final uri = Uri.parse(linkURL).replace(queryParameters: {
+      if (status != null) 'Status': status,
+      if (rowCount != null) 'rowCount': rowCount.toString(),
+      if (skip != null) 'Skip': skip.toString(),
+      if (top != null) 'Top': top.toString(),
+      if (orderBy != null && orderBy.isNotEmpty) 'OrderBy': orderBy,
+      if (searchBy != null && searchBy.isNotEmpty) 'SearchBy': searchBy,
+    });
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final userJson = prefs.getString("ginseng_user");
+      Kttoken? user;
+      if (userJson != null) {
+        final Map<String, dynamic> json = jsonDecode(userJson);
+        user = Kttoken.fromJson(json);
+      }
+
+      final headers = {
+        ...headerSvkt1,
+        "AuthenticateToken": user?.authenticateToken ?? "",
+        "FuncsTagActive": user?.funcsTagActives.firstWhere(
+              (x) => x.tenController.toLowerCase() == "caysam",
+          orElse: () => FuncTagActive(
+            tenController: "",
+            tenActions: "",
+            funcsTagActive: "",
+          ),
+        ).funcsTagActive ?? "",
+      };
+
+      final response = await http.get(uri, headers: headers);
+      if (response.statusCode == 200) {
+        Map<String, dynamic> responseJson = jsonDecode(response.body);
+
+        final data = ApiResponse<CaySamModel>.fromJson(
+          responseJson,
+              (json) => CaySamModel.fromJson(json),
+        );
+        return data;
+      } else {
+        print("Lỗi API: ${response.statusCode} - ${response.body}");
+        return null;
+      }
+    } catch (e) {
+      print("Exception khi gọi API: $e");
       return null;
     }
   }

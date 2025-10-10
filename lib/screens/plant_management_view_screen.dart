@@ -11,8 +11,6 @@ import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../api/api.dart';
 import '../core/constants/app_colors.dart';
-import '../models/camera.dart';
-import '../models/cay_sam.dart';
 import '../models/caysamuser_model.dart';
 import '../models/farm_hierarchy.dart';
 import '../data/mock_data.dart';
@@ -23,9 +21,6 @@ import '../models/vuontrong/caysam_model.dart';
 import '../models/vuontrong/losam_model.dart';
 import '../models/vuontrong/losamchitiet_model.dart';
 import '../models/vuontrong/vuontrong_model.dart';
-import '../providers/auth_provider.dart';
-import 'package:provider/provider.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 import '../widgets/camera.dart';
 import 'add_farm_screen.dart';
@@ -34,21 +29,16 @@ import 'add_plant_screen.dart';
 import 'batch_plant_update_screen.dart';
 
 class PlantManagementViewScreen extends StatefulWidget {
-  // final List<CaySam> plants;
-  final Function(String) onPlantSelect;
-
   const PlantManagementViewScreen({
     Key? key,
-    // required this.plants,
-    required this.onPlantSelect,
   }) : super(key: key);
 
   @override
   State<PlantManagementViewScreen> createState() =>
-      _PlantManagementViewScreenState();
+      PlantManagementViewScreenState();
 }
 
-class _PlantManagementViewScreenState extends State<PlantManagementViewScreen>
+class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
     with TickerProviderStateMixin {
   NavigationLevel currentLevel = NavigationLevel.farm;
   VuonTrongModel? selectedFarm;
@@ -193,49 +183,7 @@ class _PlantManagementViewScreenState extends State<PlantManagementViewScreen>
     }
   }
 
-  PlantStats _calculatePlantStats(List<CaySamModel> plants) {
-    final totalPlants = plants.length;
-    final plantsWithInvestors =
-        plants.where((plant) => plant.loSamId != null).length;
-    final plantsWithoutInvestors = totalPlants - plantsWithInvestors;
-    final ageGroups = <String, int>{
-      '1-3': plants.where((plant) {
-        final age = _calculatePlantAge(plant.tuoiCayId ?? 0);
-        return age >= 1 && age <= 3;
-      }).length,
-      '4-6': plants.where((plant) {
-        final age = _calculatePlantAge(plant.tuoiCayId ?? 0);
-        return age >= 4 && age <= 6;
-      }).length,
-      '7-8': plants.where((plant) {
-        final age = _calculatePlantAge(plant.tuoiCayId ?? 0);
-        return age >= 7 && age <= 8;
-      }).length,
-      '9-10': plants.where((plant) {
-        final age = _calculatePlantAge(plant.tuoiCayId ?? 0);
-        return age >= 9 && age <= 10;
-      }).length,
-    };
-    final healthyPlants =
-        1 /*plants.where((p) => p.trangThai == TrangThaiCay.khoeMauh).length*/;
-    return PlantStats(
-      totalPlants: totalPlants,
-      plantsWithInvestors: plantsWithInvestors,
-      plantsWithoutInvestors: plantsWithoutInvestors,
-      ageGroups: ageGroups,
-      healthyPlants: healthyPlants,
-    );
-  }
-
   int _calculatePlantAge(int plantingDate) {
-    // if (plantingDate.isEmpty) return 0;
-    // try {
-    //   final planted = DateTime.parse(plantingDate);
-    //   final now = DateTime.now();
-    //   return now.difference(planted).inDays ~/ 365;
-    // } catch (e) {
-    //   return 0;
-    // }
     return plantingDate;
   }
 
@@ -247,13 +195,6 @@ class _PlantManagementViewScreenState extends State<PlantManagementViewScreen>
     return 'Chưa xác định';
   }
 
-  // IconData _getPlantAgeIcon(int age) {
-  //   if (age == 1) return FontAwesomeIcons.seedling; // Young sprout
-  //   if (age == 2) return FontAwesomeIcons.leaf; // Growing plant
-  //   if (age == 3) return Icons.park; // Mature tree
-  //   if (age == 4) return Icons.forest; // Old tree
-  //   return FontAwesomeIcons.seedling;
-  // }
   String _getPlantAgeIconPath(int age) {
     switch (age) {
       case 1:
@@ -284,6 +225,9 @@ class _PlantManagementViewScreenState extends State<PlantManagementViewScreen>
     setState(() {
       switch (currentLevel) {
         case NavigationLevel.grid:
+          selectedFarm ??= VuonTrongModel(vuonTrongId: 0, tenVuon: '', diaChi: '', viTri: '', ghiChu: '', trangThai: 1); // hoặc kiểu tương ứng
+          selectedFarm?.vuonTrongId = selectedZone?.vuonTrongId ?? 0;
+
           currentLevel = NavigationLevel.zone;
           selectedZone = null;
           break;
@@ -320,7 +264,14 @@ class _PlantManagementViewScreenState extends State<PlantManagementViewScreen>
   }
 
   Widget _buildHeader() {
-    // final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    bool canShowMultiSelectButton = false;
+
+    if (currentLevel == NavigationLevel.grid &&
+        user?.htTaiKhoan.htPhanQuyenTaiKhoans != null) {
+      canShowMultiSelectButton = user!.htTaiKhoan.htPhanQuyenTaiKhoans.any(
+            (pq) => pq.maVaiTro != "nft_invester" && pq.maVaiTro == "nft_admin",
+      );
+    }
     final breadcrumb = _getBreadcrumb();
     return Container(
       color: Colors.white,
@@ -367,8 +318,7 @@ class _PlantManagementViewScreenState extends State<PlantManagementViewScreen>
                                   overflow: TextOverflow.visible,
                                 ),
                               ),
-                              if (currentLevel == NavigationLevel.grid && user!.htTaiKhoan.htPhanQuyenTaiKhoans.any((pq) =>
-                              pq.maVaiTro != "nft_invester" && pq.maVaiTro == "nft_admin"))
+                              if (canShowMultiSelectButton)
                                 AnimatedBuilder(
                                   animation: _multiSelectAnimation,
                                   builder: (context, child) {
@@ -458,7 +408,7 @@ class _PlantManagementViewScreenState extends State<PlantManagementViewScreen>
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => CameraView(
+        builder: (context) => CameraViewWithGrid(
           cameras: cameras,
           areaName: areaName,
         ),
@@ -680,11 +630,13 @@ class _PlantManagementViewScreenState extends State<PlantManagementViewScreen>
   Widget _buildFarmLevel() {
     return Column(
       children: [
-        const Text(
-          'Quản lý Trang trại',
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
+        Center(
+          child: const Text(
+            'Quản lý Trang trại',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ),
         const SizedBox(height: 8),
@@ -863,7 +815,7 @@ class _PlantManagementViewScreenState extends State<PlantManagementViewScreen>
   }
 
   Widget _buildZoneLevel() {
-    if (selectedFarm == null) return const SizedBox();
+    if (selectedFarm?.vuonTrongId == null) return const SizedBox();
 
     final api = API();
 
@@ -2243,6 +2195,16 @@ class _PlantManagementViewScreenState extends State<PlantManagementViewScreen>
         ),
       ),
     );
+  }
+  void Selectlo(LoSamModel? zone){
+    selectedZone = zone;
+    _reloadData();
+    if (selectedZone != null) {
+      setState(() {
+        gridRows = List.generate(selectedZone!.soHang, (i) => i + 1);
+      });
+    }
+    currentLevel = NavigationLevel.grid;
   }
   void _showAddfarmDialog() {
 

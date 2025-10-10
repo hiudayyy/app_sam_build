@@ -33,11 +33,12 @@ class _LoginScreenState extends State<LoginScreen> {
 
   void _handleLogin() async {
     var token = await FirebaseMessaging.instance.getToken();
-    print(token);
     if (_formKey.currentState!.validate()) {
       var model = LoginModel(
           uname: _usernameController.text,
-          pass: _passwordController.text,);
+          pass: _passwordController.text,
+          deviceToken: token ?? "",
+      );
       context.read<AuthProvider>().login(model);
     }
   }

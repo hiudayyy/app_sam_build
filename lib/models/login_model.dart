@@ -7,10 +7,12 @@ class LoginModel {
   late String pass;
   late String apiDate;
   late String hashCode256;
+  late String deviceToken;
 
   LoginModel({
     required this.uname,
     required this.pass,
+    required this.deviceToken,
   }) : apiDate = getDate() {
     hashCode256 = shaCode256();
   }
@@ -34,6 +36,7 @@ class LoginModel {
       'pass': pass,
       'apiDate': apiDate,
       'hashCode': hashCode256,
+      'deviceToken':deviceToken,
     };
   }
 }

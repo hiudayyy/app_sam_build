@@ -1,5 +1,7 @@
 import 'dart:io';
 
+import 'package:csam_mobile/models/vuontrong/losam_model.dart';
+import 'package:csam_mobile/screens/plant_management_view_screen.dart';
 import 'package:csam_mobile/screens/plants_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -23,11 +25,19 @@ import '../widgets/protected_route.dart';
 import '../widgets/user_profile.dart';
 
 class HomeScreen extends StatefulWidget {
+  final int? tabcurrent;
+  final bool shouldShowDialog;
+  final LoSamModel? zone;
+
+  const HomeScreen({
+    Key? key, this.tabcurrent, this.shouldShowDialog = false, this.zone,
+  }) : super(key: key);
   @override
   _HomeScreenState createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  final GlobalKey<PlantManagementViewScreenState> plantScreenKey = GlobalKey();
   NavTab _currentTab = NavTab.dashboard;
   String? _selectedPlantId;
   bool _showDiaryForm = false;
@@ -43,9 +53,7 @@ class _HomeScreenState extends State<HomeScreen> {
           child: DashboardScreen(plants: MockData.mockPlants),
         );
       case NavTab.plants:
-        return PlantsScreenNew(
-          onPlantSelected: _handlePlantSelect,
-        );
+        return PlantManagementViewScreen(key: plantScreenKey);
       case NavTab.diary:
         return ProtectedRoute(
           requiredPermission: Permission.updateDiary,
@@ -102,6 +110,17 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
+  @override
+  void initState() {
+    super.initState();
+    _currentTab = widget.tabcurrent == 2 ? NavTab.plants :NavTab.dashboard;
+    if (widget.shouldShowDialog) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        plantScreenKey.currentState?.Selectlo(widget.zone);
+      });
+    }
+
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -153,24 +172,6 @@ class _HomeScreenState extends State<HomeScreen> {
           );
         }
 
-        // Show plant detail if selected
-        if (_selectedPlantId != null) {
-          final plant = MockData.mockPlants.firstWhere(
-            (p) => p.id == _selectedPlantId,
-            orElse: () => CaySam.empty(),
-          );
-
-          // if (plant.id.isNotEmpty) {
-          //   return PlantDetailScreen(
-          //     plant: plant,
-          //     onBack: () {
-          //       setState(() {
-          //         _selectedPlantId = null;
-          //       });
-          //     },
-          //   );
-          // }
-        }
 
         // Get available tabs based on user permissions
         final maVaiTros = authProvider.user?.htPhanQuyenTaiKhoans ?? [];
@@ -194,6 +195,7 @@ class _HomeScreenState extends State<HomeScreen> {
         return Scaffold(
           backgroundColor: Color(0xFFF8F9FA),
           appBar: AppBar(
+            automaticallyImplyLeading: false,
             backgroundColor: Colors.white,
             elevation: 0,
             title: Row(
@@ -235,26 +237,6 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
             ),
             actions: [
-              // Show batch diary button only on plants tab
-              // if (_currentTab == NavTab.plants && !maVaiTros.any((role) => role.maVaiTro == "nft_invester"))
-              //   Padding(
-              //     padding: EdgeInsets.only(right: 8),
-              //     child: ElevatedButton(
-              //       onPressed: () => _handleAddNewPlant(),
-              //       style: ElevatedButton.styleFrom(
-              //         padding: EdgeInsets.all(8), // padding cho icon
-              //         minimumSize: Size(32, 32), // đảm bảo nút không quá nhỏ
-              //         shape: RoundedRectangleBorder(
-              //           borderRadius:
-              //               BorderRadius.circular(8), // bo góc nếu cần
-              //         ),
-              //       ),
-              //       child: Icon(Icons.add, size: 18,color: Colors.black87,),
-              //     ),
-              //   )
-              // // Show batch diary button on diary tab
-              // else
-                // Show UserProfile for other cases
                 Padding(
                   padding: EdgeInsets.only(right: 8),
                   child: UserProfile(),

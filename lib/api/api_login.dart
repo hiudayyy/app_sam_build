@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/kttoken.dart';
 import '../models/login_model.dart';
+import '../models/message_enum.dart';
 import '../models/response_model.dart';
 import '../models/user_model.dart';
 import '../services/local_service.dart';
@@ -27,7 +28,7 @@ extension APIExtension on API {
       );
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_userKey, jsonEncode(data.oneItem?.toJson()));
-      if (data.messCode == 1) {
+      if (data.messCode == MessCode.IsOK) {
         await LocalStoreService.setUserModel(data.oneItem!.htTaiKhoan);
       }
       return data;
@@ -36,16 +37,31 @@ extension APIExtension on API {
     }
   }
   Future<Kttoken?> resetToken(Kttoken model) async {
+    // Tạo URL với query parameters nếu cần
     String linkURL = "${host}api/HeThong/RefreshToken";
-    var body = jsonEncode(model.toJson());
-    final response = await http.post(
+    final prefs = await SharedPreferences.getInstance();
+    final userJson = prefs.getString("ginseng_user");
+    Kttoken? user;
+    if (userJson != null) {
+      user = Kttoken.fromJson(jsonDecode(userJson));
+    }
+    final headers = {
+      ...headerSvkt1,
+      "AuthenticateToken": user?.authenticateToken ?? "",
+      "FuncsTagActive": user?.funcsTagActives.firstWhere(
+            (x) => x.tenController.toLowerCase() == "hethong",
+        orElse: () => FuncTagActive(
+          tenController: "",
+          tenActions: "",
+          funcsTagActive: "",
+        ),
+      ).funcsTagActive ?? "",
+    };
+    final response = await http.get(
       Uri.parse(linkURL),
-      headers: {
-        ...headerSvkt1,
-        "authenticateToken": model.refreshToken ?? "" ,
-      },
-      body: body,
+      headers: headers,
     );
+
     if (response.statusCode == 200) {
       Map<String, dynamic> json = jsonDecode(response.body);
       Kttoken? data = Kttoken.fromJson(json);
@@ -75,6 +91,46 @@ extension APIExtension on API {
         responseJson,
             (json) => UserModel.fromJson(json),
       );
+      return data;
+    } else {
+      return null;
+    }
+  }
+  Future<Kttoken?> Logout(Kttoken model) async {
+    // Tạo URL với query parameters nếu cần
+    String linkURL = "${host}api/HeThong/DangXuat";
+    final prefs = await SharedPreferences.getInstance();
+    final userJson = prefs.getString("ginseng_user");
+    Kttoken? user;
+    if (userJson != null) {
+      user = Kttoken.fromJson(jsonDecode(userJson));
+    }
+    final headers = {
+      ...headerSvkt1,
+      "AuthenticateToken": user?.authenticateToken ?? "",
+      "FuncsTagActive": user?.funcsTagActives.firstWhere(
+            (x) => x.tenController.toLowerCase() == "hethong",
+        orElse: () => FuncTagActive(
+          tenController: "",
+          tenActions: "",
+          funcsTagActive: "",
+        ),
+      ).funcsTagActive ?? "",
+    };
+    final response = await http.get(
+      Uri.parse(linkURL),
+      headers: headers,
+    );
+
+    if (response.statusCode == 200) {
+      Map<String, dynamic> json = jsonDecode(response.body);
+      Kttoken? data = Kttoken.fromJson(json);
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_userKey, jsonEncode(data.toJson()));
+      if (data.messCode == 1) {
+        await LocalStoreService.setUserModel(data.htTaiKhoan);
+        return data;
+      }
       return data;
     } else {
       return null;

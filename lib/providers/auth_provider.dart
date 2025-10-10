@@ -1,11 +1,14 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:csam_mobile/api/api_login.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../api/api.dart';
 import '../models/kttoken.dart';
 import '../models/login_model.dart';
+import '../models/message_enum.dart';
 import '../models/user.dart';
 import '../models/user_model.dart';
 import '../services/auth_service.dart';
@@ -54,7 +57,7 @@ class AuthProvider extends ChangeNotifier {
       if(user == null){
         _error = user?.message;
         _usermodel = null;
-      }else if(user.message == "Ok"){
+      }else if(user.messCode == MessCode.IsOK){
         _usermodel = user.oneItem?.htTaiKhoan;
       }else{
         _error = user.message;
@@ -77,6 +80,21 @@ class AuthProvider extends ChangeNotifier {
 
   Future<void> logout() async {
     try {
+      String _userKey = 'ginseng_user';
+      final prefs = await SharedPreferences.getInstance();
+
+      // Lấy chuỗi JSON đã lưu
+      String? userJson = prefs.getString(_userKey);
+      if (userJson == null) return null; // chưa login lần nào
+
+      // Parse lại thành UserModel
+      final Map<String, dynamic> json = jsonDecode(userJson);
+      final user = Kttoken.fromJson(json);
+      if(user.authenticateToken == ""){
+        _error = "Có lỗi xảy ra!";
+        return null;
+      }
+      await api.Logout(user);
       await AuthService.logout();
       _usermodel = null;
     //  _user = null;
