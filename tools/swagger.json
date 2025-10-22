@@ -1,0 +1,2107 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "API",
+    "contact": {
+      "name": "api",
+      "url": "https://licketoan.huetechcoop.com"
+    },
+    "version": "v1"
+  },
+  "paths": {
+    "/api/Camera/ListCameraStream": {
+      "get": {
+        "tags": [
+          "Camera"
+        ],
+        "summary": "Camera",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/CameraStreamAPIResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CameraStreamAPIResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CameraStreamAPIResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/Camera/StartStreamCamera": {
+      "post": {
+        "tags": [
+          "Camera"
+        ],
+        "summary": "Start Camera",
+        "requestBody": {
+          "description": "URL camera RTSP",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CameraStream"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CameraStream"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CameraStream"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataStream"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataStream"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataStream"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/Camera/StopStreamCamera": {
+      "post": {
+        "tags": [
+          "Camera"
+        ],
+        "summary": "Stop Camera",
+        "parameters": [
+          {
+            "name": "cameraId",
+            "in": "query",
+            "description": "URL camera RTSP",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "boolean"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "boolean"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "boolean"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/HeThong/RefreshToken": {
+      "post": {
+        "tags": [
+          "HeThong"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ktTokenAPIResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ktTokenAPIResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ktTokenAPIResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/HeThong/ListMenu": {
+      "get": {
+        "tags": [
+          "HeThong"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTMenuAPIResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTMenuAPIResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTMenuAPIResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/HeThong/Menu/{id}": {
+      "get": {
+        "tags": [
+          "HeThong"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTMenuModelAPIResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTMenuModelAPIResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTMenuModelAPIResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/HeThong/AddMenu": {
+      "post": {
+        "tags": [
+          "HeThong"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTMenuApi"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTMenuApi"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTMenuApi"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTMenuAPIResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTMenuAPIResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTMenuAPIResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/HeThong/EditMenu/{id}": {
+      "post": {
+        "tags": [
+          "HeThong"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTMenuApi"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTMenuApi"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTMenuApi"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTMenuAPIResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTMenuAPIResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTMenuAPIResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/HeThong/DeleteMenu": {
+      "post": {
+        "tags": [
+          "HeThong"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTDeleteApi"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTDeleteApi"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTDeleteApi"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTMenuAPIResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTMenuAPIResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTMenuAPIResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/HeThong/ListVaiTro": {
+      "get": {
+        "tags": [
+          "HeThong"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTVaiTroAPIResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTVaiTroAPIResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTVaiTroAPIResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/HeThong/VaiTro/{id}": {
+      "get": {
+        "tags": [
+          "HeThong"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTVaiTroModelAPIResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTVaiTroModelAPIResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTVaiTroModelAPIResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/HeThong/AddVaiTro": {
+      "post": {
+        "tags": [
+          "HeThong"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTVaiTroApi"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTVaiTroApi"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTVaiTroApi"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTVaiTroAPIResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTVaiTroAPIResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTVaiTroAPIResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/HeThong/EditVaiTro/{id}": {
+      "post": {
+        "tags": [
+          "HeThong"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTVaiTroApi"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTVaiTroApi"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTVaiTroApi"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTVaiTroAPIResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTVaiTroAPIResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTVaiTroAPIResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/HeThong/DeleteVaiTro": {
+      "post": {
+        "tags": [
+          "HeThong"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTDeleteApi"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTDeleteApi"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTDeleteApi"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTVaiTroAPIResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTVaiTroAPIResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTVaiTroAPIResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/Home/DangKy": {
+      "post": {
+        "tags": [
+          "Home"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTaiKhoanApi"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTaiKhoanApi"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTaiKhoanApi"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTaiKhoanAPIResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTaiKhoanAPIResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTaiKhoanAPIResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/Home/DangNhap": {
+      "post": {
+        "tags": [
+          "Home"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/clsDangNhap"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/clsDangNhap"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/clsDangNhap"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ktTokenAPIResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ktTokenAPIResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ktTokenAPIResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ApiPage": {
+        "type": "object",
+        "properties": {
+          "tableName": {
+            "type": "string",
+            "nullable": true
+          },
+          "rowCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "rowCountNoWhere": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "skip": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "top": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "orderby": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "status": {
+            "enum": [
+              "Unknown",
+              "DangDung",
+              "TamNgung",
+              "TatCa"
+            ],
+            "type": "string"
+          },
+          "searchby": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "datefm": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "CameraStream": {
+        "type": "object",
+        "properties": {
+          "cameraName": {
+            "type": "string",
+            "nullable": true
+          },
+          "cameraId": {
+            "type": "string",
+            "nullable": true
+          },
+          "rstpURL": {
+            "type": "string",
+            "nullable": true
+          },
+          "outputFile": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "CameraStreamAPIResponse": {
+        "type": "object",
+        "properties": {
+          "messCode": {
+            "enum": [
+              "Unknown",
+              "IsOK",
+              "Not200",
+              "NotHost",
+              "IsNotBeNull",
+              "NoDaTaFound",
+              "Success",
+              "ApiDateOut",
+              "ApiDateFalse",
+              "HashCode",
+              "Exception",
+              "Duplicate",
+              "AlreadyDeleted",
+              "AlreadyUsed",
+              "NotExist",
+              "NewAndInactive",
+              "MissingInput",
+              "NULLInput",
+              "NegativeInput",
+              "InitializeNew",
+              "InvalidData",
+              "InvalidTable",
+              "InvalidConnection",
+              "IncompleteProcessing",
+              "RecheckInformation",
+              "RecheckInStock",
+              "DeleteFalse",
+              "InvalidPartnerID",
+              "InvalidTaxInfos",
+              "MissingTaxAccounts",
+              "MissingTaxInfos",
+              "InvalidDatetime",
+              "MissingByAdmin",
+              "ExceptionMenu",
+              "LoginDateTime",
+              "AccountLocked",
+              "MissingDateTime",
+              "HashCodeFalse",
+              "RecheckDuplicateVoucherTaxNo",
+              "RecheckDuplicateVoucherNo",
+              "RecheckOfferAcnt",
+              "RecheckVoucherNo",
+              "RecheckPayableAcntId",
+              "RecheckOfferCrAcntId",
+              "RecheckChiPhi",
+              "RecheckChiPhiVanChuyen",
+              "RecheckDisntRate",
+              "RecheckTtlDisntAmt",
+              "RecheckDisntCrAcntId",
+              "RecheckTtlDisntAmtInExc",
+              "RefreshTokenExpired",
+              "AuthenticateNotMatchRefresh",
+              "LicenseExpired",
+              "RecheckDisntDbAcntId",
+              "RecheckRecvableAcntId",
+              "RecheckOfferDbAcntId",
+              "RecheckVoucherTaxNo",
+              "RecheckVoucherTypeTaxSign",
+              "RecheckVoucherTaxSign"
+            ],
+            "type": "string"
+          },
+          "typeRp": {
+            "enum": [
+              "Unknown",
+              "ListObj",
+              "ItemObj"
+            ],
+            "type": "string"
+          },
+          "message": {
+            "type": "string",
+            "nullable": true
+          },
+          "messageGoiY": {
+            "type": "string",
+            "nullable": true
+          },
+          "dataPage": {
+            "$ref": "#/components/schemas/ApiPage"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CameraStream"
+            },
+            "nullable": true
+          },
+          "lstOptionModelType": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OptionModelType"
+            },
+            "nullable": true
+          },
+          "oneItem": {
+            "$ref": "#/components/schemas/CameraStream"
+          }
+        },
+        "additionalProperties": false
+      },
+      "DataStream": {
+        "type": "object",
+        "properties": {
+          "uri": {
+            "type": "string",
+            "nullable": true
+          },
+          "content": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "FuncsTagModel": {
+        "type": "object",
+        "properties": {
+          "tenController": {
+            "type": "string",
+            "nullable": true
+          },
+          "tenActions": {
+            "type": "string",
+            "nullable": true
+          },
+          "funcsTagActive": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "HTDeleteApi": {
+        "type": "object",
+        "properties": {
+          "ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "HTMenu": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "nullable": true
+          },
+          "maMenuCha": {
+            "type": "string",
+            "nullable": true
+          },
+          "ten": {
+            "type": "string",
+            "nullable": true
+          },
+          "moTa": {
+            "type": "string",
+            "nullable": true
+          },
+          "tenAction": {
+            "type": "string",
+            "nullable": true
+          },
+          "tenController": {
+            "type": "string",
+            "nullable": true
+          },
+          "tenArea": {
+            "type": "string",
+            "nullable": true
+          },
+          "ngayKhoiTao": {
+            "type": "string",
+            "format": "date"
+          },
+          "icon": {
+            "type": "string",
+            "nullable": true
+          },
+          "thuTu": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "hienThi": {
+            "type": "boolean"
+          },
+          "maVaiTros": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HTVaiTro"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "HTMenuAPIResponse": {
+        "type": "object",
+        "properties": {
+          "messCode": {
+            "enum": [
+              "Unknown",
+              "IsOK",
+              "Not200",
+              "NotHost",
+              "IsNotBeNull",
+              "NoDaTaFound",
+              "Success",
+              "ApiDateOut",
+              "ApiDateFalse",
+              "HashCode",
+              "Exception",
+              "Duplicate",
+              "AlreadyDeleted",
+              "AlreadyUsed",
+              "NotExist",
+              "NewAndInactive",
+              "MissingInput",
+              "NULLInput",
+              "NegativeInput",
+              "InitializeNew",
+              "InvalidData",
+              "InvalidTable",
+              "InvalidConnection",
+              "IncompleteProcessing",
+              "RecheckInformation",
+              "RecheckInStock",
+              "DeleteFalse",
+              "InvalidPartnerID",
+              "InvalidTaxInfos",
+              "MissingTaxAccounts",
+              "MissingTaxInfos",
+              "InvalidDatetime",
+              "MissingByAdmin",
+              "ExceptionMenu",
+              "LoginDateTime",
+              "AccountLocked",
+              "MissingDateTime",
+              "HashCodeFalse",
+              "RecheckDuplicateVoucherTaxNo",
+              "RecheckDuplicateVoucherNo",
+              "RecheckOfferAcnt",
+              "RecheckVoucherNo",
+              "RecheckPayableAcntId",
+              "RecheckOfferCrAcntId",
+              "RecheckChiPhi",
+              "RecheckChiPhiVanChuyen",
+              "RecheckDisntRate",
+              "RecheckTtlDisntAmt",
+              "RecheckDisntCrAcntId",
+              "RecheckTtlDisntAmtInExc",
+              "RefreshTokenExpired",
+              "AuthenticateNotMatchRefresh",
+              "LicenseExpired",
+              "RecheckDisntDbAcntId",
+              "RecheckRecvableAcntId",
+              "RecheckOfferDbAcntId",
+              "RecheckVoucherTaxNo",
+              "RecheckVoucherTypeTaxSign",
+              "RecheckVoucherTaxSign"
+            ],
+            "type": "string"
+          },
+          "typeRp": {
+            "enum": [
+              "Unknown",
+              "ListObj",
+              "ItemObj"
+            ],
+            "type": "string"
+          },
+          "message": {
+            "type": "string",
+            "nullable": true
+          },
+          "messageGoiY": {
+            "type": "string",
+            "nullable": true
+          },
+          "dataPage": {
+            "$ref": "#/components/schemas/ApiPage"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HTMenu"
+            },
+            "nullable": true
+          },
+          "lstOptionModelType": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OptionModelType"
+            },
+            "nullable": true
+          },
+          "oneItem": {
+            "$ref": "#/components/schemas/HTMenu"
+          }
+        },
+        "additionalProperties": false
+      },
+      "HTMenuApi": {
+        "type": "object",
+        "properties": {
+          "maMenuCha": {
+            "type": "string",
+            "nullable": true
+          },
+          "ten": {
+            "type": "string",
+            "nullable": true
+          },
+          "moTa": {
+            "type": "string",
+            "nullable": true
+          },
+          "tenAction": {
+            "type": "string",
+            "nullable": true
+          },
+          "tenController": {
+            "type": "string",
+            "nullable": true
+          },
+          "tenArea": {
+            "type": "string",
+            "nullable": true
+          },
+          "ngayKhoiTao": {
+            "type": "string",
+            "format": "date"
+          },
+          "icon": {
+            "type": "string",
+            "nullable": true
+          },
+          "thuTu": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "hienThi": {
+            "type": "boolean"
+          },
+          "maVaiTros": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "HTMenuModel": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "nullable": true
+          },
+          "maMenuCha": {
+            "type": "string",
+            "nullable": true
+          },
+          "ten": {
+            "type": "string",
+            "nullable": true
+          },
+          "moTa": {
+            "type": "string",
+            "nullable": true
+          },
+          "tenAction": {
+            "type": "string",
+            "nullable": true
+          },
+          "tenController": {
+            "type": "string",
+            "nullable": true
+          },
+          "tenArea": {
+            "type": "string",
+            "nullable": true
+          },
+          "ngayKhoiTao": {
+            "type": "string",
+            "format": "date"
+          },
+          "icon": {
+            "type": "string",
+            "nullable": true
+          },
+          "thuTu": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "hienThi": {
+            "type": "boolean"
+          },
+          "children": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HTMenuModel"
+            },
+            "nullable": true
+          },
+          "menus": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HTMenuModel"
+            },
+            "nullable": true
+          },
+          "vaiTros": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HTVaiTro"
+            },
+            "nullable": true
+          },
+          "maVaiTros": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "HTMenuModelAPIResponse": {
+        "type": "object",
+        "properties": {
+          "messCode": {
+            "enum": [
+              "Unknown",
+              "IsOK",
+              "Not200",
+              "NotHost",
+              "IsNotBeNull",
+              "NoDaTaFound",
+              "Success",
+              "ApiDateOut",
+              "ApiDateFalse",
+              "HashCode",
+              "Exception",
+              "Duplicate",
+              "AlreadyDeleted",
+              "AlreadyUsed",
+              "NotExist",
+              "NewAndInactive",
+              "MissingInput",
+              "NULLInput",
+              "NegativeInput",
+              "InitializeNew",
+              "InvalidData",
+              "InvalidTable",
+              "InvalidConnection",
+              "IncompleteProcessing",
+              "RecheckInformation",
+              "RecheckInStock",
+              "DeleteFalse",
+              "InvalidPartnerID",
+              "InvalidTaxInfos",
+              "MissingTaxAccounts",
+              "MissingTaxInfos",
+              "InvalidDatetime",
+              "MissingByAdmin",
+              "ExceptionMenu",
+              "LoginDateTime",
+              "AccountLocked",
+              "MissingDateTime",
+              "HashCodeFalse",
+              "RecheckDuplicateVoucherTaxNo",
+              "RecheckDuplicateVoucherNo",
+              "RecheckOfferAcnt",
+              "RecheckVoucherNo",
+              "RecheckPayableAcntId",
+              "RecheckOfferCrAcntId",
+              "RecheckChiPhi",
+              "RecheckChiPhiVanChuyen",
+              "RecheckDisntRate",
+              "RecheckTtlDisntAmt",
+              "RecheckDisntCrAcntId",
+              "RecheckTtlDisntAmtInExc",
+              "RefreshTokenExpired",
+              "AuthenticateNotMatchRefresh",
+              "LicenseExpired",
+              "RecheckDisntDbAcntId",
+              "RecheckRecvableAcntId",
+              "RecheckOfferDbAcntId",
+              "RecheckVoucherTaxNo",
+              "RecheckVoucherTypeTaxSign",
+              "RecheckVoucherTaxSign"
+            ],
+            "type": "string"
+          },
+          "typeRp": {
+            "enum": [
+              "Unknown",
+              "ListObj",
+              "ItemObj"
+            ],
+            "type": "string"
+          },
+          "message": {
+            "type": "string",
+            "nullable": true
+          },
+          "messageGoiY": {
+            "type": "string",
+            "nullable": true
+          },
+          "dataPage": {
+            "$ref": "#/components/schemas/ApiPage"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HTMenuModel"
+            },
+            "nullable": true
+          },
+          "lstOptionModelType": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OptionModelType"
+            },
+            "nullable": true
+          },
+          "oneItem": {
+            "$ref": "#/components/schemas/HTMenuModel"
+          }
+        },
+        "additionalProperties": false
+      },
+      "HTTaiKhoan": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "nullable": true
+          },
+          "tenTaiKhoan": {
+            "type": "string",
+            "nullable": true
+          },
+          "matKhau": {
+            "type": "string",
+            "nullable": true
+          },
+          "ngayKhoiTao": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "trangThai": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "sdt": {
+            "type": "string",
+            "nullable": true
+          },
+          "email": {
+            "type": "string",
+            "nullable": true
+          },
+          "maVaiTros": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HTVaiTro"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "HTTaiKhoanAPIResponse": {
+        "type": "object",
+        "properties": {
+          "messCode": {
+            "enum": [
+              "Unknown",
+              "IsOK",
+              "Not200",
+              "NotHost",
+              "IsNotBeNull",
+              "NoDaTaFound",
+              "Success",
+              "ApiDateOut",
+              "ApiDateFalse",
+              "HashCode",
+              "Exception",
+              "Duplicate",
+              "AlreadyDeleted",
+              "AlreadyUsed",
+              "NotExist",
+              "NewAndInactive",
+              "MissingInput",
+              "NULLInput",
+              "NegativeInput",
+              "InitializeNew",
+              "InvalidData",
+              "InvalidTable",
+              "InvalidConnection",
+              "IncompleteProcessing",
+              "RecheckInformation",
+              "RecheckInStock",
+              "DeleteFalse",
+              "InvalidPartnerID",
+              "InvalidTaxInfos",
+              "MissingTaxAccounts",
+              "MissingTaxInfos",
+              "InvalidDatetime",
+              "MissingByAdmin",
+              "ExceptionMenu",
+              "LoginDateTime",
+              "AccountLocked",
+              "MissingDateTime",
+              "HashCodeFalse",
+              "RecheckDuplicateVoucherTaxNo",
+              "RecheckDuplicateVoucherNo",
+              "RecheckOfferAcnt",
+              "RecheckVoucherNo",
+              "RecheckPayableAcntId",
+              "RecheckOfferCrAcntId",
+              "RecheckChiPhi",
+              "RecheckChiPhiVanChuyen",
+              "RecheckDisntRate",
+              "RecheckTtlDisntAmt",
+              "RecheckDisntCrAcntId",
+              "RecheckTtlDisntAmtInExc",
+              "RefreshTokenExpired",
+              "AuthenticateNotMatchRefresh",
+              "LicenseExpired",
+              "RecheckDisntDbAcntId",
+              "RecheckRecvableAcntId",
+              "RecheckOfferDbAcntId",
+              "RecheckVoucherTaxNo",
+              "RecheckVoucherTypeTaxSign",
+              "RecheckVoucherTaxSign"
+            ],
+            "type": "string"
+          },
+          "typeRp": {
+            "enum": [
+              "Unknown",
+              "ListObj",
+              "ItemObj"
+            ],
+            "type": "string"
+          },
+          "message": {
+            "type": "string",
+            "nullable": true
+          },
+          "messageGoiY": {
+            "type": "string",
+            "nullable": true
+          },
+          "dataPage": {
+            "$ref": "#/components/schemas/ApiPage"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HTTaiKhoan"
+            },
+            "nullable": true
+          },
+          "lstOptionModelType": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OptionModelType"
+            },
+            "nullable": true
+          },
+          "oneItem": {
+            "$ref": "#/components/schemas/HTTaiKhoan"
+          }
+        },
+        "additionalProperties": false
+      },
+      "HTTaiKhoanApi": {
+        "type": "object",
+        "properties": {
+          "tenTaiKhoan": {
+            "type": "string",
+            "nullable": true
+          },
+          "matKhau": {
+            "type": "string",
+            "nullable": true
+          },
+          "ngayKhoiTao": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "trangThai": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "sdt": {
+            "type": "string",
+            "nullable": true
+          },
+          "email": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "HTVaiTro": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "nullable": true
+          },
+          "ten": {
+            "type": "string",
+            "nullable": true
+          },
+          "moTa": {
+            "type": "string",
+            "nullable": true
+          },
+          "htMenus": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HTMenu"
+            },
+            "nullable": true
+          },
+          "htTaiKhoans": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HTTaiKhoan"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "HTVaiTroAPIResponse": {
+        "type": "object",
+        "properties": {
+          "messCode": {
+            "enum": [
+              "Unknown",
+              "IsOK",
+              "Not200",
+              "NotHost",
+              "IsNotBeNull",
+              "NoDaTaFound",
+              "Success",
+              "ApiDateOut",
+              "ApiDateFalse",
+              "HashCode",
+              "Exception",
+              "Duplicate",
+              "AlreadyDeleted",
+              "AlreadyUsed",
+              "NotExist",
+              "NewAndInactive",
+              "MissingInput",
+              "NULLInput",
+              "NegativeInput",
+              "InitializeNew",
+              "InvalidData",
+              "InvalidTable",
+              "InvalidConnection",
+              "IncompleteProcessing",
+              "RecheckInformation",
+              "RecheckInStock",
+              "DeleteFalse",
+              "InvalidPartnerID",
+              "InvalidTaxInfos",
+              "MissingTaxAccounts",
+              "MissingTaxInfos",
+              "InvalidDatetime",
+              "MissingByAdmin",
+              "ExceptionMenu",
+              "LoginDateTime",
+              "AccountLocked",
+              "MissingDateTime",
+              "HashCodeFalse",
+              "RecheckDuplicateVoucherTaxNo",
+              "RecheckDuplicateVoucherNo",
+              "RecheckOfferAcnt",
+              "RecheckVoucherNo",
+              "RecheckPayableAcntId",
+              "RecheckOfferCrAcntId",
+              "RecheckChiPhi",
+              "RecheckChiPhiVanChuyen",
+              "RecheckDisntRate",
+              "RecheckTtlDisntAmt",
+              "RecheckDisntCrAcntId",
+              "RecheckTtlDisntAmtInExc",
+              "RefreshTokenExpired",
+              "AuthenticateNotMatchRefresh",
+              "LicenseExpired",
+              "RecheckDisntDbAcntId",
+              "RecheckRecvableAcntId",
+              "RecheckOfferDbAcntId",
+              "RecheckVoucherTaxNo",
+              "RecheckVoucherTypeTaxSign",
+              "RecheckVoucherTaxSign"
+            ],
+            "type": "string"
+          },
+          "typeRp": {
+            "enum": [
+              "Unknown",
+              "ListObj",
+              "ItemObj"
+            ],
+            "type": "string"
+          },
+          "message": {
+            "type": "string",
+            "nullable": true
+          },
+          "messageGoiY": {
+            "type": "string",
+            "nullable": true
+          },
+          "dataPage": {
+            "$ref": "#/components/schemas/ApiPage"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HTVaiTro"
+            },
+            "nullable": true
+          },
+          "lstOptionModelType": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OptionModelType"
+            },
+            "nullable": true
+          },
+          "oneItem": {
+            "$ref": "#/components/schemas/HTVaiTro"
+          }
+        },
+        "additionalProperties": false
+      },
+      "HTVaiTroApi": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "nullable": true
+          },
+          "ten": {
+            "type": "string",
+            "nullable": true
+          },
+          "moTa": {
+            "type": "string",
+            "nullable": true
+          },
+          "maChucNangs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "HTVaiTroModel": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "nullable": true
+          },
+          "ten": {
+            "type": "string",
+            "nullable": true
+          },
+          "moTa": {
+            "type": "string",
+            "nullable": true
+          },
+          "menus": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HTMenuModel"
+            },
+            "nullable": true
+          },
+          "maChucNangs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "HTVaiTroModelAPIResponse": {
+        "type": "object",
+        "properties": {
+          "messCode": {
+            "enum": [
+              "Unknown",
+              "IsOK",
+              "Not200",
+              "NotHost",
+              "IsNotBeNull",
+              "NoDaTaFound",
+              "Success",
+              "ApiDateOut",
+              "ApiDateFalse",
+              "HashCode",
+              "Exception",
+              "Duplicate",
+              "AlreadyDeleted",
+              "AlreadyUsed",
+              "NotExist",
+              "NewAndInactive",
+              "MissingInput",
+              "NULLInput",
+              "NegativeInput",
+              "InitializeNew",
+              "InvalidData",
+              "InvalidTable",
+              "InvalidConnection",
+              "IncompleteProcessing",
+              "RecheckInformation",
+              "RecheckInStock",
+              "DeleteFalse",
+              "InvalidPartnerID",
+              "InvalidTaxInfos",
+              "MissingTaxAccounts",
+              "MissingTaxInfos",
+              "InvalidDatetime",
+              "MissingByAdmin",
+              "ExceptionMenu",
+              "LoginDateTime",
+              "AccountLocked",
+              "MissingDateTime",
+              "HashCodeFalse",
+              "RecheckDuplicateVoucherTaxNo",
+              "RecheckDuplicateVoucherNo",
+              "RecheckOfferAcnt",
+              "RecheckVoucherNo",
+              "RecheckPayableAcntId",
+              "RecheckOfferCrAcntId",
+              "RecheckChiPhi",
+              "RecheckChiPhiVanChuyen",
+              "RecheckDisntRate",
+              "RecheckTtlDisntAmt",
+              "RecheckDisntCrAcntId",
+              "RecheckTtlDisntAmtInExc",
+              "RefreshTokenExpired",
+              "AuthenticateNotMatchRefresh",
+              "LicenseExpired",
+              "RecheckDisntDbAcntId",
+              "RecheckRecvableAcntId",
+              "RecheckOfferDbAcntId",
+              "RecheckVoucherTaxNo",
+              "RecheckVoucherTypeTaxSign",
+              "RecheckVoucherTaxSign"
+            ],
+            "type": "string"
+          },
+          "typeRp": {
+            "enum": [
+              "Unknown",
+              "ListObj",
+              "ItemObj"
+            ],
+            "type": "string"
+          },
+          "message": {
+            "type": "string",
+            "nullable": true
+          },
+          "messageGoiY": {
+            "type": "string",
+            "nullable": true
+          },
+          "dataPage": {
+            "$ref": "#/components/schemas/ApiPage"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HTVaiTroModel"
+            },
+            "nullable": true
+          },
+          "lstOptionModelType": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OptionModelType"
+            },
+            "nullable": true
+          },
+          "oneItem": {
+            "$ref": "#/components/schemas/HTVaiTroModel"
+          }
+        },
+        "additionalProperties": false
+      },
+      "OptionModel": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "nullable": true
+          },
+          "value": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "OptionModelType": {
+        "type": "object",
+        "properties": {
+          "catType": {
+            "type": "string",
+            "nullable": true
+          },
+          "catVer": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "catFilter": {
+            "type": "string",
+            "nullable": true
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OptionModel"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "clsDangNhap": {
+        "type": "object",
+        "properties": {
+          "uname": {
+            "type": "string",
+            "nullable": true
+          },
+          "pass": {
+            "type": "string",
+            "nullable": true
+          },
+          "apiDate": {
+            "type": "string",
+            "nullable": true
+          },
+          "hashCode": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ktToken": {
+        "type": "object",
+        "properties": {
+          "messCode": {
+            "enum": [
+              "Unknown",
+              "IsOK",
+              "Not200",
+              "NotHost",
+              "IsNotBeNull",
+              "NoDaTaFound",
+              "Success",
+              "ApiDateOut",
+              "ApiDateFalse",
+              "HashCode",
+              "Exception",
+              "Duplicate",
+              "AlreadyDeleted",
+              "AlreadyUsed",
+              "NotExist",
+              "NewAndInactive",
+              "MissingInput",
+              "NULLInput",
+              "NegativeInput",
+              "InitializeNew",
+              "InvalidData",
+              "InvalidTable",
+              "InvalidConnection",
+              "IncompleteProcessing",
+              "RecheckInformation",
+              "RecheckInStock",
+              "DeleteFalse",
+              "InvalidPartnerID",
+              "InvalidTaxInfos",
+              "MissingTaxAccounts",
+              "MissingTaxInfos",
+              "InvalidDatetime",
+              "MissingByAdmin",
+              "ExceptionMenu",
+              "LoginDateTime",
+              "AccountLocked",
+              "MissingDateTime",
+              "HashCodeFalse",
+              "RecheckDuplicateVoucherTaxNo",
+              "RecheckDuplicateVoucherNo",
+              "RecheckOfferAcnt",
+              "RecheckVoucherNo",
+              "RecheckPayableAcntId",
+              "RecheckOfferCrAcntId",
+              "RecheckChiPhi",
+              "RecheckChiPhiVanChuyen",
+              "RecheckDisntRate",
+              "RecheckTtlDisntAmt",
+              "RecheckDisntCrAcntId",
+              "RecheckTtlDisntAmtInExc",
+              "RefreshTokenExpired",
+              "AuthenticateNotMatchRefresh",
+              "LicenseExpired",
+              "RecheckDisntDbAcntId",
+              "RecheckRecvableAcntId",
+              "RecheckOfferDbAcntId",
+              "RecheckVoucherTaxNo",
+              "RecheckVoucherTypeTaxSign",
+              "RecheckVoucherTaxSign"
+            ],
+            "type": "string"
+          },
+          "message": {
+            "type": "string",
+            "nullable": true
+          },
+          "authenticateToken": {
+            "type": "string",
+            "nullable": true
+          },
+          "funcsTagActives": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FuncsTagModel"
+            },
+            "nullable": true
+          },
+          "expiredAuthenticateToken": {
+            "type": "string",
+            "nullable": true
+          },
+          "refreshToken": {
+            "type": "string",
+            "nullable": true
+          },
+          "expiredRefreshToken": {
+            "type": "string",
+            "nullable": true
+          },
+          "service": {
+            "type": "string",
+            "nullable": true
+          },
+          "htTaiKhoan": {
+            "$ref": "#/components/schemas/HTTaiKhoan"
+          },
+          "htMenuModels": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HTMenuModel"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ktTokenAPIResponse": {
+        "type": "object",
+        "properties": {
+          "messCode": {
+            "enum": [
+              "Unknown",
+              "IsOK",
+              "Not200",
+              "NotHost",
+              "IsNotBeNull",
+              "NoDaTaFound",
+              "Success",
+              "ApiDateOut",
+              "ApiDateFalse",
+              "HashCode",
+              "Exception",
+              "Duplicate",
+              "AlreadyDeleted",
+              "AlreadyUsed",
+              "NotExist",
+              "NewAndInactive",
+              "MissingInput",
+              "NULLInput",
+              "NegativeInput",
+              "InitializeNew",
+              "InvalidData",
+              "InvalidTable",
+              "InvalidConnection",
+              "IncompleteProcessing",
+              "RecheckInformation",
+              "RecheckInStock",
+              "DeleteFalse",
+              "InvalidPartnerID",
+              "InvalidTaxInfos",
+              "MissingTaxAccounts",
+              "MissingTaxInfos",
+              "InvalidDatetime",
+              "MissingByAdmin",
+              "ExceptionMenu",
+              "LoginDateTime",
+              "AccountLocked",
+              "MissingDateTime",
+              "HashCodeFalse",
+              "RecheckDuplicateVoucherTaxNo",
+              "RecheckDuplicateVoucherNo",
+              "RecheckOfferAcnt",
+              "RecheckVoucherNo",
+              "RecheckPayableAcntId",
+              "RecheckOfferCrAcntId",
+              "RecheckChiPhi",
+              "RecheckChiPhiVanChuyen",
+              "RecheckDisntRate",
+              "RecheckTtlDisntAmt",
+              "RecheckDisntCrAcntId",
+              "RecheckTtlDisntAmtInExc",
+              "RefreshTokenExpired",
+              "AuthenticateNotMatchRefresh",
+              "LicenseExpired",
+              "RecheckDisntDbAcntId",
+              "RecheckRecvableAcntId",
+              "RecheckOfferDbAcntId",
+              "RecheckVoucherTaxNo",
+              "RecheckVoucherTypeTaxSign",
+              "RecheckVoucherTaxSign"
+            ],
+            "type": "string"
+          },
+          "typeRp": {
+            "enum": [
+              "Unknown",
+              "ListObj",
+              "ItemObj"
+            ],
+            "type": "string"
+          },
+          "message": {
+            "type": "string",
+            "nullable": true
+          },
+          "messageGoiY": {
+            "type": "string",
+            "nullable": true
+          },
+          "dataPage": {
+            "$ref": "#/components/schemas/ApiPage"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ktToken"
+            },
+            "nullable": true
+          },
+          "lstOptionModelType": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OptionModelType"
+            },
+            "nullable": true
+          },
+          "oneItem": {
+            "$ref": "#/components/schemas/ktToken"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "securitySchemes": {
+      "AuthenticateToken": {
+        "type": "apiKey",
+        "description": "Chèn AuthenticateToken vào ô bên dưới",
+        "name": "AuthenticateToken",
+        "in": "header"
+      },
+      "funcsTagActive": {
+        "type": "apiKey",
+        "description": "Chèn funcsTagActive vào ô bên dưới",
+        "name": "funcsTagActive",
+        "in": "header"
+      }
+    }
+  },
+  "security": [
+    {
+      "AuthenticateToken": [ ]
+    },
+    {
+      "funcsTagActive": [ ]
+    }
+  ]
+}

@@ -82,7 +82,7 @@ class _DanhSachLoSamPageState extends State<DanhSachLoSamPage> {
       itemCount: _items.length + (_hasMore ? 1 : 0),
       itemBuilder: (context, index) {
         if (index < _items.length) {
-          final loSam = _items[index];
+          final   loSam = _items[index];
           return InkWell(
               onTap: () {
                 Navigator.push(
@@ -191,7 +191,7 @@ class _DanhSachLoSamPageState extends State<DanhSachLoSamPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Danh sách lô sâm")),
+      appBar: AppBar(title: const Text("Danh sách lô sâm",style: TextStyle(color: Colors.white),),backgroundColor: Colors.green.shade700,foregroundColor: Colors.white ),
       body: _items.isEmpty && !_isLoading
           ? const Center(child: Text("Không có dữ liệu"))
           : _buildLoSamList(),

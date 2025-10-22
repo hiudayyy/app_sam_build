@@ -458,4 +458,59 @@ extension APIExtension on API {
       return null;
     }
   }
+  Future<CaySamModel?> getCaySamById(String? id) async {
+    // ✅ THAY ĐỔI: Cập nhật endpoint API với ID được truyền vào
+    String linkURL = "${host}api/CaySam/GetCaySamById/$id";
+    final uri = Uri.parse(linkURL);
+
+    try {
+      // Giữ nguyên logic lấy thông tin user và token
+      final prefs = await SharedPreferences.getInstance();
+      final userJson = prefs.getString("ginseng_user");
+      Kttoken? user;
+      if (userJson != null) {
+        final Map<String, dynamic> json = jsonDecode(userJson);
+        user = Kttoken.fromJson(json);
+      }
+
+      // Giữ nguyên cấu trúc header, controller vẫn là "caysam"
+      final headers = {
+        ...headerSvkt1,
+        "AuthenticateToken": user?.authenticateToken ?? "",
+        "FuncsTagActive": user?.funcsTagActives
+            .firstWhere(
+              (x) => x.tenController.toLowerCase() == "caysam",
+          orElse: () =>
+              FuncTagActive(
+                tenController: "",
+                tenActions: "",
+                funcsTagActive: "",
+              ),
+        )
+            .funcsTagActive ?? "",
+      };
+
+      // Giữ nguyên logic gọi API
+      final response = await http.get(uri, headers: headers);
+
+      if (response.statusCode == 200) {
+        Map<String, dynamic> responseJson = jsonDecode(response.body);
+        final data = ApiResponse<CaySamModel>.fromJson(
+          responseJson,
+              (json) => CaySamModel.fromJson(json),
+        );
+
+        return data.oneItem;
+      } else {
+        // Giữ nguyên logic xử lý lỗi
+        print(
+            "Lỗi API getCaySamById: ${response.statusCode} - ${response.body}");
+        return null;
+      }
+    } catch (e) {
+      // Giữ nguyên logic xử lý exception
+      print("Exception khi gọi API getCaySamById: $e");
+      return null;
+    }
+  }
 }

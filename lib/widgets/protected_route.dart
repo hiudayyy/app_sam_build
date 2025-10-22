@@ -29,12 +29,6 @@ class ProtectedRoute extends StatelessWidget {
           );
         }
 
-        // if (requiredPermission != null && !authProvider.hasPermission(requiredPermission!)) {
-        //   return fallback ?? _UnauthorizedWidget(
-        //     message: 'Bạn không có quyền truy cập chức năng này',
-        //   );
-        // }
-
         if (requiredRole != null && !authProvider.hasRole(requiredRole!)) {
           return fallback ?? _UnauthorizedWidget(
             message: 'Vai trò của bạn không được phép truy cập',

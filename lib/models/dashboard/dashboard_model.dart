@@ -20,3 +20,31 @@ class DashBoardtotal {
     );
   }
 }
+class DashBoardSucKhoe {
+  final int totalRatTot;
+  final int totalKhaTot;
+  final int totalTrungBinh;
+  final int totalYeu;
+  final int totalRatYeu;
+  final double HealthPercentage;
+
+  DashBoardSucKhoe({
+    required this.totalRatTot,
+    required this.totalKhaTot,
+    required this.totalTrungBinh,
+    required this.totalYeu,
+    required this.totalRatYeu,
+    required this.HealthPercentage,
+  });
+
+  factory DashBoardSucKhoe.fromJson(Map<String, dynamic> json) {
+    return DashBoardSucKhoe(
+      totalRatTot: json['totalRatTot'] ?? 0,
+      totalKhaTot: json['totalKhaTot'] ?? 0,
+      totalTrungBinh: json['totalTrungBinh'] ?? 0,
+      totalYeu: json['totalYeu'] ?? 0,
+      totalRatYeu: json['totalRatYeu'] ?? 0,
+      HealthPercentage: json['healthPercentage'] ?? 0,
+    );
+  }
+}

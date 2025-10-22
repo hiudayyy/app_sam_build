@@ -1,10 +1,13 @@
 import 'dart:convert';
 import 'dart:async';
 import 'dart:math' as math;
+import 'package:csam_mobile/api/api_camera.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:video_player/video_player.dart';
 
+import '../api/api.dart';
+import '../models/vuontrong/losam_model.dart';
 import '../models/vuontrong/losamcamera_model.dart';
 
 // Camera configuration for PTZ controls
@@ -34,12 +37,12 @@ class CameraConfig {
 
 class CameraViewWithGrid extends StatefulWidget {
   final List<LoSamCameraModel> cameras; // LoSamCameraModel
-  final String areaName;
+  final LoSamModel? losam;
 
   const CameraViewWithGrid({
     Key? key,
     required this.cameras,
-    required this.areaName,
+    required this.losam,
   }) : super(key: key);
 
   @override
@@ -53,6 +56,8 @@ class _CameraViewWithGridState extends State<CameraViewWithGrid> with SingleTick
   VideoPlayerController? _controller;
   bool isLoading = false;
   bool _isVideoError = false;
+  bool _showControlsOverlay = true;
+  Timer? _hideControlsTimer;
 
   // PTZ & Grid Map
   CameraConfig cameraConfig = CameraConfig();
@@ -63,7 +68,7 @@ class _CameraViewWithGridState extends State<CameraViewWithGrid> with SingleTick
 
   // Grid configuration - 6 columns x 17 rows
   final List<String> cols = ['A', 'B', 'C', 'D', 'E', 'F'];
-  final int rows = 17;
+  late final int rows = widget.losam?.soHang ?? 0;
 
   List<String> get leftCols => cols.sublist(0, 3);  // A, B, C
   List<String> get rightCols => cols.sublist(3, 6); // D, E, F
@@ -79,9 +84,39 @@ class _CameraViewWithGridState extends State<CameraViewWithGrid> with SingleTick
   void dispose() {
     _controller?.dispose();
     pulseTimer?.cancel();
+    _hideControlsTimer?.cancel();
     super.dispose();
   }
+  // HÀM MỚI: Bắt đầu đếm ngược để ẩn controls
+  void _startHideTimer() {
+    // Hủy timer cũ nếu có
+    _hideControlsTimer?.cancel();
+    // Bắt đầu timer mới, sau 5 giây sẽ tự động ẩn
+    _hideControlsTimer = Timer(const Duration(seconds: 5), () {
+      if (mounted) {
+        setState(() {
+          _showControlsOverlay = false;
+        });
+      }
+    });
+  }
 
+// HÀM MỚI: Xử lý khi người dùng chạm vào video
+  void _toggleControlsOverlay() {
+    if (mounted) {
+      setState(() {
+        // Đảo ngược trạng thái hiển thị
+        _showControlsOverlay = !_showControlsOverlay;
+        // Nếu controls đang hiển thị, bắt đầu đếm giờ để ẩn đi
+        if (_showControlsOverlay) {
+          _startHideTimer();
+        } else {
+          // Nếu người dùng chủ động ẩn, hủy timer
+          _hideControlsTimer?.cancel();
+        }
+      });
+    }
+  }
   void _startPulseAnimation() {
     pulseTimer = Timer.periodic(const Duration(milliseconds: 100), (timer) {
       if (mounted) {
@@ -167,16 +202,16 @@ class _CameraViewWithGridState extends State<CameraViewWithGrid> with SingleTick
   }
 
   Future<void> _initializeData() async {
-    // Giữ nguyên logic init của bạn
     if (widget.cameras.length == 1) {
       setState(() {
         selectedCamera = widget.cameras.first;
         isLoading = true;
+
       });
 
       try {
         // TODO: Uncomment khi có API thật
-        // final res = await API().startStreamCamera(widget.cameras.first);
+        //
         // if (res != null) {
         //   setState(() {
         //     urlcamera = res.uri;
@@ -185,9 +220,9 @@ class _CameraViewWithGridState extends State<CameraViewWithGrid> with SingleTick
         // }
 
         // Mock for testing
-        await Future.delayed(Duration(seconds: 1));
+        final res = await API().startStreamCamera(widget.cameras.first);
         setState(() {
-          urlcamera = 'https://samnft.vecoi.com/streamfile/1/stream.m3u8';
+          urlcamera = res?.uri;
         });
         startVideo();
       } catch (e) {
@@ -197,6 +232,9 @@ class _CameraViewWithGridState extends State<CameraViewWithGrid> with SingleTick
           isLoading = false;
         });
       }
+    }
+    if(widget.losam != null){
+      cameraConfig.range = ((widget.losam!.soHang) / 2).floor();
     }
     _controller = VideoPlayerController.network(urlcamera ?? "")
       ..initialize().then((_) {
@@ -220,355 +258,372 @@ class _CameraViewWithGridState extends State<CameraViewWithGrid> with SingleTick
 
   @override
   Widget build(BuildContext context) {
+    final bool showList = widget.cameras.length > 1 && selectedCamera == null;
+    const double listWidth = 320; // Chiều rộng cố định cho danh sách camera
+
     return Scaffold(
       appBar: AppBar(
-        title: Text('Camera giám sát - ${widget.areaName}'),
+        title: Text('Camera giám sát - ${widget.losam?.tenLo ?? ""}'),
         backgroundColor: Colors.green,
         foregroundColor: Colors.white,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Camera List (GIỮ NGUYÊN)
-            if (selectedCamera?.trangThai != 0 || selectedCamera == null)
-              Expanded(
-                flex: 2,
-                child: _buildCameraList(),
-              ),
-            const SizedBox(width: 16),
+      body: Stack(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : selectedCamera != null
+                ? _buildCameraViewWithGrid(selectedCamera!)
+                : widget.cameras.isEmpty
+                ? _buildNoCameraSelected()
+                : Container(),
+          ),
+          AnimatedPositioned(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+            top: 0,
+            bottom: 0,
 
-            // Camera View with Grid Map
-            Expanded(
-              flex: 2,
-              child: isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : selectedCamera != null
-                  ? _buildCameraViewWithGrid(selectedCamera!)
-                  : _buildNoCameraSelected(),
-            ),
-          ],
-        ),
+            left: showList ? 0 : -listWidth,
+            width: listWidth,
+            child: _buildCameraListOverlay(),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildCameraList() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Danh sách camera (${widget.cameras.length})',
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w600,
-            fontSize: MediaQuery.of(context).size.width * 0.027,
+  // WIDGET MỚI: Danh sách camera được thiết kế lại hoàn toàn với giao diện hiện đại
+  Widget _buildCameraListOverlay() {
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: Container(
+        decoration: BoxDecoration(
+          color: Theme.of(context).scaffoldBackgroundColor,
+          borderRadius: const BorderRadius.only(
+            topRight: Radius.circular(16),
+            bottomRight: Radius.circular(16),
           ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.2),
+              blurRadius: 10,
+              spreadRadius: 2,
+            ),
+          ],
         ),
-        const SizedBox(height: 12),
-        Expanded(
-          child: ListView.builder(
-            itemCount: widget.cameras.length,
-            itemBuilder: (context, index) {
-              final camera = widget.cameras[index];
-              final isSelected = selectedCamera?.id == camera.id;
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 24, 20, 12),
+              child: Text(
+                'Chọn Camera',
+                style: Theme.of(context)
+                    .textTheme
+                    .headlineSmall
+                    ?.copyWith(fontWeight: FontWeight.bold),
+              ),
+            ),
+            const Divider(height: 1, indent: 20, endIndent: 20),
+            Expanded(
+              child: ListView.builder(
+                padding: const EdgeInsets.all(12),
+                itemCount: widget.cameras.length,
+                itemBuilder: (context, index) {
+                  final camera = widget.cameras[index];
+                  final isSelected = selectedCamera?.id == camera.id;
 
-              return Container(
-                margin: const EdgeInsets.only(bottom: 8),
-                child: Material(
-                  color: isSelected ? Colors.green.shade50 : Colors.white,
-                  borderRadius: BorderRadius.circular(8),
-                  elevation: isSelected ? 3 : 1,
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(8),
-                    onTap: () async {
-                      setState(() {
-                        selectedCamera = camera;
-                        isLoading = true;
-                      });
+                  // ✅ Sử dụng Container để tạo nền gradient cho item được chọn
+                  return Container(
+                    margin: const EdgeInsets.symmetric(vertical: 6),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(14),
+                      gradient: isSelected
+                          ? LinearGradient(
+                        colors: [Colors.green.shade600, Colors.green.shade400],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      )
+                          : null,
+                      color: isSelected ? null : Colors.grey.shade100,
+                      boxShadow: isSelected
+                          ? [
+                        BoxShadow(
+                          color: Colors.green.withOpacity(0.3),
+                          blurRadius: 8,
+                          offset: const Offset(0, 4),
+                        )
+                      ]
+                          : [],
+                    ),
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(14),
+                        onTap: () async {
+                          setState(() {
+                            selectedCamera = camera;
+                            isLoading = true;
+                            _isVideoError = false;
+                            _controller?.dispose();
+                            _controller = null;
+                          });
 
-                      try {
-                        // TODO: Gọi API thật
-                        // final res = await API().startStreamCamera(camera);
-                        // if (res != null) {
-                        //   setState(() {
-                        //     urlcamera = res.uri;
-                        //   });
-                        //   startVideo();
-                        // }
+                          try {
+                            setState(() { urlcamera = selectedCamera?.rtsp; });
+                            startVideo();
+                          } catch (e) {
+                            print("❌ Lỗi startStreamCamera: $e");
+                          } finally {
+                            if (mounted) setState(() => isLoading = false);
+                          }
+                          _controller = VideoPlayerController.network(urlcamera ?? "")
+                            ..initialize().then((_) {
+                              if (mounted) setState(() {});
+                            }).catchError((error) {
+                              if (mounted) {
+                                setState(() {
+                                  _isVideoError = true; // ✅ đánh dấu lỗi
+                                });
+                              }
+                            });
 
-                        await Future.delayed(Duration(milliseconds: 500));
-                        setState(() {
-                          urlcamera = 'https://samnft.vecoi.com/streamfile/1/stream.m3u8';
-                        });
-                        startVideo();
-                      } catch (e) {
-                        print("❌ Lỗi startStreamCamera: $e");
-                      } finally {
-                        setState(() {
-                          isLoading = false;
-                        });
-                      }
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(8),
-                        border: isSelected
-                            ? Border.all(color: Colors.green, width: 2)
-                            : Border.all(color: Colors.grey.shade300),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
+                          _controller!.addListener(() {
+                            if (_controller!.value.hasError) {
+                              setState(() {
+                                _isVideoError = true;
+                              });
+                            }
+                          });
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          child: Row(
                             children: [
-                              const SizedBox(width: 8),
+                              // ✅ Icon được thiết kế lại với chỉ báo trạng thái chồng lên
+                              Stack(
+                                clipBehavior: Clip.none,
+                                children: [
+                                  CircleAvatar(
+                                    radius: 24,
+                                    backgroundColor: isSelected ? Colors.white.withOpacity(0.2) : Colors.white,
+                                    child: Icon(
+                                      Icons.videocam_rounded,
+                                      color: isSelected ? Colors.white : Colors.green.shade700,
+                                      size: 26,
+                                    ),
+                                  ),
+                                  Positioned(
+                                    top: -2,
+                                    right: -2,
+                                    child: _buildCompactStatusIndicator(camera.trangThai ?? 1),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(width: 16),
                               Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      camera.loSamLoaiCamera?.ten ?? "",
+                                      camera.loSamLoaiCamera?.ten ?? "Camera không tên",
                                       style: TextStyle(
-                                        fontWeight: FontWeight.w500,
-                                        fontSize: MediaQuery.of(context).size.width * 0.024,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                        color: isSelected ? Colors.white : Colors.black87,
                                       ),
                                     ),
-                                    Row(
-                                      children: [
-                                        Icon(Icons.location_on, size: 12, color: Colors.black87),
-                                        const SizedBox(width: 4),
-                                        Expanded(
-                                          child: Text(
-                                            camera.loSam ?? "",
-                                            style: TextStyle(fontSize: 12, color: Colors.black87),
-                                          ),
-                                        ),
-                                      ],
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      "Vị trí: ${camera.loSam ?? "Chưa rõ"}",
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        color: isSelected ? Colors.white.withOpacity(0.8) : Colors.grey.shade600,
+                                      ),
                                     ),
                                   ],
                                 ),
                               ),
-                              Column(
-                                children: [
-                                  Icon(
-                                    camera.trangThai == 0 ? Icons.wifi : Icons.wifi_off,
-                                    size: 12,
-                                    color: camera.trangThai == 0 ? Colors.green : Colors.red,
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                    decoration: BoxDecoration(
-                                      color: camera.trangThai == 0
-                                          ? Colors.green.shade100
-                                          : Colors.red.shade100,
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Text(
-                                      camera.trangThai == 0 ? 'Online' : 'Offline',
-                                      style: TextStyle(
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.w500,
-                                        color: camera.trangThai == 0
-                                            ? Colors.green.shade700
-                                            : Colors.red.shade700,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
                             ],
                           ),
-                        ],
+                        ),
                       ),
                     ),
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildCameraViewWithGrid(LoSamCameraModel camera) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Camera Info Header (GIỮ NGUYÊN)
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Text(
-                //   camera.loSamLoaiCamera?.ten ?? "",
-                //   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                //     fontWeight: FontWeight.w600,
-                //   ),
-                // ),
-                Text(
-                  "Sơ Đồ Camera",
-                  style: TextStyle(fontSize: 18, color: Colors.black87,fontWeight: FontWeight.w600),
-                ),
-              ],
-            ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: camera.trangThai == 0
-                    ? Colors.green.shade100
-                    : Colors.red.shade100,
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    camera.trangThai == 0 ? Icons.wifi : Icons.wifi_off,
-                    size: 14,
-                    color: camera.trangThai == 0
-                        ? Colors.green.shade700
-                        : Colors.red.shade700,
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    camera.trangThai == 0 ? 'Online' : 'Offline',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: camera.trangThai == 0
-                          ? Colors.green.shade700
-                          : Colors.red.shade700,
-                    ),
-                  ),
-                ],
+                  );
+                },
               ),
             ),
           ],
         ),
-        const SizedBox(height: 16),
+      ),
+    );
+  }
 
-        // THÊM: Grid Map + Video Player - SCROLLABLE
+
+  Widget _buildCompactStatusIndicator(int status) {
+    final isOnline = status == 0;
+    return Container(
+      width: 14,
+      height: 14,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: isOnline ? Colors.greenAccent.shade400 : Colors.redAccent,
+        border: Border.all(color: Colors.white, width: 2),
+        boxShadow: [
+          BoxShadow(
+            color: (isOnline ? Colors.greenAccent.shade400 : Colors.redAccent).withOpacity(0.6),
+            blurRadius: 5,
+          )
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCameraViewWithGrid(LoSamCameraModel camera) {
+    final isVideoReady = _controller != null && _controller!.value.isInitialized && !_isVideoError;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          "Giám sát & Điều khiển",
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.bold,
+            fontSize: 18
+          ),
+        ),
+        const SizedBox(height: 16),
         Expanded(
           child: SingleChildScrollView(
             child: Column(
               children: [
-                // Grid Map với camera cone overlay
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.grey[100],
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  padding: const EdgeInsets.all(4),
-                  height: (rows * 27.0) + 8,
-                  child: Stack(
-                    clipBehavior: Clip.none, // Allow cone overflow
+                Card(
+                  elevation: 2,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  clipBehavior: Clip.antiAlias,
+                  child: Column(
                     children: [
-                      // Grid cells
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Left 3 columns
-                          Expanded(
-                            child: Container(
-                              key: gridMapKey,
-                              child: _buildGridColumn(leftCols),
+                      Padding(
+                        padding: const EdgeInsets.all(12.0),
+                        child: Row(
+                          children: [
+                            Icon(Icons.map_outlined, color: Colors.green.shade700),
+                            const SizedBox(width: 8),
+                            const Text(
+                              "Sơ đồ Lô Sâm",
+                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                             ),
-                          ),
-
-                          // Camera path background
-                          Container(
-                            width: 30,
-                            height: rows * 27.0,
-                            decoration: BoxDecoration(
-                              color: Colors.grey[300],
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                          ),
-
-                          // Right 3 columns
-                          Expanded(child: _buildGridColumn(rightCols)),
-                        ],
-                      ),
-
-                      // Camera cone - OVERLAY trên toàn bộ grid
-                      Positioned.fill(
-                        child: CustomPaint(
-                          painter: CameraConePainter(
-                            angle: cameraConfig.angle,
-                            range: getRangeInPixels(),
-                            spread: cameraConfig.spread,
-                            pulseOpacity: pulseOpacity,
-                            containerWidth: MediaQuery.of(context).size.width - 32, // Full width
-                          ),
+                          ],
                         ),
                       ),
-
-                      // Camera marker ở giữa
-                      Positioned(
-                        left: (MediaQuery.of(context).size.width - 70) / 2, // Center
-                        top: ((rows * 27.0) / 2) - 8, // Center vertically
-                        child: Container(
-                          width: 16,
-                          height: 16,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            gradient: RadialGradient(
-                              colors: [Colors.red, Colors.red.shade900],
+                      const Divider(height: 1),
+                      Container(
+                        decoration: BoxDecoration(color: Colors.grey[100]),
+                        padding: const EdgeInsets.all(8),
+                        height: (rows * 27.0) + 16,
+                        child: Stack(
+                          key: gridMapKey,
+                          children: [
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(child: _buildGridColumn(leftCols)),
+                                Container(width: 30, color: Colors.grey[300]),
+                                Expanded(child: _buildGridColumn(rightCols)),
+                              ],
                             ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.red.withOpacity(0.6),
-                                blurRadius: 4,
+                            Positioned.fill(
+                              child: CustomPaint(
+                                painter: CameraConePainter(
+                                  angle: cameraConfig.angle,
+                                  range: getRangeInPixels(),
+                                  spread: cameraConfig.spread,
+                                  pulseOpacity: pulseOpacity,
+                                ),
                               ),
-                            ],
-                          ),
+                            ),
+                            Positioned(
+                              left: 0,
+                              right: 0,
+                              top: ((rows * 27.0) / 2) - 8,
+                              child: Center(
+                                child: Container(
+                                  width: 16,
+                                  height: 16,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    gradient: RadialGradient(
+                                      colors: [Colors.red, Colors.red.shade900],
+                                    ),
+                                    boxShadow: [
+                                      BoxShadow(color: Colors.red.withOpacity(0.6), blurRadius: 4),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
                   ),
                 ),
 
-                const SizedBox(height: 8),
+                const SizedBox(height: 16),
 
-                // Video Player + PTZ
-                Container(
-                  height: 400, // Fixed height
-                  decoration: BoxDecoration(
-                    color: Colors.black,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Stack(
-                    children: [
-                      // Video
-                      Center(child: _buildVideoPlayer()),
+                // --- Video Player & Controls ---
+                Card(
+                  elevation: 2,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  clipBehavior: Clip.antiAlias,
+                  child: AspectRatio(
+                    aspectRatio: 16 / 10,
+                    child: Container(
+                      color: Colors.black,
+                      // Bọc Stack bằng GestureDetector để bắt sự kiện chạm
+                      child: GestureDetector(
+                        onTap: _toggleControlsOverlay,
+                        child: Stack(
+                          children: [
+                            // Video Player hoặc thông báo Lỗi/Loading luôn ở giữa
+                            Center(child: _buildVideoPlayer()),
 
-                      // PTZ Controls - top right
-                      Positioned(
-                        top: 8,
-                        left: 0,
-                        right: 0,
-                        child: Center(
-                          child: _buildPTZControls(),
+                            // Dùng AnimatedOpacity để tạo hiệu ứng mờ dần cho toàn bộ controls
+                            AnimatedOpacity(
+                              opacity: _showControlsOverlay && isVideoReady ? 1.0 : 0.0,
+                              duration: const Duration(milliseconds: 300),
+                              // IgnorePointer ngăn người dùng tương tác với controls khi chúng bị ẩn
+                              child: IgnorePointer(
+                                ignoring: !(_showControlsOverlay && isVideoReady),
+                                child: Stack(
+                                  children: [
+                                    // Lớp nền mờ để controls nổi bật hơn
+                                    Container(color: Colors.black.withOpacity(0.2)),
+                                    // Thông tin camera (dưới, trái)
+                                    Positioned(
+                                      bottom: 12,
+                                      left: 12,
+                                      child: _buildRedesignedCameraInfo(),
+                                    ),
+                                    // PTZ Controls (giữa, phải)
+                                    Positioned(
+                                      top: 0,
+                                      bottom: 0,
+                                      right: 12,
+                                      child: _buildRedesignedPTZControls(),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-
-                      // Camera Info - bottom left
-                      Positioned(
-                        bottom: 8,
-                        left: 8,
-                        child: _buildCameraInfo(),
-                      ),
-                    ],
+                    ),
                   ),
                 ),
-
-                const SizedBox(height: 8), // Bottom padding
               ],
             ),
           ),
@@ -662,97 +717,16 @@ class _CameraViewWithGridState extends State<CameraViewWithGrid> with SingleTick
       ),
     );
   }
-
-  Widget _buildPTZControls() {
-    return Card(
-      color: Colors.white.withOpacity(0.9),
-      child: Padding(
-        padding: const EdgeInsets.all(6),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _buildPTZButton(Icons.zoom_in, () => handlePTZ('zoomIn'), 'Zoom+'),
-                const SizedBox(width: 8),
-                _buildPTZButton(Icons.rotate_left, () => handlePTZ('left'), 'Trái'),
-                const SizedBox(width: 8),
-                _buildPTZButton(Icons.arrow_upward, () => handlePTZ('up'), 'Lên'),
-                const SizedBox(width: 8),
-                _buildPTZButton(Icons.restore, () => handlePTZ('reset'), 'Reset', color: Colors.grey[300]),
-                const SizedBox(width: 8),
-                _buildPTZButton(Icons.arrow_downward, () => handlePTZ('down'), 'Xuống'),
-                const SizedBox(width: 8),
-                _buildPTZButton(Icons.rotate_right, () => handlePTZ('right'), 'Phải'),
-                const SizedBox(width: 8),
-                _buildPTZButton(Icons.zoom_out, () => handlePTZ('zoomOut'), 'Zoom-'),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPTZButton(IconData icon, VoidCallback onPressed, String tooltip, {Color? color}) {
-    return SizedBox(
-      width: 40,
-      height: 40,
-      child: ElevatedButton(
-        onPressed: onPressed,
-        style: ElevatedButton.styleFrom(
-          padding: EdgeInsets.zero,
-          backgroundColor: color ?? Colors.white,
-          foregroundColor: Colors.black87,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-          elevation: 1,
-        ),
-        child: Icon(icon, size: 18),
-      ),
-    );
-  }
-
-  Widget _buildCameraInfo() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.7),
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(Icons.videocam, size: 14, color: Colors.white),
-          const SizedBox(width: 6),
-          Text(
-            '↔️${cameraConfig.angle.toStringAsFixed(0)}°',
-            style: const TextStyle(color: Colors.white, fontSize: 11),
-          ),
-          const SizedBox(width: 8),
-          Text(
-            '📏${cameraConfig.range}/$rows',
-            style: const TextStyle(color: Colors.white, fontSize: 11),
-          ),
-          const SizedBox(width: 8),
-          Text(
-            '📐${cameraConfig.spread.toStringAsFixed(0)}°',
-            style: const TextStyle(color: Colors.white, fontSize: 11),
-          ),
-        ],
-      ),
-    );
-  }
-
+  // Widget này giờ chỉ phục vụ một mục đích: thông báo khi không có camera nào
   Widget _buildNoCameraSelected() {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.camera_alt, size: 64, color: Colors.grey.shade400),
+          Icon(Icons.videocam_off_outlined, size: 64, color: Colors.grey.shade400),
           const SizedBox(height: 16),
           Text(
-            'Chọn camera để xem',
+            'Không có camera khả dụng',
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w500,
@@ -761,10 +735,120 @@ class _CameraViewWithGridState extends State<CameraViewWithGrid> with SingleTick
           ),
           const SizedBox(height: 8),
           Text(
-            'Chọn một camera từ danh sách bên trái',
+            'Khu vực này chưa được lắp đặt camera giám sát.',
             style: TextStyle(fontSize: 14, color: Colors.grey.shade500),
             textAlign: TextAlign.center,
           ),
+        ],
+      ),
+    );
+  }
+  Widget _buildRedesignedPTZControls() {
+    return Center(
+      child: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: Colors.black.withOpacity(0.4),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Zoom controls
+            Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _buildCircularPTZButton(Icons.zoom_in, () => handlePTZ('zoomIn')),
+                const SizedBox(height: 8),
+                const Text("ZOOM", style: TextStyle(color: Colors.white70, fontSize: 10)),
+                const SizedBox(height: 8),
+                _buildCircularPTZButton(Icons.zoom_out, () => handlePTZ('zoomOut')),
+              ],
+            ),
+
+            const SizedBox(width: 16),
+
+            // D-Pad for movement
+            Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _buildCircularPTZButton(Icons.keyboard_arrow_up, () => handlePTZ('up')),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    _buildCircularPTZButton(Icons.keyboard_arrow_left, () => handlePTZ('left')),
+                    const SizedBox(width: 8),
+                    _buildCircularPTZButton(Icons.settings_backup_restore, () => handlePTZ('reset'), isCenter: true),
+                    const SizedBox(width: 8),
+                    _buildCircularPTZButton(Icons.keyboard_arrow_right, () => handlePTZ('right')),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                _buildCircularPTZButton(Icons.keyboard_arrow_down, () => handlePTZ('down')),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCircularPTZButton(IconData icon, VoidCallback onPressed, {bool isCenter = false}) {
+    return CircleAvatar(
+      radius: isCenter ? 22 : 25,
+      backgroundColor: isCenter ? Colors.white.withOpacity(0.3) : Colors.white.withOpacity(0.2),
+      child: IconButton(
+        icon: Icon(icon),
+        color: Colors.white,
+        iconSize: isCenter ? 20 : 28,
+        onPressed: onPressed,
+      ),
+    );
+  }
+
+// GIAO DIỆN MỚI: Bảng thông tin camera được thiết kế lại
+  Widget _buildRedesignedCameraInfo() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(0.6),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            selectedCamera?.loSamLoaiCamera?.ten ?? "Camera",
+            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+          ),
+          const Divider(color: Colors.white24, height: 10),
+          Row(mainAxisSize: MainAxisSize.min, children: [
+            const Icon(Icons.rotate_90_degrees_ccw, size: 14, color: Colors.white70),
+            const SizedBox(width: 6),
+            Text(
+              'Góc quay: ${cameraConfig.angle.toStringAsFixed(0)}°',
+              style: const TextStyle(color: Colors.white, fontSize: 12),
+            ),
+          ]),
+          const SizedBox(height: 4),
+          Row(mainAxisSize: MainAxisSize.min, children: [
+            const Icon(Icons.zoom_out_map, size: 14, color: Colors.white70),
+            const SizedBox(width: 6),
+            Text(
+              'Tầm xa: ${cameraConfig.range}/$rows hàng',
+              style: const TextStyle(color: Colors.white, fontSize: 12),
+            ),
+          ]),
+          const SizedBox(height: 4),
+          Row(mainAxisSize: MainAxisSize.min, children: [
+            const Icon(Icons.open_in_full_outlined, size: 14, color: Colors.white70),
+            const SizedBox(width: 6),
+            Text(
+              'Độ rộng: ${cameraConfig.spread.toStringAsFixed(0)}°',
+              style: const TextStyle(color: Colors.white, fontSize: 12),
+            ),
+          ]),
         ],
       ),
     );
@@ -863,4 +947,5 @@ class FullscreenVideoPage extends StatelessWidget {
       ),
     );
   }
+
 }

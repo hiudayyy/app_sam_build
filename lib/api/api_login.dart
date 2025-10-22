@@ -36,7 +36,7 @@ extension APIExtension on API {
       return null;
     }
   }
-  Future<Kttoken?> resetToken(Kttoken model) async {
+  Future<ApiResponse<Kttoken>?> resetToken(Kttoken model) async {
     // Tạo URL với query parameters nếu cần
     String linkURL = "${host}api/HeThong/RefreshToken";
     final prefs = await SharedPreferences.getInstance();
@@ -47,15 +47,7 @@ extension APIExtension on API {
     }
     final headers = {
       ...headerSvkt1,
-      "AuthenticateToken": user?.authenticateToken ?? "",
-      "FuncsTagActive": user?.funcsTagActives.firstWhere(
-            (x) => x.tenController.toLowerCase() == "hethong",
-        orElse: () => FuncTagActive(
-          tenController: "",
-          tenActions: "",
-          funcsTagActive: "",
-        ),
-      ).funcsTagActive ?? "",
+      "AuthenticateToken": user?.refreshToken ?? "",
     };
     final response = await http.get(
       Uri.parse(linkURL),
@@ -63,13 +55,15 @@ extension APIExtension on API {
     );
 
     if (response.statusCode == 200) {
-      Map<String, dynamic> json = jsonDecode(response.body);
-      Kttoken? data = Kttoken.fromJson(json);
+      Map<String, dynamic> responseJson = jsonDecode(response.body);
+      final data = ApiResponse<Kttoken>.fromJson(
+        responseJson,
+            (json) => Kttoken.fromJson(json),
+      );
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_userKey, jsonEncode(data.toJson()));
-      if (data.messCode == 1) {
-        await LocalStoreService.setUserModel(data.htTaiKhoan);
-        return data;
+      await prefs.setString(_userKey, jsonEncode(data.oneItem?.toJson()));
+      if (data.messCode == MessCode.IsOK) {
+        await LocalStoreService.setUserModel(data.oneItem!.htTaiKhoan);
       }
       return data;
     } else {

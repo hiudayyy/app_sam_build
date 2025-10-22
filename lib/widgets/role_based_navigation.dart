@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/user.dart';
 
-enum NavTab { dashboard, plants, diary, environment, verification }
+enum NavTab { dashboard, plants/*, diary*/, environment, verification }
 
 class TabConfig {
   final NavTab id;
@@ -42,7 +42,7 @@ class RoleBasedNavigation {
         UserRole.nft_invester,
       ],
     ),
-    TabConfig(
+    /*TabConfig(
       id: NavTab.diary,
       label: 'Nhật ký',
       icon: Icons.book_outlined,
@@ -52,7 +52,7 @@ class RoleBasedNavigation {
         UserRole.nguoiKiemDinh,
         UserRole.nft_user,
       ],
-    ),
+    ),*/
     TabConfig(
       id: NavTab.environment,
       label: 'Môi trường',

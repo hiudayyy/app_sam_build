@@ -54,12 +54,12 @@ class _HomeScreenState extends State<HomeScreen> {
         );
       case NavTab.plants:
         return PlantManagementViewScreen(key: plantScreenKey);
-      case NavTab.diary:
-        return ProtectedRoute(
-          requiredPermission: Permission.updateDiary,
-          fallback: AccessDenied(feature: 'Nhật ký'),
-          child: DiaryManagementScreen(),
-        );
+      // case NavTab.diary:
+      //   return ProtectedRoute(
+      //     requiredPermission: Permission.updateDiary,
+      //     fallback: AccessDenied(feature: 'Nhật ký'),
+      //     child: DiaryManagementScreen(),
+      //   );
       case NavTab.environment:
         return ProtectedRoute(
           requiredPermission: Permission.viewEnvironment,

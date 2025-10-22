@@ -3,9 +3,10 @@
 
     <!-- Cho phép app truy cập Internet -->
     <uses-permission android:name="android.permission.INTERNET" />
-
+	<uses-permission android:name="android.permission.NFC" />
+<uses-feature android:name="android.hardware.nfc" android:required="true" />
     <application
-        android:label="csam_mobile"
+        android:label="Sâm Ngọc Linh"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
 	android:usesCleartextTraffic="true"

@@ -49,7 +49,6 @@ extension APIExtension on API {
         "loSamId": camera.loSamId,
         "loSamLoaiCameraId": camera.loSamLoaiCameraId,
         "rtsp": camera.rtsp,
-        "url": camera.url,
         "userName": camera.userName,
         "password": camera.password,
         "trangThai": camera.trangThai,

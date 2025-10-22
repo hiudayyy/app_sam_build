@@ -13,32 +13,6 @@ import '../models/vuontrong/losam_model.dart';
 import '../models/vuontrong/losamcamera_model.dart';
 import '../models/vuontrong/losamchitiet_model.dart';
 
-class LoSamChiTiet {
-  int loSamLoaiTuoiId;
-  int soLuong;
-  int trangThai;
-
-  LoSamChiTiet({
-    required this.loSamLoaiTuoiId,
-    required this.soLuong,
-    required this.trangThai,
-  });
-}
-
-class LoSamCamera {
-  int loSamLoaiCameraId;
-  String rtsp;
-  String url;
-  int trangThai;
-
-  LoSamCamera({
-    required this.loSamLoaiCameraId,
-    required this.rtsp,
-    required this.url,
-    required this.trangThai,
-  });
-}
-
 class LoSamFormData {
   String maLo;
   String tenLo;
@@ -311,8 +285,7 @@ class _AddLoSamScreenState extends State<AddLoSamScreen> {
         trangThai: 1,
         rtsp: '',
         userName: '',
-        password: '',
-        url: '',
+        password: ''
       ));
 
       // Thêm controller tương ứng
@@ -346,7 +319,6 @@ class _AddLoSamScreenState extends State<AddLoSamScreen> {
           ? (value is int ? value : int.tryParse(value.toString()) ?? 1)
           : oldItem.loSamLoaiCameraId,
       rtsp: field == 'rtsp' ? value?.toString() ?? '' : oldItem.rtsp,
-      url: field == 'url' ? value?.toString() ?? '' : oldItem.url,
       trangThai: oldItem.trangThai,
       userName: oldItem.userName,
       password: oldItem.password,
@@ -369,9 +341,6 @@ class _AddLoSamScreenState extends State<AddLoSamScreen> {
 
     if (loSamData.maLo.trim().isEmpty) {
       errors['maLo'] = 'Mã lô là bắt buộc';
-    } else if (!RegExp(r'^[a-zA-Z0-9]+$').hasMatch(loSamData.maLo)) {
-      errors['maLo'] =
-          'Mã lô chỉ được chứa chữ cái không dấu và số, không ký tự đặc biệt';
     }
 
     if (loSamData.tenLo.trim().isEmpty) {
@@ -450,8 +419,7 @@ class _AddLoSamScreenState extends State<AddLoSamScreen> {
           cameras.length,
           (index) => {
                 'LoSamLoaiCameraId': cameras[index].loSamLoaiCameraId,
-                'RTSP': rtspControllers[index]?.text, // 🔹 lấy từ controller
-                'Url': cameras[index].url,
+                'RTSP': rtspControllers[index]?.text,
                 'TrangThai': cameras[index].trangThai,
               }),
     };
@@ -628,15 +596,6 @@ class _AddLoSamScreenState extends State<AddLoSamScreen> {
                             ),
                           ],
                         ),
-/*                  _buildNumberField(
-                    label: 'Diện tích (m²)',
-                    value: loSamData.dienTich,
-                    onChanged: (value) => _updateLoSamData('dienTich', value),
-                    isDouble: true,
-                    readOnly: true,
-                    helperText:
-                        'Tự động tính: ${loSamData.soHang} × ${loSamData.soCot} = ${loSamData.soHang * loSamData.soCot}',
-                  ),*/
                         _buildTextField(
                           label: 'Loại lô *',
                           controller: loaiLoController,
@@ -911,90 +870,64 @@ class _AddLoSamScreenState extends State<AddLoSamScreen> {
     required Widget Function(int) itemBuilder,
   }) {
     return Card(
-      elevation: 1,
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      clipBehavior: Clip.antiAlias,
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.only(top: 16, left: 16, right: 16, bottom: 8),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 🔹 Header
+            // Header
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Row(
                   children: [
-                    Icon(icon, size: 20, color: Colors.green),
-                    const SizedBox(width: 8),
+                    Icon(icon, size: 22, color: Colors.green.shade700),
+                    const SizedBox(width  : 10),
                     Text(
                       title,
                       style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                   ],
                 ),
                 OutlinedButton.icon(
                   onPressed: onAdd,
-                  icon: const Icon(Icons.add, size: 16),
+                  icon: const Icon(Icons.add, size: 18),
                   label: const Text('Thêm'),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
                 ),
               ],
             ),
+            const SizedBox(height: 8),
+            const Divider(),
+            const SizedBox(height: 8),
 
-            const SizedBox(height: 16),
-
-            // 🔹 Danh sách chi tiết
+            // Danh sách
             if (items.isEmpty)
               Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Text(
-                  'Chưa có dữ liệu',
-                  style: TextStyle(
-                    color: Colors.grey.shade600,
-                    fontStyle: FontStyle.italic,
+                padding: const EdgeInsets.symmetric(vertical: 24),
+                child: Center(
+                  child: Text(
+                    'Chưa có dữ liệu',
+                    style: TextStyle(
+                      color: Colors.grey.shade600,
+                      fontStyle: FontStyle.italic,
+                    ),
                   ),
                 ),
               )
             else
               Column(
                 children: List.generate(items.length, (index) {
-                  return Container(
-                    key: ValueKey(
-                        items[index]), // 🔸 giúp Flutter rebuild đúng item
-                    margin: const EdgeInsets.only(bottom: 12),
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Colors.grey.shade300),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // 🔹 Header mỗi chi tiết
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              'Chi tiết #${index + 1}',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.delete, color: Colors.red),
-                              onPressed: () => onRemove(index),
-                              tooltip: 'Xóa chi tiết',
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-
-                        // 🔹 Nội dung item
-                        itemBuilder(index),
-                      ],
-                    ),
-                  );
+                  return itemBuilder(index);
                 }),
               ),
           ],
@@ -1004,108 +937,113 @@ class _AddLoSamScreenState extends State<AddLoSamScreen> {
   }
 
   Widget _buildChiTietItem(int index) {
-    return Card(
-      color: Colors.grey.shade50,
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                if (chiTiets.length > 1)
-                  IconButton(
-                    onPressed: () => _removeChiTiet(index),
-                    icon: const Icon(Icons.remove_circle_outline),
-                    color: Colors.red,
-                  ),
-              ],
-            ),
-            const SizedBox(height: 4),
-            Row(
-              children: [
-                Expanded(
-                  child: _buildDropdownField(
-                    label: 'Loại tuổi sâm',
-                    value: chiTiets[index].loSamLoaiTuoiId,
-                    items: OptionLoSamLoaiTuoi,
-                    onChanged: (value) =>
-                        _updateChiTiet(index, 'loSamLoaiTuoiId', value),
-                    isMap: true,
-                  ),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey.shade200),
+        borderRadius: BorderRadius.circular(10),
+        color: Colors.white,
+      ),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Chi tiết Cây Trồng #${index + 1}',
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+              ),
+              IconButton(
+                onPressed: () => _removeChiTiet(index),
+                icon: Icon(Icons.close, color: Colors.grey.shade600, size: 20),
+                tooltip: 'Xóa chi tiết',
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                flex: 3,
+                child: _buildDropdownField(
+                  label: 'Loại tuổi sâm',
+                  value: chiTiets[index].loSamLoaiTuoiId,
+                  items: OptionLoSamLoaiTuoi,
+                  onChanged: (value) =>
+                      _updateChiTiet(index, 'loSamLoaiTuoiId', value),
+                  prefixIcon: Icons.eco_outlined,
                 ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: _buildNumberField(
-                    label: 'Số lượng',
-                    value: chiTiets[index].soLuong,
-                    onChanged: (value) =>
-                        _updateChiTiet(index, 'soLuong', value),
-                    errorKey: 'chiTiet_${index}_soLuong',
-                    min: 0,
-                  ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                flex: 2,
+                child: _buildNumberField(
+                  label: 'Số lượng',
+                  value: chiTiets[index].soLuong,
+                  onChanged: (value) =>
+                      _updateChiTiet(index, 'soLuong', value),
+                  errorKey: 'chiTiet_${index}_soLuong',
+                  min: 0,
+                  prefixIcon: Icons.tag,
                 ),
-              ],
-            ),
-          ],
-        ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildCameraItem(int index) {
-    return Card(
-      color: Colors.grey.shade50,
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                if (cameras.length > 1)
-                  IconButton(
-                    onPressed: () => _removeCamera(index),
-                    icon: const Icon(Icons.remove_circle_outline),
-                    color: Colors.red,
-                  ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            _buildDropdownField(
-              label: 'Loại camera',
-              value: cameras[index].loSamLoaiCameraId,
-              items: OptionLoaiCamera,
-              onChanged: (value) =>
-                  _updateCamera(index, 'loSamLoaiCameraId', value.toString()),
-              isMap: true,
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: _buildTextField(
-                    label: 'RTSP Stream',
-                    controller: rtspControllers[index],
-                    onChanged: (value) => _updateCamera(index, 'rtsp', value),
-                    errorKey: 'camera_${index}_rtsp',
-                    hintText: 'rtsp://camera-ip:port/stream',
-                  ),
-                ),
-                // const SizedBox(width: 16),
-                // Expanded(
-                //   child: _buildTextField(
-                //     label: 'Web URL',
-                //     controller: urlControllers[index],
-                //     onChanged: (value) => _updateCamera(index, 'url', value),
-                //     errorKey: 'camera_${index}_url',
-                //     hintText: 'http://camera-web-interface',
-                //   ),
-                // ),
-              ],
-            ),
-          ],
-        ),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey.shade200),
+        borderRadius: BorderRadius.circular(10),
+        color: Colors.white,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Camera Giám Sát #${index + 1}',
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+              ),
+              IconButton(
+                onPressed: () => _removeCamera(index),
+                icon: Icon(Icons.close, color: Colors.grey.shade600, size: 20),
+                tooltip: 'Xóa camera',
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+                                                                                                                                                                                                                     ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          _buildDropdownField(
+            label: 'Loại camera',
+            value: cameras[index].loSamLoaiCameraId,
+            items: OptionLoaiCamera,
+            onChanged: (value) =>
+                _updateCamera(index, 'loSamLoaiCameraId', value.toString()),
+            prefixIcon: Icons.videocam_outlined,
+          ),
+          _buildTextField(
+            label: 'RTSP Stream',
+            controller: rtspControllers[index],
+            onChanged: (value) => _updateCamera(index, 'rtsp', value),
+            errorKey: 'camera_${index}_rtsp',
+            hintText: 'rtsp://user:pass@ip:port/stream',
+            prefixIcon: Icons.link,
+          ),
+        ],
       ),
     );
   }
@@ -1118,34 +1056,27 @@ class _AddLoSamScreenState extends State<AddLoSamScreen> {
     String? hintText,
     int maxLines = 1,
     bool readOnly = false,
+    IconData? prefixIcon, // ✅ THÊM THAM SỐ MỚI
   }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: const TextStyle(
-              fontWeight: FontWeight.w500,
-              fontSize: 14,
-            ),
+      child: TextFormField(
+        controller: controller,
+        onChanged: onChanged,
+        maxLines: maxLines,
+        readOnly: readOnly,
+        decoration: InputDecoration(
+          prefixIcon: prefixIcon != null ? Icon(prefixIcon, color: Colors.grey.shade600) : null, // ✅ SỬ DỤNG ICON
+          labelText: label,
+          hintText: hintText,
+          border: const OutlineInputBorder(
+            borderRadius: BorderRadius.all(Radius.circular(8)),
           ),
-          const SizedBox(height: 8),
-          TextFormField(
-            controller: controller,
-            onChanged: onChanged,
-            maxLines: maxLines,
-            readOnly: readOnly,
-            decoration: InputDecoration(
-              hintText: hintText,
-              border: const OutlineInputBorder(),
-              errorText: errorKey != null ? errors[errorKey] : null,
-              filled: readOnly,
-              fillColor: readOnly ? Colors.grey.shade100 : null,
-            ),
-          ),
-        ],
+          errorText: errorKey != null ? errors[errorKey] : null,
+          filled: readOnly,
+          fillColor: readOnly ? Colors.grey.shade100 : null,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+        ),
       ),
     );
   }
@@ -1159,53 +1090,42 @@ class _AddLoSamScreenState extends State<AddLoSamScreen> {
     bool isDouble = false,
     bool readOnly = false,
     String? helperText,
+    IconData? prefixIcon, // ✅ THÊM THAM SỐ MỚI
   }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: const TextStyle(
-              fontWeight: FontWeight.w500,
-              fontSize: 14,
-            ),
+      child: TextFormField(
+        key: ValueKey(value),
+        initialValue: value.toString(),
+        onChanged: (val) {
+          num parsedValue;
+          if (isDouble) {
+            parsedValue = double.tryParse(val) ?? 0;
+          } else {
+            parsedValue = int.tryParse(val) ?? 0;
+          }
+          if (min != null && parsedValue < min) {
+            parsedValue = min;
+          }
+          onChanged(parsedValue);
+        },
+        keyboardType: TextInputType.numberWithOptions(
+          decimal: isDouble,
+          signed: false,
+        ),
+        readOnly: readOnly,
+        decoration: InputDecoration(
+          prefixIcon: prefixIcon != null ? Icon(prefixIcon, color: Colors.grey.shade600) : null, // ✅ SỬ DỤNG ICON
+          labelText: label,
+          border: const OutlineInputBorder(
+            borderRadius: BorderRadius.all(Radius.circular(8)),
           ),
-          const SizedBox(height: 8),
-          TextFormField(
-            key: ValueKey(value), // 🔹 Buộc rebuild khi value thay đổi
-            initialValue: value.toString(),
-            onChanged: (val) {
-              num parsedValue;
-
-              if (isDouble) {
-                parsedValue = double.tryParse(val) ?? 0;
-              } else {
-                parsedValue = int.tryParse(val) ?? 0;
-              }
-
-              // Nếu có min thì đảm bảo giá trị không nhỏ hơn min
-              if (min != null && parsedValue < min) {
-                parsedValue = min;
-              }
-
-              onChanged(parsedValue);
-            },
-            keyboardType: TextInputType.numberWithOptions(
-              decimal: isDouble,
-              signed: false,
-            ),
-            readOnly: readOnly,
-            decoration: InputDecoration(
-              border: const OutlineInputBorder(),
-              errorText: errorKey != null ? errors[errorKey] : null,
-              helperText: helperText,
-              filled: readOnly,
-              fillColor: readOnly ? Colors.grey.shade100 : null,
-            ),
-          ),
-        ],
+          errorText: errorKey != null ? errors[errorKey] : null,
+          helperText: helperText,
+          filled: readOnly,
+          fillColor: readOnly ? Colors.grey.shade100 : null,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+        ),
       ),
     );
   }
@@ -1216,42 +1136,33 @@ class _AddLoSamScreenState extends State<AddLoSamScreen> {
     required List<OptionModel> items,
     required Function(dynamic) onChanged,
     String? errorKey,
-    bool isMap = false,
+    IconData? prefixIcon, // ✅ THÊM THAM SỐ MỚI
   }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: const TextStyle(
-              fontWeight: FontWeight.w500,
-              fontSize: 14,
-            ),
+      child: DropdownButtonFormField<int>(
+        value: value is int ? value : int.tryParse(value?.toString() ?? ''),
+        decoration: InputDecoration(
+          prefixIcon: prefixIcon != null ? Icon(prefixIcon, color: Colors.grey.shade600) : null, // ✅ SỬ DỤNG ICON
+          labelText: label,
+          border: const OutlineInputBorder(
+            borderRadius: BorderRadius.all(Radius.circular(8)),
           ),
-          const SizedBox(height: 8),
-          DropdownButtonFormField<int>(
-            // 🔹 Giữ giá trị là int thay vì String
-            value: value is int ? value : int.tryParse(value?.toString() ?? ''),
-            decoration: InputDecoration(
-              border: const OutlineInputBorder(),
-              errorText: errorKey != null ? errors[errorKey] : null,
-            ),
-            items: items.map<DropdownMenuItem<int>>((item) {
-              final intVal = int.tryParse(item.value.toString()) ?? 0;
-              return DropdownMenuItem<int>(
-                value: intVal,
-                child: Text(item.text),
-              );
-            }).toList(),
-            onChanged: (newValue) {
-              if (newValue != null) {
-                onChanged(newValue); // 🔹 Trả lại int thật sự
-              }
-            },
-          ),
-        ],
+          errorText: errorKey != null ? errors[errorKey] : null,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+        ),
+        items: items.map<DropdownMenuItem<int>>((item) {
+          final intVal = int.tryParse(item.value.toString()) ?? 0;
+          return DropdownMenuItem<int>(
+            value: intVal,
+            child: Text(item.text),
+          );
+        }).toList(),
+        onChanged: (newValue) {
+          if (newValue != null) {
+            onChanged(newValue);
+          }
+        },
       ),
     );
   }

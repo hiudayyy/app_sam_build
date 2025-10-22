@@ -56,6 +56,8 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
   // late PlantStats plantStats;
   List<VuonTrongModel>? farmsWithPlantsData = [];
   List<OptionModel> OptionLoSamLoaiTuoi = [];
+  List<OptionModel> OptionLoSamTinhTrang = [];
+  List<OptionModel> OptionLoSamDiemSucKhoe = [];
 
   // 🎨 Animation controllers
   late AnimationController _multiSelectAnimationController;
@@ -65,6 +67,9 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
   Future<LoSamModel?>? _futureLoSam;
   Kttoken? user;
   OptionModel? _selectedtuoicay;
+  OptionModel? _selectedTinhTrang;
+  OptionModel? _selectedDiemSucKhoe;
+
   @override
   void initState() {
     super.initState();
@@ -78,7 +83,91 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
     _pulseAnimationController.dispose();
     super.dispose();
   }
+  // ✅ HÀM LỌC TRUNG TÂM MỚI
+  void _applyFiltersAndSelectCells(List<CaySamModel> areaPlants) {
+    // Bắt đầu với danh sách gốc
+    List<CaySamModel> filteredList = List.from(areaPlants);
+    final now = DateTime.now();
 
+    // 1. Lọc theo Tuổi Cây (luôn được áp dụng đầu tiên và bắt buộc)
+    if (_selectedtuoicay != null) {
+      int? selectedAgeId = int.tryParse(_selectedtuoicay!.value);
+      if (selectedAgeId != null) {
+        filteredList = filteredList.where((plant) {
+          if (plant.tuoiCayId != selectedAgeId) return false;
+          if (plant.caySamNhatKys.isEmpty) return true;
+          final hasThisMonthDiary = plant.caySamNhatKys.any((nk) {
+            try {
+              final ngayGhi = DateTime.parse(nk?.ngayGhi ?? "");
+              return ngayGhi.month == now.month && ngayGhi.year == now.year;
+            } catch (_) {
+              return false;
+            }
+          });
+          return !hasThisMonthDiary;
+        }).toList();
+      }
+    } else {
+      // Nếu chưa chọn tuổi, không lọc gì cả và không chọn ô nào
+      _selectAllEmptyCells([]);
+      return;
+    }
+
+    // 2. Lọc thêm theo Tình Trạng (nếu đã chọn)
+    if (_selectedTinhTrang != null) {
+      int? selectedStatusId = int.tryParse(_selectedTinhTrang!.value);
+      if (selectedStatusId != null) {
+        filteredList = filteredList.where((plant) =>
+        plant.caySamNhatKys.firstOrNull?.tinhTrang == selectedStatusId
+        ).toList();
+      }
+    }
+
+    // 3. Lọc thêm theo Sức Khỏe (nếu đã chọn)
+    if (_selectedDiemSucKhoe != null) {
+      int? selectedHealthId = int.tryParse(_selectedDiemSucKhoe!.value);
+      if (selectedHealthId != null) {
+        filteredList = filteredList.where((plant) =>
+        plant.caySamNhatKys.firstOrNull?.diemSucKhoe == selectedHealthId
+        ).toList();
+      }
+    }
+
+    // Cuối cùng, gọi hàm chọn các ô với danh sách đã được lọc hoàn chỉnh
+    _selectAllEmptyCells(filteredList);
+  }
+  void showLoadingDialog(BuildContext context, {String message = 'Đang xử lý...'}) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        // ✅ SỬ DỤNG AlertDialog ĐỂ CÓ GIAO DIỆN ĐẸP HƠN
+        return AlertDialog(
+          // Bo tròn các góc
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16.0),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min, // Giữ cho dialog có kích thước nhỏ nhất
+            children: [
+              // Vòng quay loading
+              const CircularProgressIndicator(),
+              const SizedBox(height: 24),
+              // Text thông báo
+              Text(
+                message,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.grey.shade700,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
   void _setupAnimations() {
     _multiSelectAnimationController = AnimationController(
       duration: const Duration(milliseconds: 300),
@@ -120,6 +209,18 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
     if (apiOptinlt != null) {
       setState(() {
         OptionLoSamLoaiTuoi = apiOptinlt;
+      });
+    }
+    final apiOptintt = await api.OptionLoSamTinhTrang();
+    if (apiOptintt != null) {
+      setState(() {
+        OptionLoSamTinhTrang = apiOptintt;
+      });
+    }
+    final apiOptindsk = await api.OptionLoSamDiemSucKhoe();
+    if (apiOptindsk != null) {
+      setState(() {
+        OptionLoSamDiemSucKhoe = apiOptindsk;
       });
     }
     final prefs = await SharedPreferences.getInstance();
@@ -252,9 +353,9 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey[50],
+      appBar: _buildHeader(),
       body: Column(
         children: [
-          _buildHeader(),
           Expanded(
             child: _buildContent(),
           ),
@@ -263,154 +364,77 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
     );
   }
 
-  Widget _buildHeader() {
+  AppBar? _buildHeader() {
+    // Toàn bộ logic xác định trạng thái của bạn được giữ nguyên
     bool canShowMultiSelectButton = false;
-
-    if (currentLevel == NavigationLevel.grid &&
-        user?.htTaiKhoan.htPhanQuyenTaiKhoans != null) {
+    if (currentLevel == NavigationLevel.grid && user?.htTaiKhoan.htPhanQuyenTaiKhoans != null) {
       canShowMultiSelectButton = user!.htTaiKhoan.htPhanQuyenTaiKhoans.any(
             (pq) => pq.maVaiTro != "nft_invester" && pq.maVaiTro == "nft_admin",
       );
     }
     final breadcrumb = _getBreadcrumb();
-    return Container(
-      color: Colors.white,
-      child: SafeArea(
-        bottom: false,
-        child: Column(
-          children: [
-            if (breadcrumb.isNotEmpty)
-              Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (currentLevel != NavigationLevel.farm)
-                        IconButton(
-                          icon: const Icon(Icons.arrow_back),
-                          onPressed: _handleNavigationBack,
-                          padding: const EdgeInsets.all(8),
-                          constraints: const BoxConstraints(),
-                        ),
-
-                      // Breadcrumb chiếm phần còn lại
-                      Expanded(
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(8, 16, 16, 8),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Icon(
-                                Icons.location_on,
-                                size: 12,
-                                color: Colors.grey[600],
-                              ),
-                              const SizedBox(width: 4),
-                              Expanded(
-                                child: Text(
-                                  breadcrumb.join(' → '),
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.grey[600],
-                                  ),
-                                  softWrap: true,
-                                  overflow: TextOverflow.visible,
-                                ),
-                              ),
-                              if (canShowMultiSelectButton)
-                                AnimatedBuilder(
-                                  animation: _multiSelectAnimation,
-                                  builder: (context, child) {
-                                    return Transform.scale(
-                                      scale: 1.0 +
-                                          (_multiSelectAnimation.value * 0.05),
-                                      child: Container(
-                                        decoration: BoxDecoration(
-                                          borderRadius:
-                                              BorderRadius.circular(20),
-                                          gradient: isMultiSelectMode
-                                              ? LinearGradient(
-                                                  colors: [
-                                                    Colors.red[400]!,
-                                                    Colors.red[600]!
-                                                  ],
-                                                  begin: Alignment.topLeft,
-                                                  end: Alignment.bottomRight,
-                                                )
-                                              : LinearGradient(
-                                                  colors: [
-                                                    Colors.blue[400]!,
-                                                    Colors.blue[600]!
-                                                  ],
-                                                  begin: Alignment.topLeft,
-                                                  end: Alignment.bottomRight,
-                                                ),
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: (isMultiSelectMode
-                                                      ? Colors.red
-                                                      : Colors.blue)
-                                                  .withOpacity(0.3),
-                                              blurRadius: 8,
-                                              offset: const Offset(0, 2),
-                                            ),
-                                          ],
-                                        ),
-                                        child: ElevatedButton.icon(
-                                          onPressed: _toggleMultiSelectMode,
-                                          icon: Icon(
-                                            isMultiSelectMode
-                                                ? Icons.close
-                                                : Icons.check_box_outlined,
-                                            size: 16,
-                                            color: Colors.white,
-                                          ),
-                                          label: Text(
-                                            isMultiSelectMode
-                                                ? 'Thoát'
-                                                : 'Cập nhật',
-                                            style: const TextStyle(
-                                                fontSize: 12,
-                                                color: Colors.white),
-                                          ),
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor: Colors.transparent,
-                                            shadowColor: Colors.transparent,
-                                            padding: const EdgeInsets.symmetric(
-                                                horizontal: 12, vertical: 8),
-                                            minimumSize: const Size(0, 0),
-                                            tapTargetSize: MaterialTapTargetSize
-                                                .shrinkWrap,
-                                          ),
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  )),
-            Container(
-              height: 1,
-              color: Colors.grey[200],
-            ),
-          ],
-        ),
+    if (currentLevel == NavigationLevel.farm) {
+      return null;
+    }
+    return AppBar(
+      backgroundColor: Colors.white,
+      foregroundColor: Colors.black87,
+      elevation: 1,
+      shadowColor: Colors.black.withOpacity(0.1),
+      titleSpacing: 0,
+      leading: IconButton(
+        icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
+        onPressed: _handleNavigationBack,
       ),
+      title: Row(
+        children: [
+          Icon(Icons.location_on_outlined, size: 16, color: Colors.grey.shade600),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              breadcrumb.join(' → '),
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey.shade800,
+                fontWeight: FontWeight.w500,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
+
+      actions: [
+        if (canShowMultiSelectButton)
+          Padding(
+            padding: const EdgeInsets.only(right: 12.0),
+            child: ElevatedButton.icon(
+              onPressed: _toggleMultiSelectMode,
+              icon: Icon(
+                isMultiSelectMode ? Icons.close_rounded : Icons.checklist_rtl_rounded,
+                size: 18,
+              ),
+              label: Text(isMultiSelectMode ? 'Thoát' : 'Nhật ký'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: isMultiSelectMode ? Colors.grey.shade700 : Theme.of(context).primaryColor,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                elevation: 2,
+              ),
+            ),
+          ),
+      ],
     );
   }
 
-  void _showCameraView(List<LoSamCameraModel> cameras, String areaName) {
+  void _showCameraView(List<LoSamCameraModel> cameras, LoSamModel? losam) {
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => CameraViewWithGrid(
           cameras: cameras,
-          areaName: areaName,
+          losam: losam,
         ),
       ),
     );
@@ -452,43 +476,25 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
     );
   }*/
 
+  // ✅ HÀM _buildAgeGroupStats ĐÃ ĐƯỢỢC CẬP NHẬT
   Widget _buildAgeGroupStats(LoSamModel? lsmod) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 6),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        // borderRadius: BorderRadius.circular(10),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              // 🔹 Text nằm giữa
-              const Expanded(
-                child: Center(
-                  child: Text(
-                    'Phân bố theo tuổi',
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
+    return Card(
+      elevation: 4,
+      shadowColor: Colors.black.withOpacity(0.08),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        // ✨ GIẢM PADDING ĐỂ GỌN HƠN
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Column(
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Phân bố theo tuổi',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
-              ),
-
-              // 🔹 Icon có background vuông bo góc (bên phải)
-              Container(
-                child: IconButton(
-                  padding: const EdgeInsets.all(0), // thu nhỏ vùng padding
-                  constraints: const BoxConstraints(), // bỏ ràng buộc mặc định
+                IconButton(
                   onPressed: () {
                     if (_futureLoSam != null) {
                       _futureLoSam!.then((loSam) {
@@ -498,81 +504,76 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
                       });
                     }
                   },
-                  icon:
-                      const Icon(Icons.refresh, color: Colors.blue, size: 20),
-                  tooltip: "Refresh",
+                  icon: const Icon(Icons.refresh_rounded, color: Colors.blue, size: 22),
+                  tooltip: "Làm mới",
+                  visualDensity: VisualDensity.compact,
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: _buildAgeGroupItem("assets/images/icon1t.png", '3(N)',
-                    lsmod?.loSamChiTiets.sl(1), Colors.green[400]!),
-              ),
-              Expanded(
-                child: _buildAgeGroupItem("assets/images/icon2xp.png", '6-7(N)',
-                    lsmod?.loSamChiTiets.sl(2), Colors.green[600]!),
-              ),
-              Expanded(
-                child: _buildAgeGroupItem("assets/images/icon3t.png", '8-9(N)',
-                    lsmod?.loSamChiTiets.sl(3), Colors.green[700]!),
-              ),
-              Expanded(
-                child: _buildAgeGroupItem("assets/images/icon4t.png", '>10(N)',
-                    lsmod?.loSamChiTiets.sl(4), Colors.green[800]!),
-              ),
-            ],
-          ),
-        ],
+              ],
+            ),
+            const Divider(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: _buildAgeGroupItem("assets/images/icon1t.png", '3-5 (Năm)',
+                      lsmod?.loSamChiTiets.sl(1), Colors.green),
+                ),
+                Expanded(
+                  child: _buildAgeGroupItem("assets/images/icon2xp.png", '6-7 (Năm)',
+                      lsmod?.loSamChiTiets.sl(2), Colors.teal),
+                ),
+                Expanded(
+                  child: _buildAgeGroupItem("assets/images/icon3t.png", '8-9 (Năm)',
+                      lsmod?.loSamChiTiets.sl(3), Colors.blue),
+                ),
+                Expanded(
+                  child: _buildAgeGroupItem("assets/images/icon4t.png", '>10 (Năm)',
+                      lsmod?.loSamChiTiets.sl(4), Colors.purple),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildAgeGroupItem(
-      String icon, String label, int? count, Color color) {
-    return Container(
-      padding: const EdgeInsets.all(8),
-      decoration: BoxDecoration(
-        color: Colors.grey[100],
-        // borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        children: [
-          ImageIcon(
-            AssetImage(icon),
-            size: MediaQuery.of(context).size.width * 0.03,
-            color: color, // có thể đổi màu
+  Widget _buildAgeGroupItem(String iconPath, String label, int? count, Color color) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        CircleAvatar(
+          radius: 20,
+          backgroundColor: color.withOpacity(0.1),
+          child: ImageIcon(
+            AssetImage(iconPath),
+            size: 20,
+            color: color,
           ),
-          SizedBox(width: MediaQuery.of(context).size.width * 0.01),
-          Expanded(
-            child: Text(
-              label,
-              style: TextStyle(
-                  fontSize: MediaQuery.of(context).size.width * 0.025),
-            ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          count?.toString() ?? '0',
+          style: const TextStyle(
+            fontSize: 18, // Nhỏ hơn
+            fontWeight: FontWeight.bold,
           ),
-          Container(
-            padding: EdgeInsets.symmetric(
-                horizontal: MediaQuery.of(context).size.width * 0.006,
-                vertical: MediaQuery.of(context).size.width * 0.002),
-            decoration: BoxDecoration(
-              border: Border.all(color: Colors.grey[300]!),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Text(
-              count.toString() ?? "0",
-              style:
-                  TextStyle(fontSize: MediaQuery.of(context).size.width * 0.02),
-            ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          label,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            // ✨ GIẢM KÍCH THƯỚC: Font chữ nhãn nhỏ hơn
+            fontSize: 11,
+            color: Colors.grey.shade600,
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
+
 
   Widget _buildStatCard({
     required String title,
@@ -627,60 +628,146 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
     }
   }
 
+  Widget _buildFarmCard(VuonTrongModel? farm) {
+    if (farm == null) return const SizedBox.shrink();
+
+    return Card(
+      elevation: 2,
+      margin: const EdgeInsets.only(bottom: 16),
+      shadowColor: Colors.black.withOpacity(0.5),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: Colors.grey.shade200, width: 1), // Thêm viền
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () {
+          HapticFeedback.lightImpact();
+          setState(() {
+            selectedFarm = farm;
+            currentLevel = NavigationLevel.zone;
+          });
+        },
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Column(
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  CircleAvatar(
+                    radius: 22,
+                    backgroundColor: Colors.green.shade50,
+                    child: Icon(Icons.business_rounded, color: Colors.green.shade700),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      farm.tenVuon ?? "Chưa có tên",
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17),
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => AddFarmScreen(
+                            farmId: farm,
+                            onSubmit: _edithandleFarmSubmit,
+                          ),
+                        ),
+                      );
+                    },
+                    icon: Icon(Icons.edit_outlined, color: Colors.blue.shade600, size: 20),
+                    tooltip: 'Chỉnh sửa',
+                    visualDensity: VisualDensity.compact,
+                  ),
+                ],
+              ),
+              const Divider(height: 20),
+              Row(
+                children: [
+                  Icon(Icons.location_on_outlined, size: 16, color: Colors.grey.shade600),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      farm.viTri ?? "Chưa có vị trí",
+                      style: TextStyle(color: Colors.grey.shade700, fontSize: 14),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  Icon(Icons.chevron_right, color: Colors.grey.shade400),
+                ],
+              )
+            ],
+          ),
+        ),
+      ),
+    );
+  }
   Widget _buildFarmLevel() {
     return Column(
       children: [
-        Center(
-          child: const Text(
-            'Quản lý Trang trại',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w600,
-            ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2.0),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Quản lý Trang trại',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Hiện có ${farmsWithPlantsData?.length ?? 0} trang trại',
+                      style: TextStyle(color: Colors.grey[600]),
+                    ),
+                  ],
+                ),
+              ),
+              if(user!.htTaiKhoan.htPhanQuyenTaiKhoans.any((pq) =>pq.maVaiTro != "nft_invester" && pq.maVaiTro == "nft_admin"))
+                ElevatedButton.icon(
+                  onPressed: () => _showAddfarmDialog(),
+                  icon: const Icon(Icons.add, size: 18),
+                  label: const Text('Thêm vườn'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+            ],
           ),
         ),
-        const SizedBox(height: 8),
-        Row(
-          children: [
-            Center(
-              child: Text(
-                //{plantStats.totalPlants}
-                'Quản lý ${farmsWithPlantsData?.length} trang trại',
-                style: TextStyle(
-                  color: Colors.grey[600],
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ),
-            Spacer(),
-            if(user!.htTaiKhoan.htPhanQuyenTaiKhoans.any((pq) =>pq.maVaiTro != "nft_invester" && pq.maVaiTro == "nft_admin"))
-              ElevatedButton.icon(
-                onPressed: () => _showAddfarmDialog(),
-                icon: const Icon(Icons.add, size: 16),
-                label: const Text('Thêm vườn'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green,
-                  foregroundColor: Colors.white,
-                  padding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                ),
-              ),
-          ],
-        ),
-        const SizedBox(height: 24),
+        const Divider(height: 1, indent: 2, endIndent: 2),
+
+        // Phần danh sách
         Expanded(
           child: farmsWithPlantsData == null
-              ? const Center(
-            child: CircularProgressIndicator(), // ⏳ hiện loading khi chưa có dữ liệu
-          )
+              ? const Center(child: CircularProgressIndicator())
               : farmsWithPlantsData!.isEmpty
               ? const Center(
-            child: CircularProgressIndicator(),// 📝 nếu rỗng
+            child: Text(
+              'Chưa có trang trại nào.\nHãy nhấn "Thêm vườn" để bắt đầu.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.grey),
+            ),
           )
               : ListView.builder(
+            padding: const EdgeInsets.only(top:16),
             itemCount: farmsWithPlantsData!.length,
             itemBuilder: (context, index) {
               final farm = farmsWithPlantsData![index];
+              // Gọi hàm build card mới
               return _buildFarmCard(farm);
             },
           ),
@@ -689,140 +776,13 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
     );
   }
 
-  Widget _buildFarmCard(VuonTrongModel? farm) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: Material(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        elevation: 2,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(12),
-          onTap: () {
-            HapticFeedback.lightImpact();
-            setState(() {
-              selectedFarm = farm;
-              currentLevel = NavigationLevel.zone;
-            });
-          },
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: Colors.green[600],
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Icon(
-                    Icons.business,
-                    color: Colors.white,
-                    size: 20,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        farm?.tenVuon ?? "",
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        farm?.viTri ?? "",
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey[600],
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        farm?.ghiChu ?? "",
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey[600],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                IconButton(
-                  onPressed: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (context) => AddFarmScreen(
-                          farmId: farm,
-                          onSubmit: _edithandleFarmSubmit,
-                        ),
-                      ),
-                    );
-                  },
-                  icon: Icon(
-                    Icons.edit_outlined,
-                    size: 20, // 👈 nhỏ hơn chút (từ 20 xuống 16)
-                    color: Colors.blue.shade600,
-                  ),
-                  tooltip: 'Chỉnh sửa vùng',
-                  style: IconButton.styleFrom(
-                    backgroundColor: Colors.blue.shade50,
-                    padding: const EdgeInsets.all(10), // 👈 giảm đệm
-                    minimumSize: const Size(32, 32),  // 👈 gọn hơn
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8), // giữ bo nhẹ
-                    ),
-                  ),
-                ),
-                Column(
-                  children: [
-                    // Container(
-                    //   padding: const EdgeInsets.symmetric(
-                    //     horizontal: 8,
-                    //     vertical: 4,
-                    //   ),
-                    //   decoration: BoxDecoration(
-                    //     color: Colors.blue[100],
-                    //     borderRadius: BorderRadius.circular(12),
-                    //   ),
-                    //   child: Text(
-                    //     '${farm.investorPlantCount} cây',
-                    //     style: TextStyle(
-                    //       fontSize: 10,
-                    //       fontWeight: FontWeight.w500,
-                    //       color: Colors.blue[700],
-                    //     ),
-                    //   ),
-                    // ),
-                    const SizedBox(height: 8),
-                    Icon(
-                      Icons.chevron_right,
-                      color: Colors.grey[400],
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildZoneLevel() {
     if (selectedFarm?.vuonTrongId == null) return const SizedBox();
-
     final api = API();
-
     return FutureBuilder<List<LoSamModel>?>(
       future: api.listLoSam(
         status: "1",
-        rowCount: 10,
+        rowCount: null,
         skip: 0,
         searchBy: ["VuonTrong_ID equals '${selectedFarm?.vuonTrongId ?? 0}'"],
       ),
@@ -836,51 +796,61 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
 
         final zonesWithPlantsData = snapshot.data ?? [];
 
-        if (zonesWithPlantsData.isEmpty) {
-          return const Center(child: Text("Không có dữ liệu"));
-        }
-
-        // 👉 render dữ liệu zone
         return Column(
           children: [
-            const Text(
-              'Quản lý Vùng',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w600,
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4.0, vertical: 2.0),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Quản lý Lô Sâm',
+                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Các lô trong ${selectedFarm!.tenVuon}',
+                          style: TextStyle(color: Colors.grey[600]),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if(user!.htTaiKhoan.htPhanQuyenTaiKhoans.any((pq) =>
+                  pq.maVaiTro != "nft_invester" && pq.maVaiTro == "nft_admin"))
+                    ElevatedButton.icon(
+                      onPressed: () => _showAddLoSamDialog(),
+                      icon: const Icon(Icons.add, size: 18),
+                      label: const Text('Thêm lô'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                ],
               ),
             ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Center(
-                  child: Text(
-                    'Vùng trong ${selectedFarm!.tenVuon}',
-                    style: TextStyle(
-                      color: Colors.grey[600],
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-                Spacer(),
-                if(user!.htTaiKhoan.htPhanQuyenTaiKhoans.any((pq) =>
-                pq.maVaiTro != "nft_invester" && pq.maVaiTro == "nft_admin"))
-                ElevatedButton.icon(
-                  onPressed: () => _showAddLoSamDialog(),
-                  icon: const Icon(Icons.add, size: 16),
-                  label: const Text('Thêm lô'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
-                    foregroundColor: Colors.white,
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 24),
+            const Divider(height: 1, indent: 2, endIndent: 2),
             Expanded(
-              child: ListView.builder(
+              child: zonesWithPlantsData.isEmpty
+                  ? const Center(
+                child: Text(
+                  'Chưa có lô sâm nào.\nHãy nhấn "Thêm lô" để bắt đầu.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.grey),
+                ),
+              )
+                  : ListView.builder(
+                padding: const EdgeInsets.only(top: 16),
                 itemCount: zonesWithPlantsData.length,
                 itemBuilder: (context, index) {
                   final zone = zonesWithPlantsData[index];
@@ -894,161 +864,128 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
     );
   }
 
+
   Widget _buildZoneCard(LoSamModel zone) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: Material(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        elevation: 2,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(12),
-          onTap: () {
-            setState(() {
-              selectedZone = zone;
-              _reloadData();
-              if (selectedZone != null) {
-                setState(() {
-                  gridRows = List.generate(selectedZone!.soHang, (i) => i + 1);
-                });
-              }
-              currentLevel = NavigationLevel.grid;
-            });
-          },
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: Colors.blue[600],
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Icon(
-                    Icons.map,
-                    color: Colors.white,
-                    size: 20,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        zone.tenLo ?? "",
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        "Mã Lô: ${zone.maLo}",
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey[600],
-                        ),
-                      ),
-                      Text(
-                        "Loại: ${zone.loai}",
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey[600],
-                        ),
-                      ),
-                      Text(
-                        zone.ghiChu ?? "",
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey[600],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                IconButton(
-                  onPressed: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (context) => AddLoSamScreen(
-                          farmId: zone.vuonTrongId,
-                          zoneid: zone.loSamId,
-                          onSubmit: _edithandleLoSamSubmit,
-                        ),
-                      ),
-                    );
-                  },
-                  icon: Icon(
-                    Icons.edit_outlined,
-                    size: 20, // 👈 nhỏ hơn chút (từ 20 xuống 16)
-                    color: Colors.blue.shade600,
-                  ),
-                  tooltip: 'Chỉnh sửa vùng',
-                  style: IconButton.styleFrom(
+    final soCaySam = zone.soLuongCaySams ?? 0;
+    final soHang = zone.soHang ?? 0;
+    final soCot = zone.soCot ?? 0;
+
+    return Card(
+      elevation: 6,
+      margin: const EdgeInsets.only(bottom: 16),
+      shadowColor: Colors.black.withOpacity(0.5),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () { // Giữ nguyên logic onTap của bạn
+          setState(() {
+            selectedZone = zone;
+            _reloadData();
+            if (selectedZone != null) {
+              setState(() {
+                gridRows = List.generate(selectedZone!.soHang, (i) => i + 1);
+              });
+            }
+            currentLevel = NavigationLevel.grid;
+          });
+        },
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Column(
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  CircleAvatar(
+                    radius: 22,
                     backgroundColor: Colors.blue.shade50,
-                    padding: const EdgeInsets.all(10), // 👈 giảm đệm
-                    minimumSize: const Size(32, 32),  // 👈 gọn hơn
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8), // giữ bo nhẹ
+                    child: Icon(Icons.map_rounded, color: Colors.blue.shade700),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          zone.tenLo ?? "Chưa có tên lô",
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Mã Lô: ${zone.maLo ?? "N/A"}',
+                          style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                        ),
+                      ],
                     ),
                   ),
-                ),
-                const SizedBox(width: 4),
-                ((zone.loSamCameras?.length ?? 0) == 1 && zone.soLuongCaySams > 0) ?
-                IconButton(
-                  onPressed: () => _showCameraView(
-                    zone.loSamCameras ?? [],
-                    zone.tenLo ?? "",
+                  IconButton(
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => AddLoSamScreen(
+                            farmId: zone.vuonTrongId,
+                            zoneid: zone.loSamId,
+                            onSubmit: _edithandleLoSamSubmit,
+                          ),
+                        ),
+                      );
+                    },
+                    icon: Icon(Icons.edit_outlined, color: Colors.blue.shade600, size: 20),
+                    tooltip: 'Chỉnh sửa lô',
+                    visualDensity: VisualDensity.compact,
                   ),
-                  icon: Icon(
-                    Icons.videocam,
-                    size: 20, // 👈 nhỏ hơn (từ 20 xuống 16)
-                    color: Colors.green.shade600,
-                  ),
-                  tooltip: 'Xem camera',
-                  style: IconButton.styleFrom(
-                    backgroundColor: Colors.green.shade50,
-                    padding: const EdgeInsets.all(10), // 👈 giảm khoảng đệm
-                    minimumSize: const Size(32, 32), // 👈 đảm bảo kích thước nhỏ gọn
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8), // 👈 bo vuông nhẹ như nút edit
+                  if (((zone.loSamCameras?.length ?? 0) == 1 && zone.soLuongCaySams > 0))
+                    IconButton(
+                      onPressed: () => _showCameraView(
+                        zone.loSamCameras ?? [],
+                        zone,
+                      ),
+                      icon: Icon(Icons.videocam_outlined, color: Colors.green.shade600, size: 22),
+                      tooltip: 'Xem camera',
+                      visualDensity: VisualDensity.compact,
                     ),
-                  ),
-                ): SizedBox(),
-                Column(
-                  children: [
-                    // Container(
-                    //   padding: const EdgeInsets.symmetric(
-                    //     horizontal: 8,
-                    //     vertical: 4,
-                    //   ),
-                    //   decoration: BoxDecoration(
-                    //     color: Colors.blue[100],
-                    //     borderRadius: BorderRadius.circular(12),
-                    //   ),
-                    //   child: Text(
-                    //     '${zone.investorPlantCount} cây',
-                    //     style: TextStyle(
-                    //       fontSize: 10,
-                    //       fontWeight: FontWeight.w500,
-                    //       color: Colors.blue[700],
-                    //     ),
-                    //   ),
-                    // ),
-                    const SizedBox(height: 8),
-                    Icon(
-                      Icons.chevron_right,
-                      color: Colors.grey[400],
-                    ),
-                  ],
-                ),
-              ],
-            ),
+                ],
+              ),
+
+              const Divider(height: 20),
+              Row(
+                children: [
+                  _buildStatChip(Icons.grid_on_outlined, '$soHang x $soCot'),
+                  const SizedBox(width: 8),
+                  _buildStatChip(Icons.eco_outlined, '$soCaySam Cây'),
+                  const Spacer(),
+                  Icon(Icons.chevron_right, color: Colors.grey.shade400),
+                ],
+              )
+            ],
           ),
         ),
+      ),
+    );
+  }
+
+// Hàm hỗ trợ tạo chip thống kê (để ở đây cho đầy đủ)
+  Widget _buildStatChip(IconData icon, String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade100,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 12, color: Colors.grey.shade700),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey.shade800,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1098,8 +1035,6 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
                 final userIds =
                     userSnapshot.data!.items ?? []; // giả sử list id cây sâm
                 final userCaySamIds = userIds.map((e) => e.caySamId).toSet();
-
-                // ✅ lọc ra cây sâm thuộc user
                 filteredPlants = areaPlants
                     .where((plant) => userCaySamIds.contains(plant.caySamId))
                     .toList();
@@ -1135,13 +1070,6 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
             child: Column(
               children: [
                 _buildAgeGroupStats(loSam),
-                const SizedBox(height: 16),
-                Text(
-                  "Tên lô: ${loSam?.tenLo ?? 'Chưa có'}",
-                  style: const TextStyle(
-                      fontWeight: FontWeight.w600, fontSize: 16),
-                ),
-                const SizedBox(height: 16),
                 _buildLegend(loSam,[]),
                 const SizedBox(height: 16),
                 if (isMultiSelectMode) ...[
@@ -1164,222 +1092,208 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
         ? ' và ${selectedEmptyCells.length - 5} vị trí khác'
         : '';
 
-    return AnimatedBuilder(
-      animation: _multiSelectAnimation,
-      builder: (context, child) {
-        return Transform.scale(
-          scale: 1.0 + (_multiSelectAnimation.value * 0.02),
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Colors.blue[50]!, Colors.indigo[50]!],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.blue[200]!),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.blue.withOpacity(0.1),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
+    final bool isAgeSelected = _selectedtuoicay != null;
+
+    return Card(
+      elevation: 8,
+      margin: const EdgeInsets.all(12),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      shadowColor: Colors.black.withOpacity(0.15),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header (giữ nguyên)
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Chế độ chọn hàng loạt',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: Colors.green.shade100,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    'Đã chọn: $selectedCount',
+                    style: TextStyle(
+                      color: Colors.green.shade800,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
               ],
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            const Divider(height: 24),
+
+            // Bộ lọc
+            const Text(
+              'LỌC NHANH CÁC CÂY CHƯA CÓ NHẬT KÝ',
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey),
+            ),
+            const SizedBox(height: 12),
+
+            DropdownButtonFormField<OptionModel>(
+              key: ValueKey('tuoi_cay_${_selectedtuoicay}'),
+              value: _selectedtuoicay,
+              hint: const Text('1. Lọc theo tuổi cây (bắt buộc)'),
+              decoration: InputDecoration(
+                prefixIcon: const Icon(Icons.filter_1_rounded),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+                filled: true,
+                fillColor: Colors.grey.shade100,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              ),
+              items: OptionLoSamLoaiTuoi.map((opt) {
+                return DropdownMenuItem<OptionModel>(value: opt, child: Text(opt.text));
+              }).toList(),
+              onChanged: (OptionModel? newValue) {
+                setState(() {
+                  _selectedtuoicay = newValue;
+                  _selectedTinhTrang = null;
+                  _selectedDiemSucKhoe = null;
+                });
+                _applyFiltersAndSelectCells(areaPlants);
+              },
+            ),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<OptionModel>(
+              key: ValueKey('tinh_trang_${_selectedTinhTrang}'),
+              value: _selectedTinhTrang,
+              hint: const Text('2. Lọc theo tình trạng (tùy chọn)'),
+              decoration: InputDecoration(
+                prefixIcon: const Icon(Icons.filter_2_rounded),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+                filled: true,
+                fillColor: isAgeSelected ? Colors.grey.shade100 : Colors.grey.shade200,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                suffixIcon: _selectedTinhTrang != null
+                    ? IconButton(
+                  icon: const Icon(Icons.clear, size: 20),
+                  onPressed: () {
+                    setState(() { _selectedTinhTrang = null; });
+                    _applyFiltersAndSelectCells(areaPlants);
+                  },
+                )
+                    : null,
+              ),
+              items: OptionLoSamTinhTrang.map((opt) {
+                return DropdownMenuItem<OptionModel>(value: opt, child: Text(opt.text));
+              }).toList(),
+              onChanged: isAgeSelected ? (OptionModel? newValue) {
+                setState(() { _selectedTinhTrang = newValue; });
+                _applyFiltersAndSelectCells(areaPlants);
+              } : null,
+            ),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<OptionModel>(
+              // ✨ SỬA LỖI: Thêm một chuỗi định danh duy nhất vào key
+              key: ValueKey('suc_khoe_${_selectedDiemSucKhoe}'),
+              value: _selectedDiemSucKhoe,
+              hint: const Text('3. Lọc theo sức khỏe (tùy chọn)'),
+              decoration: InputDecoration(
+                prefixIcon: const Icon(Icons.filter_3_rounded),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+                filled: true,
+                fillColor: isAgeSelected ? Colors.grey.shade100 : Colors.grey.shade200,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                suffixIcon: _selectedDiemSucKhoe != null
+                    ? IconButton(
+                  icon: const Icon(Icons.clear, size: 20),
+                  onPressed: () {
+                    setState(() { _selectedDiemSucKhoe = null; });
+                    _applyFiltersAndSelectCells(areaPlants);
+                  },
+                )
+                    : null,
+              ),
+              items: OptionLoSamDiemSucKhoe.map((opt) {
+                return DropdownMenuItem<OptionModel>(value: opt, child: Text(opt.text));
+              }).toList(),
+              onChanged: isAgeSelected ? (OptionModel? newValue) {
+                setState(() { _selectedDiemSucKhoe = newValue; });
+                _applyFiltersAndSelectCells(areaPlants);
+              } : null,
+            ),
+            const SizedBox(height: 12),
+            Row(
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        AnimatedBuilder(
-                          animation: _pulseAnimation,
-                          builder: (context, child) {
-                            return Transform.scale(
-                              scale: _pulseAnimation.value,
-                              child: Icon(Icons.touch_app,
-                                  color: Colors.blue[800], size: 20),
-                            );
-                          },
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Nhật ký',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                            color: Colors.blue[800],
-                          ),
-                        ),
-                      ],
+                Expanded(
+                  flex: 2, // Chiếm 2 phần
+                  child: ElevatedButton.icon(
+                    icon: const Icon(Icons.clear_all_rounded),
+                    label: const Text('Bỏ chọn'),
+                    onPressed: _clearSelection,
+                    style: ElevatedButton.styleFrom(
+                      elevation: 0, // Nút phẳng
+                      backgroundColor: Colors.grey.shade200,
+                      foregroundColor: Colors.grey.shade800,
+                      padding: const EdgeInsets.symmetric(vertical: 16), // Cùng padding dọc
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.green[100],
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.green[300]!),
-                      ),
-                      child: Text(
-                        '✅ $selectedCount đã chọn',
-                        style: TextStyle(
-                          color: Colors.green[800],
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
-                const SizedBox(height: 12),
-
-                // Quick action buttons
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    DropdownButton<OptionModel>(
-                      value: _selectedtuoicay,
-                      hint: const Text('Chọn loại tuổi cây'),
-                      icon: const Icon(Icons.arrow_drop_down),
-                      isExpanded: true, // cho rộng toàn bộ chiều ngang
-                      items: OptionLoSamLoaiTuoi.map((opt) {
-                        return DropdownMenuItem<OptionModel>(
-                          value: opt,
-                          child: Text(opt.text), // hiển thị text ra UI
-                        );
-                      }).toList(),
-                      onChanged: (OptionModel? newValue) {
-                        if (newValue == null) return;
-                        setState(() {
-                          _selectedtuoicay = newValue;
-                        });
-
-                        final strVal = newValue.value;
-                        int? selectedValue = int.tryParse(strVal);
-
-                        final now = DateTime.now();
-
-                        // Lọc danh sách areaPlants
-                        final filtered = areaPlants.where((plant) {
-                          if (plant.tuoiCayId != selectedValue) return false;
-
-                          // Nếu cây chưa có nhật ký nào => lấy
-                          if (plant.caySamNhatKys.isEmpty) return true;
-
-                          // Kiểm tra có nhật ký trong tháng này không
-                          final hasThisMonthDiary =
-                              plant.caySamNhatKys.any((nk) {
-                            try {
-                              final ngayGhi = DateTime.parse(nk?.ngayGhi ?? "");
-                              return ngayGhi.month == now.month &&
-                                  ngayGhi.year == now.year;
-                            } catch (_) {
-                              return false; // lỗi parse thì bỏ qua
-                            }
-                          });
-                          // Chỉ lấy những cây KHÔNG có nhật ký tháng này
-                          return !hasThisMonthDiary;
-                        }).toList();
-
-                        // Gọi hàm của bạn với danh sách đã lọc
-                        _selectAllEmptyCells(filtered);
-                      },
+                const SizedBox(width: 12),
+                Expanded(
+                  flex: 3,
+                  child: ElevatedButton.icon(
+                    onPressed: selectedCount > 0 ? () => _handleBatchAddPlants(areaPlants) : null,
+                    icon: const Icon(Icons.add_task_rounded, size: 20),
+                    label: Text('Thêm nhật ký ($selectedCount)'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green.shade600,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16), // Cùng padding dọc
+                      textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      elevation: 4,
                     ),
-                    ElevatedButton.icon(
-                      onPressed: _clearSelection,
-                      icon: const Icon(Icons.clear, size: 16),
-                      label: const Text('Bỏ chọn'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: Colors.blue[600],
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 8),
-                        textStyle: const TextStyle(fontSize: 12),
-                        side: BorderSide(color: Colors.blue[300]!),
-                      ),
-                    ),
-                    if (selectedCount > 0)
-                      ElevatedButton.icon(
-                        onPressed: () {
-                          _handleBatchAddPlants(areaPlants);
-                        },
-                        icon: const Icon(Icons.add, size: 16),
-                        label: Text('Thêm nhật ký ($selectedCount)'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green[600],
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 8),
-                          textStyle: const TextStyle(fontSize: 12),
-                          elevation: 4,
-                        ),
-                      ),
-                  ],
+                  ),
                 ),
-
-                // Selected positions preview
-                if (selectedCount > 0) ...[
-                  const SizedBox(height: 12),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [Colors.blue[100]!, Colors.indigo[100]!],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
+              ],
+            ),
+            if (selectedCount > 0) ...[
+              const SizedBox(height: 16),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.location_on_outlined, size: 16, color: Colors.grey.shade600),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: RichText(
+                      text: TextSpan(
+                        style: TextStyle(fontSize: 13, color: Colors.grey.shade700),
+                        children: [
+                          const TextSpan(text: 'Đã chọn các vị trí: '),
+                          TextSpan(
+                            text: '$selectedPositions$moreText',
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                        ],
                       ),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.blue[300]!),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '📍 Đã chọn $selectedCount vị trí:',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.blue[900],
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          '$selectedPositions$moreText',
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: Colors.blue[800],
-                          ),
-                        ),
-                      ],
                     ),
                   ),
                 ],
-
-                // Help text with animation
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Icon(Icons.info_outline, size: 14, color: Colors.blue[600]),
-                    const SizedBox(width: 4),
-                    Text(
-                      '💡 Tap vào các ô trống (màu xám) để chọn/bỏ chọn',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: Colors.blue[700],
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        );
-      },
+              ),
+            ],
+          ],
+        ),
+      ),
     );
   }
 
@@ -1557,7 +1471,7 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
                 ElevatedButton.icon(
                   onPressed: () => _showCameraView(
                     losam?.loSamCameras ?? [],
-                    losam?.tenLo ?? "",
+                    losam,
                   ),
                   icon: const Icon(Icons.videocam, size: 16),
                   label: const Text(
@@ -1631,24 +1545,37 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
 
             const SizedBox(height: 16),
 
-
+// ✅ WIDGET Wrap ĐÃ ĐƯỢC CẬP NHẬT HOÀN CHỈNH
           Wrap(
             spacing: 16,
             runSpacing: 8,
             children: [
-              // _buildLegendItem(Colors.green, 'Khỏe mạnh'),
+              // --- Chú thích cho MÀU NỀN của ô ---
+              const Text('Nền:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.grey)),
               _buildLegendItem(AppColors.PRIMARY['lighter']!, 'Sống'),
               _buildLegendItem(Colors.blue[200]!, 'Ngủ đông'),
               _buildLegendItem(AppColors.ERROR['lighter']!, 'Chết'),
               _buildLegendItem(Colors.grey[300]!, 'Ô trống'),
-              /*_buildLegendItem(Colors.blue[500]!, 'Có nhà đầu tư'),*/
+
+              const SizedBox(width: double.infinity, height: 4), // Dòng ngăn cách
+
+              const Text('Icon:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.grey)),
+              _buildIconColorLegendItem(AppColors.PRIMARY['darker']!, 'Rất tốt'), // case 5
+              _buildIconColorLegendItem(AppColors.PRIMARY['main']!, 'Tốt'),      // case 4
+              _buildIconColorLegendItem(AppColors.PRIMARY['light']!, 'Trung bình'),// case 3
+              _buildIconColorLegendItem(AppColors.ERROR['light']!, 'Yếu'),       // case 2
+              _buildIconColorLegendItem(AppColors.ERROR['main']!, 'Rất yếu'),    // case 1
+
+              const SizedBox(width: double.infinity, height: 4), // Dòng ngăn cách
+
+              // --- Chú thích khác ---
               _buildLegendItemWithIcon(
                 color: Colors.orange.shade500,
                 icon: Icons.menu_book,
                 label: 'Đã có nhật ký tháng này',
               ),
             ],
-          ),
+          )
         ],
       ),
     );
@@ -1674,7 +1601,29 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
       ],
     );
   }
-
+// ✅ WIDGET HỖ TRỢ MỚI: Dành riêng cho chú thích màu sắc của icon
+  Widget _buildIconColorLegendItem(Color color, String label) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Chấm tròn màu để biểu thị màu của icon
+        Container(
+          width: 16,
+          height: 16,
+          decoration: BoxDecoration(
+            color: color,
+            shape: BoxShape.circle, // Hình tròn
+            border: Border.all(color: Colors.black.withOpacity(0.1)),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Text(
+          label,
+          style: const TextStyle(fontSize: 12),
+        ),
+      ],
+    );
+  }
   Widget _buildLegendItemWithIcon({
     required Color color,
     required IconData icon,
@@ -2130,42 +2079,63 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
   }
 
   void _handleAddPlantSubmit(
-    Map<String, dynamic> plantData,
-    List<File?> images,
-  ) async {
+      Map<String, dynamic> plantData,
+      List<File?> images,
+      ) async {
+    showLoadingDialog(context, message: 'Đang lưu cây mới...');
+
     try {
-      // 🔹 Gọi API
+      // ✅ BƯỚC 2: GỌI API VÀ CHỜ KẾT QUẢ
       final apiResponse = await API().addCaySam(
         data: plantData,
         files: images,
       );
 
+      // ✅ BƯỚC 3: ĐÓNG DIALOG LOADING
+      // Đóng dialog ngay sau khi có kết quả, trước khi xử lý tiếp.
+      // Kiểm tra `mounted` để đảm bảo widget vẫn còn trên cây giao diện.
+      if (mounted) {
+        Navigator.of(context).pop(); // Dòng này để đóng dialog loading
+      }
+
+      // Kiểm tra lại lần nữa phòng trường hợp người dùng thoát ra trong lúc chờ
+      if (!mounted) return;
+
+      // ✅ BƯỚC 4: XỬ LÝ KẾT QUẢ API (như cũ)
       if (apiResponse != null && apiResponse.message == "OK") {
-        // ✅ Thành công
+        // Thành công
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              '🌱 Cây mới đã được thêm vào vị trí ${plantData['gridPosition']}!',
+              '🌱 Cây mới đã được thêm thành công!',
             ),
             backgroundColor: Colors.green,
           ),
         );
 
-        Navigator.of(context).pop();
+        Navigator.of(context).pop(); // Dòng này để đóng màn hình thêm cây
         setState(() {
           _reloadData();
-        }); // refresh UI nếu cần
+        });
       } else {
-        // ❌ Lỗi từ server
+        // Lỗi từ server
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Không thể thêm cây sâm.'),
+            content: Text('Không thể thêm cây sâm. Lỗi: ${apiResponse?.message ?? "Không xác định"}'),
             backgroundColor: Colors.red,
           ),
         );
       }
     } catch (e) {
-      // ❌ Lỗi mạng hoặc exception khác
+      // ❌ XỬ LÝ KHI CÓ LỖI MẠNG HOẶC EXCEPTION
+
+      // Đảm bảo dialog loading cũng được đóng khi có lỗi
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
+
+      if (!mounted) return;
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Lỗi kết nối: $e'),
@@ -2428,8 +2398,8 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
         builder: (context) => BatchPlantUpdateScreen(
           selectedPositions: selectedEmptyCellsList,
           caysam: areaPlants,
-          areaId: "1",
-          areaName: "L001",
+          areaId: "",
+          areaName: "",
         ),
       ),
     );

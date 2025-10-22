@@ -513,11 +513,8 @@ class _BatchPlantUpdateScreenState extends State<BatchPlantUpdateScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-// Step indicator
           _buildStepIndicator(2),
           const SizedBox(height: 24),
-
-// Summary header
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -565,7 +562,7 @@ class _BatchPlantUpdateScreenState extends State<BatchPlantUpdateScreen> {
             [
               'Ngày ghi: ${_selectedDate!.day}/${_selectedDate!.month}/${_selectedDate!.year}',
               'Số lá: $_soLa',
-              'Điểm sức khỏe: ${_diemSucKhoe.toInt()}/10',
+              'Điểm sức khỏe: ${_diemSucKhoe.toInt()}/5',
               'Tình trạng: $_tinhTrang',
             ],
           ),

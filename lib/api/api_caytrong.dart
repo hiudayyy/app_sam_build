@@ -428,5 +428,63 @@ extension APIExtension on API {
         return null;
       }
     }
+    Future<List<LoSamModel>?> listLoSamCanhBao({
+      String? status,
+      int? rowCount,
+      int? skip,
+      int? top,
+      List<String>? orderBy,
+      List<String>? searchBy,
+    }) async {
+      String linkURL = "${host}api/VuonTrong/ListLoSamCanhBao";
+      final uri = Uri.parse(linkURL).replace(queryParameters: {
+        if (status != null) 'Status': status,
+        if (rowCount != null) 'rowCount': rowCount.toString(),
+        if (skip != null) 'Skip': skip.toString(),
+        if (top != null) 'Top': top.toString(),
+        if (orderBy != null && orderBy.isNotEmpty) 'OrderBy': orderBy,
+        if (searchBy != null && searchBy.isNotEmpty) 'SearchBy': searchBy,
+      });
+
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        final userJson = prefs.getString("ginseng_user");
+        Kttoken? user;
+        if (userJson != null) {
+          final Map<String, dynamic> json = jsonDecode(userJson);
+          user = Kttoken.fromJson(json);
+        }
+
+        final headers = {
+          ...headerSvkt1,
+          "AuthenticateToken": user?.authenticateToken ?? "",
+          "FuncsTagActive": user?.funcsTagActives.firstWhere(
+                (x) => x.tenController.toLowerCase() == "vuontrong",
+            orElse: () => FuncTagActive(
+              tenController: "",
+              tenActions: "",
+              funcsTagActive: "",
+            ),
+          ).funcsTagActive ?? "",
+        };
+
+        final response = await http.get(uri, headers: headers);
+        if (response.statusCode == 200) {
+          Map<String, dynamic> responseJson = jsonDecode(response.body);
+
+          final data = ApiResponse<LoSamModel>.fromJson(
+            responseJson,
+                (json) => LoSamModel.fromJson(json),
+          );
+          return data.items;
+        } else {
+          print("Lỗi API: ${response.statusCode} - ${response.body}");
+          return null;
+        }
+      } catch (e) {
+        print("Exception khi gọi API: $e");
+        return null;
+      }
+    }
 
 }

@@ -5,7 +5,6 @@ class LoSamCameraModel {
   final String rtsp;
   final String userName;
   final String password;
-  final String url;
   final int trangThai;
   final String? loSam;
   final LoSamLoaiCameraModel? loSamLoaiCamera;
@@ -17,7 +16,6 @@ class LoSamCameraModel {
     required this.rtsp,
     required this.userName,
     required this.password,
-    required this.url,
     required this.trangThai,
     this.loSam,
     this.loSamLoaiCamera,
@@ -31,7 +29,6 @@ class LoSamCameraModel {
       rtsp: json['rtsp'] ?? '',
       userName: json['userName'] ?? '',
       password: json['password'] ?? '',
-      url: json['url'] ?? '',
       trangThai: json['trangThai'] ?? 0,
       loSam: json['loSam'],
       loSamLoaiCamera: json['loSamLoaiCamera'] != null
@@ -48,7 +45,6 @@ class LoSamCameraModel {
       'rtsp': rtsp,
       'userName': userName,
       'password' : password,
-      'url': url,
       'trangThai': trangThai,
       'loSam': loSam,
       'loSamLoaiCamera': loSamLoaiCamera?.toJson(),

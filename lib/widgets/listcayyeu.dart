@@ -23,12 +23,11 @@ class _DanhSachCayYeuPageState extends State<DanhSachCayYeuPage> {
   void initState() {
     super.initState();
     _initializeData();
-    _futureCayYeu = _fetchCayYeu(); // 👈 Gọi hàm lấy danh sách
+    _futureCayYeu = _fetchCayYeu();
 
   }
   Future<List<CaySamModel>?> _fetchCayYeu() async {
     try {
-      // ⚙️ Giả sử bạn có 1 service lấy danh sách cây
       final allCay = await API().ListCaySamRatYeu();
       return allCay?.items;
     } catch (e) {
@@ -55,7 +54,7 @@ class _DanhSachCayYeuPageState extends State<DanhSachCayYeuPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Danh sách cây yếu')),
+      appBar: AppBar(title: const Text('Danh sách cây yếu'),backgroundColor: Colors.orange.shade400,foregroundColor: Colors.white,),
       body: FutureBuilder<List<CaySamModel>?>(
         future: _futureCayYeu,
         builder: (context, snapshot) {
