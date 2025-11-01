@@ -337,14 +337,15 @@ class _State extends State<PlantDetailScreen> {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
+                  SizedBox(width: 5,),
                   ElevatedButton(
                     onPressed: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (_) => const NfcWriterScreen()),
+                        MaterialPageRoute(builder: (_) => NfcWriterScreen(plant: widget.plant,)),
                       );
                     },
-                    child: const Text('Ghi thông tin cây vào thẻ NFC'),
+                    child: const Text('NFC'),
                   )
                 ],
               ),

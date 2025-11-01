@@ -3,20 +3,23 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:nfc_manager/nfc_manager.dart';       // Gói quét v4
 import 'package:nfc_manager_ndef/nfc_manager_ndef.dart'; // Gói cầu nối v1.1.0
-import 'package:ndef_record/ndef_record.dart';     // Gói chứa NdefRecord (MỚI)
+import 'package:ndef_record/ndef_record.dart';
+
+import '../models/vuontrong/caysam_model.dart';     // Gói chứa NdefRecord (MỚI)
 
 // Enum để quản lý trạng thái giao diện
 enum NfcStatus { ready, scanning, success, error }
 
 class NfcWriterScreen extends StatefulWidget {
-  const NfcWriterScreen({super.key});
+  final CaySamModel plant;
+  const NfcWriterScreen({super.key,
+    required this.plant,});
 
   @override
   State<NfcWriterScreen> createState() => _NfcWriterScreenState();
 }
 
 class _NfcWriterScreenState extends State<NfcWriterScreen> {
-  // ✅ THAY ĐỔI: Dùng 3 controllers cho 3 trường dữ liệu
   final _idCayController = TextEditingController();
   final _tuoiCayController = TextEditingController();
   final _maCayController = TextEditingController();
@@ -26,7 +29,6 @@ class _NfcWriterScreenState extends State<NfcWriterScreen> {
 
   @override
   void dispose() {
-    // ✅ THAY ĐỔI: Dispose cả 3 controllers
     _idCayController.dispose();
     _tuoiCayController.dispose();
     _maCayController.dispose();
@@ -34,7 +36,7 @@ class _NfcWriterScreenState extends State<NfcWriterScreen> {
     super.dispose();
   }
 
-  /// Bắt đầu quá trình ghi dữ liệu lên thẻ NFC
+
   Future<void> _startNfcWriting() async {
     NfcAvailability availability = await NfcManager.instance.checkAvailability();
     if (availability != NfcAvailability.enabled) {
@@ -56,7 +58,7 @@ class _NfcWriterScreenState extends State<NfcWriterScreen> {
       NfcManager.instance.startSession(
         onDiscovered: (NfcTag tag) async {
           try {
-            var ndef = Ndef.from(tag); // Lấy từ nfc_manager_ndef
+            var ndef = Ndef.from(tag);
             if (ndef == null) {
               _updateStatus(NfcStatus.error, 'Thẻ này không hỗ trợ NDEF.');
               return;
@@ -67,29 +69,30 @@ class _NfcWriterScreenState extends State<NfcWriterScreen> {
               return;
             }
 
-            // ✅ THAY ĐỔI: Lấy dữ liệu từ 3 controllers
-            final idCay = _idCayController.text;
-            final tuoiCay = _tuoiCayController.text;
-            final maCay = _maCayController.text;
+            final String myLink = 'https://nftsam.vecoi.com/';
+            final String myAndroidPackageName = 'com.example.csam_mobile';
 
-            if (idCay.isEmpty || tuoiCay.isEmpty || maCay.isEmpty) {
-              _updateStatus(NfcStatus.error, 'Dữ liệu không được để trống.');
-              return;
-            }
+            // if (idCay.isEmpty || tuoiCay.isEmpty || maCay.isEmpty) {
+            //   _updateStatus(NfcStatus.error, 'Dữ liệu không được để trống.');
+            //   return;
+            // }
 
-            // 1. ✅ TẠO MAP (ĐỐI TƯỢNG) TỪ DỮ LIỆU
             final dataMap = {
-              'idCay': idCay,
-              'tuoiCay': int.tryParse(tuoiCay) ?? 0, // Chuyển tuổi sang số
-              'maCay': maCay,
+              'maCaySam': widget.plant.maCaySam,
+              'viTriTrongLo': widget.plant.viTriTrongLo,
+              'hinhAnhChiTiet': widget.plant.caySamNhatKys.first?.hinhAnhChiTiet,
+
             };
 
-            // 2. ✅ CHUYỂN ĐỔI MAP THÀNH CHUỖI JSON
             final dataToWrite = jsonEncode(dataMap);
-
-            // 3. TẠO RECORD TỪ CHUỖI JSON (dùng hàm helper cũ)
             final record = _createNdefTextRecord(dataToWrite, languageCode: 'vi');
-            final message = NdefMessage(records: [record]);
+            final urirecord = _createNdefUriRecord(myLink);
+            final aarRecord = _createNdefExternalRecord(
+              'android.com',
+              'pkg',
+              utf8.encode(myAndroidPackageName),
+            );
+            final message = NdefMessage(records: [record,urirecord,aarRecord]);
 
             await ndef.write(message: message);
 
@@ -109,7 +112,6 @@ class _NfcWriterScreenState extends State<NfcWriterScreen> {
     }
   }
 
-  // Hàm helper để cập nhật trạng thái và dừng phiên NFC
   void _updateStatus(NfcStatus status, String message) {
     NfcManager.instance.stopSession().catchError((_) {});
     if (mounted) {
@@ -120,9 +122,7 @@ class _NfcWriterScreenState extends State<NfcWriterScreen> {
     }
   }
 
-  //
-  // ✅ HÀM HELPER NÀY GIỮ NGUYÊN (Nó chỉ cần 1 chuỗi, JSON là 1 chuỗi)
-  //
+
   NdefRecord _createNdefTextRecord(String text, {String languageCode = 'en'}) {
     final langBytes = utf8.encode(languageCode);
     final textBytes = utf8.encode(text);
@@ -133,6 +133,51 @@ class _NfcWriterScreenState extends State<NfcWriterScreen> {
       type: Uint8List.fromList([0x54]), // Type = 'T' (Text)
       identifier: Uint8List(0),
       payload: payload,
+    );
+  }
+  NdefRecord _createNdefExternalRecord(String domain, String type, Uint8List payload) {
+    final typeBytes = utf8.encode('$domain:$type');
+    return NdefRecord(
+      typeNameFormat: TypeNameFormat.external,
+      type: Uint8List.fromList(typeBytes),
+      identifier: Uint8List(0),
+      payload: payload,
+    );
+  }
+  NdefRecord _createNdefUriRecord(String uri) {
+    Uri parsedUri = Uri.parse(uri);
+    String scheme = parsedUri.scheme.toLowerCase();
+    String host = parsedUri.host;
+    String path = parsedUri.path;
+    int prefixByte;
+    String remainingPayload;
+    if (scheme == 'https') {
+      prefixByte = 0x04; // Mã cho "https://"
+      remainingPayload = '$host$path';
+    } else if (scheme == 'http') {
+      prefixByte = 0x03; // Mã cho "http://"
+      remainingPayload = '$host$path';
+    } else if (scheme == 'https_www') { // Giả sử 'https_www' là 'https://www.'
+      prefixByte = 0x02;
+      remainingPayload = '$host$path';
+    } else if (scheme == 'http_www') { // Giả sử 'http_www' là 'http://www.'
+      prefixByte = 0x01;
+      remainingPayload = '$host$path';
+    } else {
+      prefixByte = 0x00; // Không có tiền tố, ghi toàn bộ URI
+      remainingPayload = uri;
+    }
+    final uriBytes = utf8.encode(remainingPayload);
+
+    // 3. Tạo payload cuối cùng (nối byte tiền tố và byte URI)
+    final payloadBytes = Uint8List.fromList([prefixByte, ...uriBytes]);
+
+    // 4. Tạo bản ghi NDEF
+    return NdefRecord(
+      typeNameFormat: TypeNameFormat.wellKnown,
+      type: Uint8List.fromList(utf8.encode('U')), // 'U' là type cho URI
+      identifier: Uint8List(0),
+      payload: payloadBytes,
     );
   }
 
