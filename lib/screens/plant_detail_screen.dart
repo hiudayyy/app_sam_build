@@ -308,11 +308,21 @@ class _State extends State<PlantDetailScreen> {
       ),
     );
   }
+  void _showNfcWriterModal(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return NfcWriterModal(plant:  widget.plant);
+      },
+    );
+  }
 
   // HÀM _buildBasicInfo ĐÃ ĐƯỢC THIẾT KẾ LẠI HOÀN TOÀN
   Widget _buildBasicInfo() {
     final latestStatusValue = widget.plant.caySamNhatKys.isNotEmpty
-        ? widget.plant.caySamNhatKys.first?.tinhTrang?.toString()
+        ? widget.plant.caySamNhatKys.first?.tinhTrang.toString()
         : null;
 
     return Card(
@@ -323,7 +333,6 @@ class _State extends State<PlantDetailScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // --- Tiêu đề section ---
              Padding(
               padding: EdgeInsets.only(left: 16, right: 16, top: 8, bottom: 8),
               child: Row(
@@ -337,22 +346,24 @@ class _State extends State<PlantDetailScreen> {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  SizedBox(width: 5,),
+                  Spacer(),
                   ElevatedButton(
                     onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => NfcWriterScreen(plant: widget.plant,)),
-                      );
+                      // Gọi hàm hiển thị popup
+                      _showNfcWriterModal(context);
                     },
-                    child: const Text('NFC'),
-                  )
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    ),
+                    child: const Text('Ghi thẻ NFC'),
+                  ),
                 ],
               ),
             ),
             const Divider(height: 1),
 
-            // --- Mã cây ---
             _buildInfoRow(
               icon: Icons.qr_code_2_rounded,
               label: 'Mã cây sâm',

@@ -225,7 +225,7 @@ extension APIExtension on API {
 
         return data.items ?? []; // ✅ trả về list
       } else {
-        print("Lỗi API: ${response.statusCode} - ${response.body}");
+        print("Lỗi API nk: ${response.statusCode} - ${response.body}");
         return [];
       }
     } catch (e) {
@@ -450,7 +450,7 @@ extension APIExtension on API {
         );
         return data;
       } else {
-        print("Lỗi API: ${response.statusCode} - ${response.body}");
+        print("Lỗi API cs: ${response.statusCode} - ${response.body}");
         return null;
       }
     } catch (e) {

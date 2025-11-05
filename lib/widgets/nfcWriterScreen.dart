@@ -1,102 +1,80 @@
-import 'dart:convert'; // Đã có, dùng cho jsonEncode
+import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
-import 'package:nfc_manager/nfc_manager.dart';       // Gói quét v4
-import 'package:nfc_manager_ndef/nfc_manager_ndef.dart'; // Gói cầu nối v1.1.0
+import 'package:nfc_manager/nfc_manager.dart';
+import 'package:nfc_manager_ndef/nfc_manager_ndef.dart';
 import 'package:ndef_record/ndef_record.dart';
 
-import '../models/vuontrong/caysam_model.dart';     // Gói chứa NdefRecord (MỚI)
+// Import model CaySamModel của bạn
+import '../models/vuontrong/caysam_model.dart';
 
-// Enum để quản lý trạng thái giao diện
-enum NfcStatus { ready, scanning, success, error }
+// Enum để quản lý trạng thái giao diện (có thể chuyển ra file riêng)
+enum NfcStatus { scanning, success, error }
 
-class NfcWriterScreen extends StatefulWidget {
+class NfcWriterModal extends StatefulWidget {
   final CaySamModel plant;
-  const NfcWriterScreen({super.key,
-    required this.plant,});
+  const NfcWriterModal({super.key, required this.plant});
 
   @override
-  State<NfcWriterScreen> createState() => _NfcWriterScreenState();
+  State<NfcWriterModal> createState() => _NfcWriterModalState();
 }
 
-class _NfcWriterScreenState extends State<NfcWriterScreen> {
-  final _idCayController = TextEditingController();
-  final _tuoiCayController = TextEditingController();
-  final _maCayController = TextEditingController();
+class _NfcWriterModalState extends State<NfcWriterModal> {
+  NfcStatus _status = NfcStatus.scanning; // Bắt đầu ở trạng thái quét
+  String _feedbackMessage = 'Đang chờ thẻ NFC...\nVui lòng đưa thẻ lại gần điện thoại.';
 
-  NfcStatus _status = NfcStatus.ready;
-  String _feedbackMessage = 'Nhập dữ liệu và nhấn "Bắt đầu ghi"';
+  // Biến _lockTag và _isTestMode đã được xóa bỏ
+
+  @override
+  void initState() {
+    super.initState();
+    // Bắt đầu quét ngay khi popup hiện lên
+    _startNfcWriting();
+  }
 
   @override
   void dispose() {
-    _idCayController.dispose();
-    _tuoiCayController.dispose();
-    _maCayController.dispose();
     NfcManager.instance.stopSession();
     super.dispose();
   }
 
-
+  /// Bắt đầu quá trình ghi dữ liệu lên thẻ NFC
   Future<void> _startNfcWriting() async {
     NfcAvailability availability = await NfcManager.instance.checkAvailability();
     if (availability != NfcAvailability.enabled) {
-      if (!mounted) return;
-      setState(() {
-        _status = NfcStatus.error;
-        _feedbackMessage = 'NFC không được bật hoặc không được hỗ trợ.';
-      });
+      _updateStatus(NfcStatus.error, 'NFC không được bật hoặc không được hỗ trợ.');
       return;
     }
-
-    if (!mounted) return;
-    setState(() {
-      _status = NfcStatus.scanning;
-      _feedbackMessage = 'Đang chờ thẻ NFC...\nVui lòng đưa thẻ lại gần điện thoại.';
-    });
 
     try {
       NfcManager.instance.startSession(
         onDiscovered: (NfcTag tag) async {
           try {
             var ndef = Ndef.from(tag);
-            if (ndef == null) {
-              _updateStatus(NfcStatus.error, 'Thẻ này không hỗ trợ NDEF.');
+            if (ndef == null || !ndef.isWritable) {
+              _updateStatus(NfcStatus.error, 'Thẻ này không hỗ trợ NDEF hoặc không thể ghi.');
               return;
             }
-
-            if (!ndef.isWritable) {
-              _updateStatus(NfcStatus.error, 'Thẻ này không thể ghi.');
-              return;
-            }
-
             final String myLink = 'https://nftsam.vecoi.com/';
-            final String myAndroidPackageName = 'com.example.csam_mobile';
-
-            // if (idCay.isEmpty || tuoiCay.isEmpty || maCay.isEmpty) {
-            //   _updateStatus(NfcStatus.error, 'Dữ liệu không được để trống.');
-            //   return;
-            // }
-
+            final String myAndroidPackageName = 'com.example.csam_mobile'; // Thay bằng package name của bạn
             final dataMap = {
+              'caySamId':widget.plant.caySamId,
               'maCaySam': widget.plant.maCaySam,
               'viTriTrongLo': widget.plant.viTriTrongLo,
-              'hinhAnhChiTiet': widget.plant.caySamNhatKys.first?.hinhAnhChiTiet,
-
             };
-
             final dataToWrite = jsonEncode(dataMap);
             final record = _createNdefTextRecord(dataToWrite, languageCode: 'vi');
             final urirecord = _createNdefUriRecord(myLink);
             final aarRecord = _createNdefExternalRecord(
-              'android.com',
-              'pkg',
-              utf8.encode(myAndroidPackageName),
+              'android.com', 'pkg', utf8.encode(myAndroidPackageName),
             );
-            final message = NdefMessage(records: [record,urirecord,aarRecord]);
 
+            final message = NdefMessage(records: [urirecord, record, aarRecord]);
             await ndef.write(message: message);
 
-            _updateStatus(NfcStatus.success, 'Đã ghi thành công dữ liệu:\n$dataToWrite');
+            // await ndef.makeReadOnly();
+
+            _updateStatus(NfcStatus.success, 'Đã ghi dữ liệu (chưa khóa) thành công!');
 
           } catch (e) {
             _updateStatus(NfcStatus.error, 'Ghi thẻ thất bại. Vui lòng thử lại: $e');
@@ -112,6 +90,7 @@ class _NfcWriterScreenState extends State<NfcWriterScreen> {
     }
   }
 
+  // Hàm helper để cập nhật trạng thái và dừng phiên NFC
   void _updateStatus(NfcStatus status, String message) {
     NfcManager.instance.stopSession().catchError((_) {});
     if (mounted) {
@@ -119,10 +98,19 @@ class _NfcWriterScreenState extends State<NfcWriterScreen> {
         _status = status;
         _feedbackMessage = message;
       });
+
+      if (status == NfcStatus.success || status == NfcStatus.error) {
+        Future.delayed(const Duration(seconds: 2, milliseconds: 500), () {
+          if (mounted) {
+            Navigator.of(context).pop();
+          }
+        });
+      }
     }
   }
 
 
+  // --- Các hàm tạo NDEF Record (giữ nguyên) ---
   NdefRecord _createNdefTextRecord(String text, {String languageCode = 'en'}) {
     final langBytes = utf8.encode(languageCode);
     final textBytes = utf8.encode(text);
@@ -152,150 +140,120 @@ class _NfcWriterScreenState extends State<NfcWriterScreen> {
     int prefixByte;
     String remainingPayload;
     if (scheme == 'https') {
-      prefixByte = 0x04; // Mã cho "https://"
+      prefixByte = 0x04;
       remainingPayload = '$host$path';
     } else if (scheme == 'http') {
-      prefixByte = 0x03; // Mã cho "http://"
-      remainingPayload = '$host$path';
-    } else if (scheme == 'https_www') { // Giả sử 'https_www' là 'https://www.'
-      prefixByte = 0x02;
-      remainingPayload = '$host$path';
-    } else if (scheme == 'http_www') { // Giả sử 'http_www' là 'http://www.'
-      prefixByte = 0x01;
+      prefixByte = 0x03;
       remainingPayload = '$host$path';
     } else {
-      prefixByte = 0x00; // Không có tiền tố, ghi toàn bộ URI
+      prefixByte = 0x00;
       remainingPayload = uri;
     }
     final uriBytes = utf8.encode(remainingPayload);
-
-    // 3. Tạo payload cuối cùng (nối byte tiền tố và byte URI)
     final payloadBytes = Uint8List.fromList([prefixByte, ...uriBytes]);
-
-    // 4. Tạo bản ghi NDEF
     return NdefRecord(
       typeNameFormat: TypeNameFormat.wellKnown,
-      type: Uint8List.fromList(utf8.encode('U')), // 'U' là type cho URI
+      type: Uint8List.fromList(utf8.encode('U')), // 'U'
       identifier: Uint8List(0),
       payload: payloadBytes,
     );
   }
 
+  // --- Giao diện của Popup ---
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Ghi thẻ NFC (JSON)'), // ✅ Đổi tiêu đề
-        backgroundColor: Colors.green.shade700,
-        foregroundColor: Colors.white,
+    return Container(
+      margin: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            _buildStatusIndicator(),
-            const SizedBox(height: 32),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                _getTitle(),
+                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+              IconButton(
+                icon: const Icon(Icons.close),
+                onPressed: () => Navigator.of(context).pop(),
+              )
+            ],
+          ),
+          const SizedBox(height: 24),
+          _buildStatusIndicator(),
+          const SizedBox(height: 16),
+          Text(
+            _feedbackMessage,
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 16, color: _getColor()),
+          ),
+          const SizedBox(height: 24),
 
-            // ✅ THAY ĐỔI: 3 TextFields cho 3 dữ liệu
-            TextField(
-              controller: _idCayController,
-              decoration: InputDecoration(
-                labelText: 'ID Cây',
-                hintText: 'VD: 12345',
-                prefixIcon: const Icon(Icons.confirmation_number_outlined),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _tuoiCayController,
-              keyboardType: TextInputType.number, // Bàn phím số
-              decoration: InputDecoration(
-                labelText: 'Tuổi Cây (năm)',
-                hintText: 'VD: 2',
-                prefixIcon: const Icon(Icons.calendar_today_outlined),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _maCayController,
-              decoration: InputDecoration(
-                labelText: 'Mã Cây (Lô/Vườn)',
-                hintText: 'VD: L001_A1',
-                prefixIcon: const Icon(Icons.article_outlined),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-            ),
+          // ✅ CHECKBOX ĐÃ ĐƯỢC XÓA BỎ
 
-            const SizedBox(height: 32),
-            ElevatedButton.icon(
-              onPressed: _status == NfcStatus.scanning ? null : _startNfcWriting,
-              icon: _status == NfcStatus.scanning
-                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                  : const Icon(Icons.nfc),
-              label: Text(_status == NfcStatus.scanning ? 'Đang quét...' : 'Bắt đầu ghi'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green.shade600,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+          const SizedBox(height: 16),
+
+          if (_status == NfcStatus.scanning)
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () => Navigator.of(context).pop(),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.grey.shade200,
+                  foregroundColor: Colors.black87,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
+                child: const Text('Hủy'),
               ),
-            ),
-          ],
-        ),
+            )
+        ],
       ),
     );
   }
 
-  /// Widget hiển thị trạng thái (icon và text)
+  // --- Các hàm build giao diện (giữ nguyên) ---
+  String _getTitle() {
+    switch (_status) {
+      case NfcStatus.scanning: return 'Sẵn sàng quét';
+      case NfcStatus.success: return 'Thành công!';
+      case NfcStatus.error: return 'Ghi thẻ thất bại!';
+    }
+  }
+  Color _getColor() {
+    switch (_status) {
+      case NfcStatus.scanning: return Colors.blue.shade700;
+      case NfcStatus.success: return Colors.green.shade700;
+      case NfcStatus.error: return Colors.red.shade700;
+    }
+  }
   Widget _buildStatusIndicator() {
-    IconData icon;
-    Color color;
     switch (_status) {
       case NfcStatus.scanning:
-        icon = Icons.sensors;
-        color = Colors.blue;
-        break;
+        return _buildAnimatedIcon(Icons.nfc, Colors.blue.shade700);
       case NfcStatus.success:
-        icon = Icons.check_circle_outline_rounded;
-        color = Colors.green;
-        break;
+        return _buildAnimatedIcon(Icons.check_circle, Colors.green.shade700);
       case NfcStatus.error:
-        icon = Icons.error_outline_rounded;
-        color = Colors.red;
-        break;
-      default:
-        icon = Icons.nfc_rounded;
-        color = Colors.grey;
+        return _buildAnimatedIcon(Icons.error, Colors.red.shade700);
     }
+  }
+  Widget _buildAnimatedIcon(IconData icon, Color color) {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: color.withOpacity(0.1),
         shape: BoxShape.circle,
       ),
-      child: Column(
-        children: [
-          Icon(icon, size: 64, color: color),
-          const SizedBox(height: 16),
-          Text(
-            _feedbackMessage,
-            textAlign: TextAlign.center,
-            style: TextStyle(color: color, fontWeight: FontWeight.w500),
-          ),
-        ],
-      ),
+      child: Icon(icon, size: 64, color: color),
     );
   }
 }
+

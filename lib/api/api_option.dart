@@ -25,7 +25,7 @@ extension APIExtension on API {
 
         return data.items;
       } else {
-        print("Lỗi API: ${response.statusCode} - ${response.body}");
+        print("Lỗi API option: ${response.statusCode} - ${response.body}");
         return null;
       }
     } catch (e) {
@@ -48,7 +48,7 @@ extension APIExtension on API {
 
         return data.items;
       } else {
-        print("Lỗi API: ${response.statusCode} - ${response.body}");
+        print("Lỗi API option: ${response.statusCode} - ${response.body}");
         return null;
       }
     } catch (e) {
@@ -71,7 +71,7 @@ extension APIExtension on API {
 
         return data.items;
       } else {
-        print("Lỗi API: ${response.statusCode} - ${response.body}");
+        print("Lỗi API option: ${response.statusCode} - ${response.body}");
         return null;
       }
     } catch (e) {

@@ -59,7 +59,7 @@ extension APIExtension on API {
           print(data.items?.first.tenVuon);
           return data.items;
         } else {
-          print("Lỗi API: ${response.statusCode} - ${response.body}");
+          print("Lỗi API vt: ${response.statusCode} - ${response.body}");
           return null;
         }
       } catch (e) {
@@ -227,7 +227,7 @@ extension APIExtension on API {
         );
         return data.items;
       } else {
-        print("Lỗi API: ${response.statusCode} - ${response.body}");
+        print("Lỗi API ls: ${response.statusCode} - ${response.body}");
         return null;
       }
     } catch (e) {
@@ -381,7 +381,7 @@ extension APIExtension on API {
         );
         return data.oneItem;
       } else {
-        print("Lỗi API: ${response.statusCode} - ${response.body}");
+        print("Lỗi API ls: ${response.statusCode} - ${response.body}");
         return null;
       }
     } catch (e) {
@@ -478,7 +478,7 @@ extension APIExtension on API {
           );
           return data.items;
         } else {
-          print("Lỗi API: ${response.statusCode} - ${response.body}");
+          print("Lỗi API cb: ${response.statusCode} - ${response.body}");
           return null;
         }
       } catch (e) {

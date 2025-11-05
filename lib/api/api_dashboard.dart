@@ -47,7 +47,7 @@ extension APIExtension on API {
               (json) => DashBoardtotal.fromJson(json),
         );
       } else {
-        print("Lỗi API: ${response.statusCode} - ${response.body}");
+        print("Lỗi API db: ${response.statusCode} - ${response.body}");
         return null;
       }
     } catch (e) {

@@ -468,7 +468,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                           icon: Icons.eco_outlined,
                           iconColor: Colors.orange.shade600,
                           title: 'Lô: ${loSam.tenLo ?? loSam.maLo}',
-                          subtitle: '${loSam.soLuongCaySams} cây cần cập nhật nhật ký',
+                          subtitle: loSam.soLuongCaySams > 0 ? '${loSam.soLuongCaySams} cây cần cập nhật nhật ký' : '',
                           caySams: loSam.caySams,
                           idzone:loSam.loSamId,
                         );
@@ -606,10 +606,10 @@ class _DashboardScreenState extends State<DashboardScreen>
       String positionsToShow = positionsList.join(', ');
       int maxLength = 30; // 👈
       if (positionsToShow.length > maxLength) {
-        positionsToShow = '${positionsToShow.substring(0, maxLength)}...'; // Cắt và thêm ...
+        positionsToShow = '${positionsToShow.substring(0, maxLength)}...';
       }
       final moreCount = caySams.length > positionsList.length ? ' +${caySams.length - positionsList.length}' : '';
-      plantPositionsInfo = '\nCây $positionsToShow$moreCount chưa cập nhật ký trong nhiều tháng';
+      plantPositionsInfo = subtitle != '' ? '\nCây $positionsToShow$moreCount chưa cập nhật ký trong nhiều tháng' : 'Cây $positionsToShow$moreCount chưa cập nhật ký trong nhiều tháng';
     }
 
     return Card(
@@ -703,13 +703,12 @@ class _DashboardScreenState extends State<DashboardScreen>
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      // ✨ Nối chuỗi thông tin vị trí vào subtitle
                       '$subtitle$plantPositionsInfo',
                       style: TextStyle(color: Colors.grey.shade700, fontSize: 13),
                       // Tăng maxLines để đủ chỗ hiển thị vị trí
                       maxLines: plantPositionsInfo.isNotEmpty ? 3 : 2,
                       overflow: TextOverflow.ellipsis,
-                    ),
+                      ),
                   ],
                 ),
               ),
