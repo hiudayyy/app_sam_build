@@ -12,6 +12,7 @@ import '../api/api.dart';
 import '../models/vuontrong/losam_model.dart';
 import '../models/vuontrong/losamcamera_model.dart';
 import '../models/vuontrong/losamchitiet_model.dart';
+import '../models/vuontrong/sensor_model.dart';
 
 class LoSamFormData {
   String maLo;
@@ -64,12 +65,18 @@ class _AddLoSamScreenState extends State<AddLoSamScreen> {
   TextEditingController? loaiLoController;
   TextEditingController? ghichuLoController;
   List<TextEditingController?> rtspControllers = [];
+  List<TextEditingController?> userNameControllers = [];
+  List<TextEditingController?> passwordControllers = [];
+  List<TextEditingController?> ipCameraControllers = [];
+  List<TextEditingController?> onvifCameraControllers = [];
   // Form data
   late LoSamFormData loSamData;
   List<LoSamChiTietModel> chiTiets = [];
   List<LoSamCameraModel> cameras = [];
+  List<int> sensorid = [];
   List<OptionModel> OptionLoSamLoaiTuoi = [];
   List<OptionModel> OptionLoaiCamera = [];
+  List<SensorModel>? OptionSensor = [];
   LoSamModel? losam;
   Map<String, String> errors = {};
   bool _isLoaded = false;
@@ -138,7 +145,6 @@ class _AddLoSamScreenState extends State<AddLoSamScreen> {
       });
     }
 
-    if (widget.zoneid != null) {
       losam = await api.getLoSamById(widget.zoneid ?? 0);
       if (!mounted) return;
 
@@ -151,12 +157,20 @@ class _AddLoSamScreenState extends State<AddLoSamScreen> {
         loSamData.loai = losam?.loai ?? "";
         chiTiets = losam?.loSamChiTiets ?? [];
         cameras = losam?.loSamCameras ?? [];
+        sensorid = losam?.sensorIds ?? [];
         maLoController = TextEditingController(text: loSamData.maLo);
         tenLoController = TextEditingController(text: loSamData.tenLo);
         loaiLoController = TextEditingController(text: loSamData.loai);
         ghichuLoController = TextEditingController(text: losam?.ghiChu);
-        rtspControllers =
-            cameras.map((c) => TextEditingController(text: c.rtsp)).toList();
+        if(losam?.sensorModels != null){
+          OptionSensor = losam?.sensorModels;
+        }
+        rtspControllers = cameras.map((c) => TextEditingController(text: c.rtsp)).toList();
+        userNameControllers = cameras.map((c) => TextEditingController(text: c.userName)).toList();
+        passwordControllers = cameras.map((c) => TextEditingController(text: c.password)).toList();
+        ipCameraControllers = cameras.map((c) => TextEditingController(text: c.ipCamera)).toList();
+        onvifCameraControllers = cameras.map((c) => TextEditingController(text: c.onvifCamera)).toList();
+
       });
 
       final hinhLo = losam?.hinhAnh;
@@ -177,7 +191,7 @@ class _AddLoSamScreenState extends State<AddLoSamScreen> {
           });
         }
       }
-    }
+
   }
 
   Future<File> base64ToFile(String base64String, String fileName) async {
@@ -285,11 +299,17 @@ class _AddLoSamScreenState extends State<AddLoSamScreen> {
         trangThai: 1,
         rtsp: '',
         userName: '',
-        password: ''
+        password: '',
+          ipCamera: '',
+          onvifCamera: ''
       ));
 
       // Thêm controller tương ứng
       rtspControllers.add(TextEditingController());
+      userNameControllers.add(TextEditingController());
+      passwordControllers.add(TextEditingController());
+      ipCameraControllers.add(TextEditingController());
+      onvifCameraControllers.add(TextEditingController());
     });
   }
 
@@ -308,7 +328,158 @@ class _AddLoSamScreenState extends State<AddLoSamScreen> {
       ),
     );
   }
+  List<SensorModel> _getSelectedSensorModels() {
+    return OptionSensor
+        ?.where((sensor) => sensorid.contains(sensor.sensorId))
+        .toList() ?? [];
+  }
 
+  // Phương thức hiển thị Dialog chọn Sensor
+  Future<void> _showSensorSelectionDialog() async {
+    // Lấy danh sách sensor có sẵn
+    final List<SensorModel>? availableOptions = OptionSensor;
+
+    // Tạo một bản sao (Set) để lưu trữ các lựa chọn tạm thời trong Dialog
+    // Sử dụng Set để thao tác Thêm/Xóa nhanh hơn
+    Set<int> tempSelectedIds = sensorid.toSet();
+
+    await showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (context, setStateDialog) {
+            return AlertDialog(
+              title: const Text('Thiết Bị'),
+              // ➡️ THAY ĐỔI LỚN Ở ĐÂY: Sử dụng Container và ListView.builder
+              content: Container(
+                width: MediaQuery.of(context).size.width * 0.8, // Chiều rộng tương đối
+                height: MediaQuery.of(context).size.height * 0.5, // Chiều cao tối đa
+
+                child: ListView.builder(
+                  // ➡️ Cải thiện hiệu suất: Chỉ xây dựng các widget cần thiết
+                  itemCount: availableOptions?.length,
+                  itemBuilder: (context, index) {
+                    final sensor = availableOptions?[index];
+                    final bool isChecked = tempSelectedIds.contains(sensor?.sensorId);
+
+                    return CheckboxListTile(
+                      // Thiết kế gọn gàng hơn
+                      contentPadding: EdgeInsets.zero, // Loại bỏ padding thừa
+                      title: Text(sensor!.sensorCode, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500)),
+                      subtitle: Text('Đơn vị: ${sensor.unit}', style: TextStyle(fontSize: 13, color: Colors.grey.shade600)),
+                      value: isChecked,
+                      onChanged: (bool? newValue) {
+                        setStateDialog(() {
+                          if (newValue == true) {
+                            tempSelectedIds.add(sensor.sensorId);
+                          } else {
+                            tempSelectedIds.remove(sensor.sensorId);
+                          }
+                        });
+                      },
+                    );
+                  },
+                ),
+              ),
+
+              // Actions (Giữ nguyên)
+              actions: <Widget>[
+                TextButton(
+                  child: const Text('Hủy'),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                ),
+                TextButton(
+                  child: const Text('Xác nhận'),
+                  onPressed: () {
+                    setState(() {
+                      // Cập nhật state chính của Widget khi xác nhận
+                      sensorid = tempSelectedIds.toList(); // Đã đổi tên biến lưu trữ là selectedSensorIds
+                    });
+                    Navigator.of(context).pop();
+                  },
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+  // Phương thức xóa một sensor đã chọn
+  void _removeSensor(int index) {
+    setState(() {
+      final sensorToRemove = _getSelectedSensorModels()?[index];
+      sensorid.remove(sensorToRemove?.sensorId);
+    });
+  }
+
+  // Widget hiển thị từng sensor đã chọn (itemBuilder)
+  // Phần này nằm trong _SensorOptionSelectionState
+  Widget _buildSensorItem(int index) {
+    final sensor = _getSelectedSensorModels()[index];
+
+    // Kiểm tra xem đây có phải là mục cuối cùng không
+    final bool isLastItem = index == _getSelectedSensorModels().length - 1;
+
+    return Padding(
+      // 1. Thêm Padding trên và dưới cho nội dung
+      padding: const EdgeInsets.symmetric(vertical: 10.0),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Mã Sensor: ${sensor.sensorCode}',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 15,
+                      ),
+                    ),
+                    const SizedBox(height: 4), // Khoảng cách nhỏ
+                    Text(
+                      'Đơn vị: ${sensor.unit}',
+                      style: TextStyle(
+                        color: Colors.grey.shade600,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              InkWell(
+                onTap: () => _removeSensor(index),
+                child: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Icon(
+                    // ➡️ ĐÃ THAY ĐỔI: Sử dụng Icons.delete_outline hoặc Icons.delete
+                    Icons.delete_outline,
+                    color: Colors.red.shade600,
+                    size: 22, // Tăng kích thước lên một chút để dễ nhìn hơn
+                  ),
+                ),
+              ),
+            ],
+          ),
+
+          // 2. Thêm Divider giữa các mục (Trừ mục cuối cùng)
+          if (!isLastItem)
+            const Padding(
+              padding: EdgeInsets.only(top: 10.0), // Padding trên Divider
+              child: Divider(height: 1, thickness: 0.5),
+            ),
+        ],
+      ),
+    );
+  }
   void _updateCamera(int index, String field, dynamic value) {
     final oldItem = cameras[index];
 
@@ -320,11 +491,12 @@ class _AddLoSamScreenState extends State<AddLoSamScreen> {
           : oldItem.loSamLoaiCameraId,
       rtsp: field == 'rtsp' ? value?.toString() ?? '' : oldItem.rtsp,
       trangThai: oldItem.trangThai,
-      userName: oldItem.userName,
-      password: oldItem.password,
+      userName: field == 'userName' ? value?.toString() ?? '' : oldItem.userName,
+      password: field == 'password' ? value?.toString() ?? '' : oldItem.password,
+      ipCamera: field == 'ipCamera' ? value?.toString() ?? '' : oldItem.ipCamera,
+      onvifCamera: field == 'onvifCamera' ? value?.toString() ?? '' : oldItem.onvifCamera,
     );
 
-    // 🟡 Không gọi setState nếu chỉ thay đổi RTSP hoặc URL (text)
     if (field == 'loSamLoaiCameraId') {
       setState(() {
         cameras[index] = updatedItem;
@@ -420,8 +592,13 @@ class _AddLoSamScreenState extends State<AddLoSamScreen> {
           (index) => {
                 'LoSamLoaiCameraId': cameras[index].loSamLoaiCameraId,
                 'RTSP': rtspControllers[index]?.text,
-                'TrangThai': cameras[index].trangThai,
+                'userName': userNameControllers[index]?.text,
+                'password': passwordControllers[index]?.text,
+                'ipCamera': ipCameraControllers[index]?.text,
+                'onvifCamera': onvifCameraControllers[index]?.text,
+                'TrangThai': cameras[index].trangThai ?? 1,
               }),
+      'SensorIds': sensorid,
     };
 
     widget.onSubmit(submitData, losam?.loSamId ?? 0, image: _selectedImage);
@@ -717,10 +894,7 @@ class _AddLoSamScreenState extends State<AddLoSamScreen> {
                                       ],
                                     ),
                             ),
-
                             const SizedBox(height: 16),
-
-                            // Upload Button
                             SizedBox(
                               width: double.infinity,
                               child: ElevatedButton.icon(
@@ -758,9 +932,7 @@ class _AddLoSamScreenState extends State<AddLoSamScreen> {
                       onRemove: _removeChiTiet,
                       itemBuilder: (index) => _buildChiTietItem(index),
                     ),
-
                     const SizedBox(height: 16),
-
                     // Camera Section
                     _buildDynamicSection(
                       title: 'Camera giám sát',
@@ -772,6 +944,14 @@ class _AddLoSamScreenState extends State<AddLoSamScreen> {
                     ),
 
                     const SizedBox(height: 32),
+                    _buildDynamicSectionSensor<SensorModel>(
+                    title: 'Cấu hình Thiết bị',
+                    icon: Icons.sensors,
+                    items: _getSelectedSensorModels(), // List<SensorModel> đã chọn
+                    onAdd: _showSensorSelectionDialog,  // Mở Dialog khi click Thêm
+                    onRemove: _removeSensor,            // Hàm xóa sensor
+                    itemBuilder: _buildSensorItem,      // Widget hiển thị từng sensor
+                  ),
 
                     // Action Buttons
                     Row(
@@ -796,7 +976,7 @@ class _AddLoSamScreenState extends State<AddLoSamScreen> {
                               children: [
                                 Icon(Icons.add, size: 16),
                                 SizedBox(width: 8),
-                                Text('Tạo lô sâm'),
+                                Text('Lưu'),
                               ],
                             ),
                           ),
@@ -813,7 +993,7 @@ class _AddLoSamScreenState extends State<AddLoSamScreen> {
                               children: [
                                 Icon(Icons.edit, size: 16),
                                 SizedBox(width: 8),
-                                Text('Chỉnh sửa'),
+                                Text('Lưu'),
                               ],
                             ),
                           ),
@@ -861,6 +1041,83 @@ class _AddLoSamScreenState extends State<AddLoSamScreen> {
     );
   }
 
+  Widget _buildDynamicSectionSensor<T>({
+    required String title,
+    required IconData icon,
+    required List<T> items,
+    required VoidCallback onAdd,
+    required Function(int) onRemove,
+    required Widget Function(int) itemBuilder,
+  }) {
+    // ... (Giữ nguyên code _buildDynamicSection của bạn)
+    // Tôi sẽ chỉ đưa phần return chính để giảm độ dài
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      clipBehavior: Clip.antiAlias,
+      child: Padding(
+        padding: const EdgeInsets.only(top: 16, left: 16, right: 16, bottom: 8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Icon(icon, size: 22, color: Colors.green.shade700),
+                    const SizedBox(width  : 10),
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+                OutlinedButton.icon(
+                  onPressed: onAdd,
+                  icon: const Icon(Icons.add, size: 18),
+                  label: const Text('Thêm'),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            const Divider(),
+            const SizedBox(height: 4),
+
+            // Danh sách
+            if (items.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 24),
+                child: Center(
+                  child: Text(
+                    'Chưa có dữ liệu',
+                    style: TextStyle(
+                      color: Colors.grey.shade600,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ),
+              )
+            else
+              Column(
+                children: List.generate(items.length, (index) {
+                  return itemBuilder(index);
+                }),
+              ),
+          ],
+        ),
+      ),
+    );
+    // ...
+  }
   Widget _buildDynamicSection<T>({
     required String title,
     required IconData icon,
@@ -1036,12 +1293,46 @@ class _AddLoSamScreenState extends State<AddLoSamScreen> {
             prefixIcon: Icons.videocam_outlined,
           ),
           _buildTextField(
+            label: 'User Name',
+            controller: userNameControllers[index],
+            onChanged: (value) => _updateCamera(index, 'userName', value),
+            errorKey: 'camera_${index}_userName',
+            hintText: 'User Name',
+            prefixIcon: Icons.verified_user,
+          ),
+        _buildPasswordField(
+        context: context, // PHẢI TRUYỀN context
+        label: 'Pass',
+        controller: passwordControllers[index],
+        onChanged: (value) => _updateCamera(index, 'password', value),
+        errorKey: 'camera_${index}_password',
+        hintText: 'Password',
+        prefixIcon: Icons.lock_outline,
+        errors: errors, // Map lỗi
+      ),
+          _buildTextField(
+            label: 'IP Camera',
+            controller: ipCameraControllers[index],
+            onChanged: (value) => _updateCamera(index, 'ipCamera', value),
+            errorKey: 'camera_${index}_userName',
+            hintText: 'User Name',
+            prefixIcon: Icons.verified_user,
+          ),
+          _buildTextField(
             label: 'RTSP Stream',
             controller: rtspControllers[index],
             onChanged: (value) => _updateCamera(index, 'rtsp', value),
             errorKey: 'camera_${index}_rtsp',
             hintText: 'rtsp://user:pass@ip:port/stream',
             prefixIcon: Icons.link,
+          ),
+          _buildTextField(
+            label: 'Ovif Camera',
+            controller: onvifCameraControllers[index],
+            onChanged: (value) => _updateCamera(index, 'onvifCamera', value),
+            errorKey: 'camera_${index}_userName',
+            hintText: 'User Name',
+            prefixIcon: Icons.verified_user,
           ),
         ],
       ),
@@ -1078,6 +1369,83 @@ class _AddLoSamScreenState extends State<AddLoSamScreen> {
           contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
         ),
       ),
+    );
+  }
+  Widget _buildPasswordField({
+    required BuildContext context, // Cần truyền context để dùng StatefulBuilder
+    required String label,
+    required TextEditingController? controller,
+    required Function(String) onChanged,
+    required Map<String, String?> errors, // Cần Map lỗi từ ngoài vào
+    String? errorKey,
+    String? hintText,
+    IconData? prefixIcon,
+    int maxLines = 1,
+    bool readOnly = false,
+  }) {
+    // Sử dụng StatefulBuilder để quản lý trạng thái _isObscure cục bộ
+    return StatefulBuilder(
+      builder: (BuildContext context, StateSetter setStateBuilder) {
+        // 1. Khởi tạo trạng thái _isObscure (chỉ chạy lần đầu)
+        bool _isObscure = true;
+
+        // Do StatefulBuilder không cho phép khởi tạo biến state bên trong,
+        // chúng ta thường phải lưu trữ _isObscure ở phạm vi cha (Widget chứa hàm này)
+        // hoặc dùng một cơ chế khác.
+
+        // ✅ Cách thực tế: Dùng ValueNotifier để giữ state bên ngoài hàm
+
+        // Khởi tạo ValueNotifier để giữ trạng thái ẩn/hiện.
+        final ValueNotifier<bool> isObscureNotifier = ValueNotifier(true);
+
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 16),
+
+          // ValueListenableBuilder giúp rebuild chỉ Icon khi trạng thái thay đổi
+          child: ValueListenableBuilder<bool>(
+            valueListenable: isObscureNotifier,
+            builder: (context, isObscure, child) {
+              return TextFormField(
+                controller: controller,
+                onChanged: onChanged,
+                maxLines: maxLines,
+                readOnly: readOnly,
+
+                // ➡️ Ẩn ký tự
+                obscureText: isObscure,
+                keyboardType: TextInputType.visiblePassword,
+
+                decoration: InputDecoration(
+                  prefixIcon: prefixIcon != null ? Icon(prefixIcon, color: Colors.grey.shade600) : null,
+
+                  // ➡️ NÚT CHUYỂN ĐỔI (Suffix Icon)
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      isObscure ? Icons.visibility_off : Icons.visibility,
+                      color: Colors.grey.shade600,
+                    ),
+                    onPressed: () {
+                      // Cập nhật giá trị trong ValueNotifier
+                      isObscureNotifier.value = !isObscureNotifier.value;
+                    },
+                  ),
+
+                  // Các thuộc tính trang trí khác
+                  labelText: label,
+                  hintText: hintText,
+                  border: const OutlineInputBorder(
+                    borderRadius: BorderRadius.all(Radius.circular(8)),
+                  ),
+                  errorText: errorKey != null ? errors[errorKey] : null,
+                  filled: readOnly,
+                  fillColor: readOnly ? Colors.grey.shade100 : null,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                ),
+              );
+            },
+          ),
+        );
+      },
     );
   }
 

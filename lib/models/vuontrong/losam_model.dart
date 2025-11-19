@@ -1,3 +1,4 @@
+import 'package:csam_mobile/models/vuontrong/sensor_model.dart';
 import 'package:csam_mobile/models/vuontrong/vuontrong_model.dart';
 
 import 'caysam_model.dart';
@@ -22,6 +23,8 @@ class LoSamModel {
   final List<CaySamModel>? caySams;
   final List<LoSamChiTietModel>? loSamChiTiets;
   final List<LoSamCameraModel>? loSamCameras;
+  final List<int>? sensorIds;
+  final List<SensorModel>? sensorModels;
 
   LoSamModel({
     required this.loSamId,
@@ -41,6 +44,8 @@ class LoSamModel {
     this.caySams,
     this.loSamChiTiets,
     this.loSamCameras,
+    this.sensorIds,
+    this.sensorModels
   });
 
   factory LoSamModel.fromJson(Map<String, dynamic> json) {
@@ -70,6 +75,13 @@ class LoSamModel {
       loSamCameras: (json['loSamCameras'] as List<dynamic>? ?? [])
           .map((e) => LoSamCameraModel.fromJson(e))
           .toList(),
+      sensorIds: (json['sensorIds'] as List<dynamic>?)
+          ?.map((e) => e as int)
+          .toList()
+          ?? [],
+      sensorModels:(json['sensorModels'] as List<dynamic>? ?? [])
+            .map((e) => SensorModel.fromJson(e))
+            .toList(),
     );
   }
 
@@ -92,6 +104,7 @@ class LoSamModel {
       'caySams': caySams?.map((e) => e.toJson()).toList(),
       'loSamChiTiets': loSamChiTiets?.map((e) => e.toJson()).toList(),
       'loSamCameras': loSamCameras?.map((e) => e.toJson()).toList(),
+      'sensorModels': sensorModels?.map((e) => e.toJson()).toList(),
     };
   }
 }

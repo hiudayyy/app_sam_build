@@ -77,16 +77,62 @@ enum CameraType {
 class CameraStreamResponse {
   final String uri;
   final String content;
+  final CameraState cameraState;
 
   CameraStreamResponse({
     required this.uri,
     required this.content,
+    required this.cameraState,
   });
 
   factory CameraStreamResponse.fromJson(Map<String, dynamic> json) {
     return CameraStreamResponse(
       uri: json["uri"] ?? "",
       content: json["content"] ?? "",
+      cameraState: CameraState.fromJson(json['cameraState'] ?? {}),
+    );
+  }
+}
+class CameraResponse {
+  final String message;
+  final int angle;
+  final int range;
+  final int spread;
+
+
+  CameraResponse({
+    required this.message,
+    required this.angle,
+    required this.range,
+    required this.spread
+  });
+
+  factory CameraResponse.fromJson(Map<String, dynamic> json) {
+    return CameraResponse(
+      message: json["message"] ?? "",
+      angle: json["angle"] ?? 0,
+      range: json["range"] ?? 0,
+      spread: json["spread"] ?? 0,
+    );
+  }
+}
+class CameraState {
+  final int angle;
+  final int range;
+  final int spread;
+
+
+  CameraState({
+    required this.angle,
+    required this.range,
+    required this.spread
+  });
+
+  factory CameraState.fromJson(Map<String, dynamic> json) {
+    return CameraState(
+      angle: json["angle"] ?? 0,
+      range: json["range"] ?? 0,
+      spread: json["spread"] ?? 0,
     );
   }
 }

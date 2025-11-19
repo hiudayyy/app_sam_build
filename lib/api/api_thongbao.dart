@@ -108,4 +108,49 @@ extension APIExtension on API {
     }
   }
 
+  Future<ApiResponse<ThongBaoModel>?> seenThongBaoAll() async {
+    String linkURL = "${host}api/ThongBao/SeenThongBaoAll";
+
+    final uri = Uri.parse(linkURL);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final userJson = prefs.getString("ginseng_user");
+      Kttoken? user;
+      if (userJson != null) {
+        final Map<String, dynamic> json = jsonDecode(userJson);
+        user = Kttoken.fromJson(json);
+      }
+
+      final headers = {
+        ...headerSvkt1,
+        "AuthenticateToken": user?.authenticateToken ?? "",
+        "FuncsTagActive": user?.funcsTagActives.firstWhere(
+              (x) => x.tenController.toLowerCase() == "thongbao",
+          orElse: () => FuncTagActive(
+            tenController: "",
+            tenActions: "",
+            funcsTagActive: "",
+          ),
+        ).funcsTagActive ?? "",
+      };
+
+      final response = await http.get(uri, headers: headers);
+
+      if (response.statusCode == 200) {
+        Map<String, dynamic> responseJson = jsonDecode(response.body);
+        final data = ApiResponse<ThongBaoModel>.fromJson(
+          responseJson,
+              (json) => ThongBaoModel.fromJson(json),
+        );
+        return data;
+      } else {
+        print("Lỗi API Sennalltb: ${response.statusCode} - ${response.body}");
+        return null;
+      }
+    } catch (e) {
+      print("Exception khi gọi API Seenalltb: $e");
+      return null;
+    }
+  }
+
 }

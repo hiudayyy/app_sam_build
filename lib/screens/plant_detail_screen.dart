@@ -16,6 +16,7 @@ import '../models/moi_truong.dart';
 import '../models/option_model.dart';
 import '../models/xac_thuc.dart';
 import '../data/mock_data.dart';
+import '../utils/app_dimensions.dart';
 import '../widgets/fullscreenimageviewer.dart';
 import '../widgets/nfcWriterScreen.dart';
 import 'add_plant_screen.dart';
@@ -241,7 +242,7 @@ class _State extends State<PlantDetailScreen> {
 
                   // Basic Information
                   _buildBasicInfo(),
-                  SizedBox(height: 16),
+                  SizedBox(height: AppDimensions.fontSizeExtraSmall),
 
                   // Monthly Diary Summary
                   _buildMonthlyDiarySummary(
@@ -324,6 +325,7 @@ class _State extends State<PlantDetailScreen> {
     final latestStatusValue = widget.plant.caySamNhatKys.isNotEmpty
         ? widget.plant.caySamNhatKys.first?.tinhTrang.toString()
         : null;
+    final bool daGhiNFC = widget.plant.isNFC ?? false;
 
     return Card(
       elevation: 2,
@@ -333,8 +335,10 @@ class _State extends State<PlantDetailScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-             Padding(
-              padding: EdgeInsets.only(left: 16, right: 16, top: 8, bottom: 8),
+            // --- HÀNG TIÊU ĐỀ VÀ NÚT BẤM ---
+            Padding(
+              padding:
+              EdgeInsets.only(left: 16, right: 16, top: 8, bottom: 8),
               child: Row(
                 children: [
                   Icon(Icons.eco_outlined, color: Colors.green, size: 24),
@@ -346,24 +350,51 @@ class _State extends State<PlantDetailScreen> {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
+                  // Thêm icon báo đã ghi NFC (tùy chọn)
+                  if (daGhiNFC)
+                    Padding(
+                      padding: const EdgeInsets.only(left: 8.0),
+                      child: Icon(
+                        Icons.nfc,
+                        color: Colors.blue.shade700,
+                        size: 20,
+                      ),
+                    ),
                   Spacer(),
-                  ElevatedButton(
+                  // Cập nhật nút bấm dựa trên trạng thái daGhiNFC
+                  if (user?.htTaiKhoan.htPhanQuyenTaiKhoans.any(
+                        (pq) => pq.maVaiTro != "nft_invester" && pq.maVaiTro == "nft_admin",
+                  ) ??
+                      false)
+                  ElevatedButton.icon(
                     onPressed: () {
                       // Gọi hàm hiển thị popup
                       _showNfcWriterModal(context);
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
+                      // Nếu đã ghi thì dùng màu xanh dương, chưa ghi dùng màu xanh lá
+                      backgroundColor:
+                      daGhiNFC ? Colors.blue.shade700 : Colors.green,
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 6),
                     ),
-                    child: const Text('Ghi thẻ NFC'),
+                    icon: Icon(
+                      // Nếu đã ghi thì dùng icon check, chưa ghi dùng icon nfc
+                      daGhiNFC ? Icons.check_circle_outline : Icons.nfc,
+                      size: 20,
+                    ),
+                    label: Text(
+                      // Thay đổi text của nút
+                      daGhiNFC ? 'Ghi lại NFC' : 'Ghi thẻ NFC',
+                    ),
                   ),
                 ],
               ),
             ),
             const Divider(height: 1),
 
+            // --- HÀNG MÃ CÂY SÂM ---
             _buildInfoRow(
               icon: Icons.qr_code_2_rounded,
               label: 'Mã cây sâm',
@@ -376,7 +407,7 @@ class _State extends State<PlantDetailScreen> {
               ),
             ),
 
-            // --- Vị trí ---
+            // --- HÀNG VỊ TRÍ ---
             _buildInfoRow(
               icon: Icons.location_on_outlined,
               label: 'Vị trí',
@@ -389,7 +420,7 @@ class _State extends State<PlantDetailScreen> {
               ),
             ),
 
-            // --- Tuổi cây ---
+            // --- HÀNG TUỔI CÂY ---
             _buildInfoRow(
               icon: Icons.timelapse_rounded,
               label: 'Tuổi cây',
@@ -407,19 +438,19 @@ class _State extends State<PlantDetailScreen> {
               ),
             ),
 
-            // --- Tình trạng ---
+            // --- HÀNG TÌNH TRẠNG ---
             _buildInfoRow(
               icon: Icons.monitor_heart_outlined,
               label: 'Tình trạng',
               content: _buildStatusChip(latestStatusValue),
             ),
 
-            // --- Blockchain (nếu có) ---
-            if (widget.plant.blockChain != null &&
-                widget.plant.blockChain!.isNotEmpty) ...[
+            // --- HÀNG BLOCKCHAIN (nếu có) ---
+            if (widget.plant.blockChain != null && widget.plant.blockChain!.isNotEmpty) ...[
               const Divider(indent: 16, endIndent: 16),
               ListTile(
-                leading: Icon(Icons.link_rounded, color: Colors.purple.shade300),
+                leading:
+                Icon(Icons.link_rounded, color: Colors.purple.shade300),
                 title: const Text(
                   'Blockchain ID',
                   style: TextStyle(fontSize: 14, color: Colors.grey),
@@ -455,7 +486,7 @@ class _State extends State<PlantDetailScreen> {
 
     return Card(
       child: Padding(
-        padding: EdgeInsets.all(16),
+        padding: EdgeInsets.all(AppDimensions.fontSizeExtraSmall),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -489,7 +520,7 @@ class _State extends State<PlantDetailScreen> {
                       label: const Text(
                         'Lịch sử nhật ký',
                         style: TextStyle(
-                          fontSize: 12,
+                          fontSize: 11,
                           color: Colors.blue,
                           fontWeight: FontWeight.w500,
                         ),
@@ -507,7 +538,7 @@ class _State extends State<PlantDetailScreen> {
                         overlayColor: WidgetStateProperty.all(Colors.blue.shade100.withOpacity(0.3)),
                       ),
                     ),
-                    SizedBox(width: 8),
+                    SizedBox(width: AppDimensions.sp6),
                     Row(
                       children: [
                         if (user?.htTaiKhoan.htPhanQuyenTaiKhoans.any(
@@ -531,12 +562,12 @@ class _State extends State<PlantDetailScreen> {
                                 children: [
                                   Icon(Icons.edit, size: 12),
                                   SizedBox(width: 4),
-                                  Text('Cập nhật', style: TextStyle(fontSize: 12)),
+                                  Text('Cập nhật', style: TextStyle(fontSize: 11)),
                                 ],
                               ),
                             ),
 
-                          const SizedBox(width: 8),
+                          const SizedBox(width:AppDimensions.sp6),
 
                           ElevatedButton(
                             onPressed: plant != null
@@ -554,7 +585,7 @@ class _State extends State<PlantDetailScreen> {
                               children: [
                                 Icon(Icons.add, size: 12),
                                 SizedBox(width: 4),
-                                Text('Thêm mới', style: TextStyle(fontSize: 12)),
+                                Text('Thêm mới', style: TextStyle(fontSize: 11)),
                               ],
                             ),
                           ),

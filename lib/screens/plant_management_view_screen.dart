@@ -22,6 +22,7 @@ import '../models/vuontrong/losam_model.dart';
 import '../models/vuontrong/losamchitiet_model.dart';
 import '../models/vuontrong/vuontrong_model.dart';
 
+import '../utils/app_dimensions.dart';
 import '../widgets/camera.dart';
 import 'add_farm_screen.dart';
 import 'add_losam_screen.dart';
@@ -39,7 +40,7 @@ class PlantManagementViewScreen extends StatefulWidget {
 }
 
 class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
-    with TickerProviderStateMixin {
+    with TickerProviderStateMixin, AutomaticKeepAliveClientMixin {
   NavigationLevel currentLevel = NavigationLevel.farm;
   VuonTrongModel? selectedFarm;
   LoSamModel? selectedZone;
@@ -83,6 +84,8 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
     _pulseAnimationController.dispose();
     super.dispose();
   }
+  @override
+  bool get wantKeepAlive => true;
   // ✅ HÀM LỌC TRUNG TÂM MỚI
   void _applyFiltersAndSelectCells(List<CaySamModel> areaPlants) {
     // Bắt đầu với danh sách gốc
@@ -351,6 +354,7 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: _buildHeader(),
@@ -403,7 +407,6 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
           ),
         ],
       ),
-
       actions: [
         if (canShowMultiSelectButton)
           Padding(
@@ -516,7 +519,7 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
-                  child: _buildAgeGroupItem("assets/images/icon1t.png", '3-5 (Năm)',
+                  child: _buildAgeGroupItem("assets/images/icon1t.png", '3 (Năm)',
                       lsmod?.loSamChiTiets.sl(1), Colors.green),
                 ),
                 Expanded(
@@ -679,7 +682,7 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
                       );
                     },
                     icon: Icon(Icons.edit_outlined, color: Colors.blue.shade600, size: 20),
-                    tooltip: 'Chỉnh sửa',
+                    tooltip: 'Lưu',
                     visualDensity: VisualDensity.compact,
                   ),
                 ],
@@ -739,7 +742,7 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.green,
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -830,7 +833,7 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.green,
                         foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
@@ -1092,7 +1095,11 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
         ? ' và ${selectedEmptyCells.length - 5} vị trí khác'
         : '';
 
-    final bool isAgeSelected = _selectedtuoicay != null;
+    // final bool isAgeSelected = _selectedtuoicay != null; // Biến này đã tồn tại
+    final bool isAllFiltersSelected =
+        _selectedtuoicay != null &&
+            _selectedTinhTrang != null &&
+            _selectedDiemSucKhoe != null;
 
     return Card(
       elevation: 8,
@@ -1142,7 +1149,7 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
             DropdownButtonFormField<OptionModel>(
               key: ValueKey('tuoi_cay_${_selectedtuoicay}'),
               value: _selectedtuoicay,
-              hint: const Text('1. Lọc theo tuổi cây (bắt buộc)'),
+              hint: const Text('1. Lọc theo tuổi cây'),
               decoration: InputDecoration(
                 prefixIcon: const Icon(Icons.filter_1_rounded),
                 border: OutlineInputBorder(
@@ -1169,7 +1176,7 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
             DropdownButtonFormField<OptionModel>(
               key: ValueKey('tinh_trang_${_selectedTinhTrang}'),
               value: _selectedTinhTrang,
-              hint: const Text('2. Lọc theo tình trạng (tùy chọn)'),
+              hint: const Text('2. Lọc theo tình trạng'),
               decoration: InputDecoration(
                 prefixIcon: const Icon(Icons.filter_2_rounded),
                 border: OutlineInputBorder(
@@ -1177,13 +1184,15 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
                   borderSide: BorderSide.none,
                 ),
                 filled: true,
-                fillColor: isAgeSelected ? Colors.grey.shade100 : Colors.grey.shade200,
                 contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                 suffixIcon: _selectedTinhTrang != null
                     ? IconButton(
                   icon: const Icon(Icons.clear, size: 20),
                   onPressed: () {
-                    setState(() { _selectedTinhTrang = null; });
+                    setState(() {
+                      _selectedTinhTrang = null;
+                      _selectedDiemSucKhoe = null;
+                    });
                     _applyFiltersAndSelectCells(areaPlants);
                   },
                 )
@@ -1192,17 +1201,17 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
               items: OptionLoSamTinhTrang.map((opt) {
                 return DropdownMenuItem<OptionModel>(value: opt, child: Text(opt.text));
               }).toList(),
-              onChanged: isAgeSelected ? (OptionModel? newValue) {
+              onChanged: (OptionModel? newValue) {
                 setState(() { _selectedTinhTrang = newValue; });
                 _applyFiltersAndSelectCells(areaPlants);
-              } : null,
+              }
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<OptionModel>(
               // ✨ SỬA LỖI: Thêm một chuỗi định danh duy nhất vào key
               key: ValueKey('suc_khoe_${_selectedDiemSucKhoe}'),
               value: _selectedDiemSucKhoe,
-              hint: const Text('3. Lọc theo sức khỏe (tùy chọn)'),
+              hint: const Text('3. Lọc theo sức khỏe'),
               decoration: InputDecoration(
                 prefixIcon: const Icon(Icons.filter_3_rounded),
                 border: OutlineInputBorder(
@@ -1210,7 +1219,6 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
                   borderSide: BorderSide.none,
                 ),
                 filled: true,
-                fillColor: isAgeSelected ? Colors.grey.shade100 : Colors.grey.shade200,
                 contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                 suffixIcon: _selectedDiemSucKhoe != null
                     ? IconButton(
@@ -1222,13 +1230,13 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
                 )
                     : null,
               ),
-              items: OptionLoSamDiemSucKhoe.map((opt) {
+              items: OptionLoSamDiemSucKhoe.reversed.map((opt) {
                 return DropdownMenuItem<OptionModel>(value: opt, child: Text(opt.text));
               }).toList(),
-              onChanged: isAgeSelected ? (OptionModel? newValue) {
+              onChanged: (OptionModel? newValue) {
                 setState(() { _selectedDiemSucKhoe = newValue; });
                 _applyFiltersAndSelectCells(areaPlants);
-              } : null,
+              }
             ),
             const SizedBox(height: 12),
             Row(
@@ -1252,7 +1260,9 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
                 Expanded(
                   flex: 3,
                   child: ElevatedButton.icon(
-                    onPressed: selectedCount > 0 ? () => _handleBatchAddPlants(areaPlants) : null,
+                    onPressed: (selectedCount > 0 && isAllFiltersSelected)
+                        ? () => _handleBatchAddPlants(areaPlants)
+                        : null,
                     icon: const Icon(Icons.add_task_rounded, size: 20),
                     label: Text('Thêm nhật ký ($selectedCount)'),
                     style: ElevatedButton.styleFrom(
@@ -1517,7 +1527,7 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
                                 width: 8,
                                 height: 8,
                                 decoration: BoxDecoration(
-                                  color: camera.trangThai == 0
+                                  color: camera.trangThai == 1
                                       ? Colors.green
                                       : Colors.red,
                                   shape: BoxShape.circle,
@@ -1530,10 +1540,10 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
                             ],
                           ),
                           Text(
-                            camera.trangThai == 0 ? 'Online' : 'Offline',
+                            camera.trangThai == 1 ? 'Online' : 'Offline',
                             style: TextStyle(
                               fontSize: 12,
-                              color: camera.trangThai == 0
+                              color: camera.trangThai == 1
                                   ? Colors.green.shade700
                                   : Colors.red.shade700,
                             ),
@@ -1658,7 +1668,7 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
   Widget _buildPlantGrid(
       List<CaySamModel>? areaPlants, Set<String?> allPlantPositions) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(AppDimensions.fontSizeExtraSmall),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
@@ -2437,6 +2447,9 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
 
   void _clearSelection() {
     setState(() {
+      _selectedtuoicay = null;
+      _selectedTinhTrang = null;
+      _selectedDiemSucKhoe = null;
       selectedEmptyCells.clear();
     });
   }

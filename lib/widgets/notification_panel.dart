@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../api/api.dart';
+import '../models/message_enum.dart';
 import '../models/thongbao_model.dart';
 import '../screens/plant_detail_screen.dart';
 
@@ -18,7 +19,7 @@ class NotificationPanel extends StatefulWidget {
 
 class _NotificationPanelState extends State<NotificationPanel>
     with SingleTickerProviderStateMixin {
-  final List<ThongBaoModel> _notifications = [];
+  List<ThongBaoModel> _notifications = [];
   bool _isLoading = false;
   bool _isInitialLoading = true;
   bool _hasMore = true;
@@ -61,7 +62,7 @@ class _NotificationPanelState extends State<NotificationPanel>
 
     try {
       List<String>? searchByParams;
-      final List<String> orderByParams = ["ngayKhoiTao desc"];
+      final List<String> orderByParams = ["NgayKhoiTao desc"];
       if (_currentFilter == 'unread') {
         searchByParams = ["seen equals false"];
       }
@@ -75,10 +76,8 @@ class _NotificationPanelState extends State<NotificationPanel>
 
       if (mounted && response != null && response.items != null) {
         final newItems = response.items!;
-
         setState(() {
           _notifications.addAll(newItems);
-
           _notifications.sort((a, b) {
             if (!a.seen && b.seen) return -1;
             if (a.seen && !b.seen) return 1;
@@ -140,7 +139,65 @@ class _NotificationPanelState extends State<NotificationPanel>
       _navigateToPlantDetail(caySamId);
     }
   }
+  // ( ... bên dưới hàm _navigateToPlantDetail ... )
 
+  // <<< THÊM MỚI: Hàm đánh dấu tất cả là đã đọc
+  Future<void> _markAllAsRead() async {
+    // Kiểm tra xem có gì để đánh dấu không
+    if (!_notifications.any((n) => !n.seen)) return;
+
+    showLoadingDialog(context, message: 'Đang cập nhật...');
+
+    try {
+      final success = await API().seenThongBaoAll();
+
+      if (mounted) Navigator.of(context, rootNavigator: true).pop();
+      if (success?.messCode == MessCode.IsOK) {
+        setState(() {
+          // Cập nhật tất cả item trong danh sách sang
+          // trạng thái 'seen: true'
+          _notifications = _notifications.map((notification) {
+            if (notification.seen) return notification; // Giữ nguyên nếu đã đọc
+
+            // Tạo lại model với seen: true
+            return ThongBaoModel(
+              id: notification.id,
+              taiKhoanId: notification.taiKhoanId,
+              caySamId: notification.caySamId,
+              tieuDe: notification.tieuDe,
+              noiDung: notification.noiDung,
+              ngayKhoiTao: notification.ngayKhoiTao,
+              seen: true, // <<< Đây là thay đổi
+              htTaiKhoan: notification.htTaiKhoan,
+            );
+          }).toList();
+          _notifications.sort((a, b) {
+            if (!a.seen && b.seen) return -1;
+            if (a.seen && !b.seen) return 1;
+            final dateA = DateTime.tryParse(a.ngayKhoiTao) ?? DateTime(0);
+            final dateB = DateTime.tryParse(b.ngayKhoiTao) ?? DateTime(0);
+            return dateB.compareTo(dateA);
+          });
+        });
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Không thể cập nhật. Vui lòng thử lại.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) Navigator.of(context, rootNavigator: true).pop(); // Đóng dialog
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Đã xảy ra lỗi: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+  // ( ... hàm _getVisualsForNotification ... )
   Future<void> _navigateToPlantDetail(String caySamId) async {
     showLoadingDialog(context, message: 'Đang tải chi tiết cây...');
 
@@ -200,12 +257,72 @@ class _NotificationPanelState extends State<NotificationPanel>
     return DateFormat('dd/MM/yyyy').format(timestamp);
   }
   @override
+  // ( ... bên trong class _NotificationPanelState ... )
+
+  @override
   Widget build(BuildContext context) {
+    // <<< THAY ĐỔI: Tính toán 'hasUnread' ở đây
+    // Thêm điều kiện !_isInitialLoading để nút không hiển thị
+    // khi danh sách chưa tải xong
+    final bool hasUnread =
+        !_isInitialLoading && _notifications.any((n) => !n.seen);
+
     return Scaffold(
       backgroundColor: Colors.grey.shade100,
+
+      // <<< THÊM MỚI: Thêm AppBar để chứa nút bấm
+      appBar: AppBar(
+        title: const Text(
+          'Thông báo',
+          style: TextStyle(
+            color: Colors.black87, // Màu chữ cho tiêu đề
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        backgroundColor: Colors.white, // Nền trắng cho sạch
+        elevation: 1, // Một chút bóng mờ
+        // Dòng này sẽ tự thêm nút "Back" nếu trang này được push
+        // từ một trang khác.
+        // Bạn có thể không cần nếu đây là trang gốc trong Tab
+        automaticallyImplyLeading: true,
+        iconTheme: IconThemeData(color: Colors.black54), // Màu icon back
+
+        actions: [
+          // <<< THÊM MỚI: Nút "Đọc tất cả"
+          // Chỉ hiển thị khi có thông báo chưa đọc
+          if (hasUnread)
+            Padding(
+              // Đệm 1 chút bên phải
+              padding: const EdgeInsets.only(right: 8.0),
+              child: TextButton(
+                onPressed: _markAllAsRead,
+                child: Text(
+                  'Đọc tất cả', // Rút gọn cho vừa AppBar
+                  style: TextStyle(
+                    color: Theme.of(context).primaryColor, // Màu xanh chủ đạo
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+                // Thêm hiệu ứng gợn sóng cho đẹp
+                style: TextButton.styleFrom(
+                  overlayColor: Theme.of(context).primaryColor.withOpacity(0.1),
+                ),
+              ),
+            ),
+        ],
+      ),
+
+      // Body vẫn gọi hàm _buildBody như cũ
       body: _buildBody(),
     );
   }
+
+  // ( ... bên trong class _NotificationPanelState ... )
+
+  // <<< CẬP NHẬT: Thay thế toàn bộ hàm _buildBody
+  // ( ... bên trong class _NotificationPanelState ... )
 
   Widget _buildBody() {
     if (_isInitialLoading) {
@@ -215,14 +332,19 @@ class _NotificationPanelState extends State<NotificationPanel>
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
-          child: Text(_apiError!, textAlign: TextAlign.center, style: const TextStyle(color: Colors.red)),
+          child: Text(_apiError!,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.red)),
         ),
       );
     }
     if (_notifications.isEmpty) {
       return _buildEmptyState();
     }
-    // ✨ NÂNG CẤP: Thay đổi padding
+
+    // <<< XÓA BỎ: Toàn bộ phần Column, if(hasUnread), Padding
+    // và Expanded đã bị xóa.
+    // Trả về ListView.builder trực tiếp.
     return ListView.builder(
       controller: _scrollController,
       padding: const EdgeInsets.all(16), // Padding cho toàn bộ danh sách

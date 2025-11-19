@@ -513,4 +513,43 @@ extension APIExtension on API {
       return null;
     }
   }
+  Future<ApiResponse<CaySamModel>?> updateNFCCaySam({
+    required String id,                  // id cần chỉnh sửa
+  }) async {
+    final url = Uri.parse("${host}api/CaySam/UpdateNFCCaySam/${id}");
+    final prefs = await SharedPreferences.getInstance();
+    final userJson = prefs.getString("ginseng_user");
+    Kttoken? user;
+    if (userJson != null) {
+      user = Kttoken.fromJson(jsonDecode(userJson));
+    }
+
+    var request = http.MultipartRequest("POST", url);
+    request.headers.addAll({
+      ...headerSvkt1,
+      "AuthenticateToken": user?.authenticateToken ?? "",
+      "FuncsTagActive": user?.funcsTagActives.firstWhere(
+            (x) => x.tenController.toLowerCase() == "caysam",
+        orElse: () => FuncTagActive(
+          tenController: "",
+          tenActions: "",
+          funcsTagActive: "",
+        ),
+      ).funcsTagActive ?? "",
+    });
+
+    final response = await request.send();
+    final respStr = await response.stream.bytesToString();
+
+    if (response.statusCode == 200) {
+      final jsonRes = jsonDecode(respStr);
+      return ApiResponse<CaySamModel>.fromJson(
+        jsonRes,
+            (json) => CaySamModel.fromJson(json),
+      );
+    } else {
+      print("❌ Lỗi: ${response.statusCode} - $respStr");
+      return null;
+    }
+  }
 }

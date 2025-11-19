@@ -1,14 +1,13 @@
 import 'dart:convert';
 import 'dart:typed_data';
+import 'package:csam_mobile/api/api.dart';
+import 'package:csam_mobile/api/api_caysam.dart';
 import 'package:flutter/material.dart';
 import 'package:nfc_manager/nfc_manager.dart';
 import 'package:nfc_manager_ndef/nfc_manager_ndef.dart';
 import 'package:ndef_record/ndef_record.dart';
-
-// Import model CaySamModel của bạn
 import '../models/vuontrong/caysam_model.dart';
 
-// Enum để quản lý trạng thái giao diện (có thể chuyển ra file riêng)
 enum NfcStatus { scanning, success, error }
 
 class NfcWriterModal extends StatefulWidget {
@@ -23,12 +22,9 @@ class _NfcWriterModalState extends State<NfcWriterModal> {
   NfcStatus _status = NfcStatus.scanning; // Bắt đầu ở trạng thái quét
   String _feedbackMessage = 'Đang chờ thẻ NFC...\nVui lòng đưa thẻ lại gần điện thoại.';
 
-  // Biến _lockTag và _isTestMode đã được xóa bỏ
-
   @override
   void initState() {
     super.initState();
-    // Bắt đầu quét ngay khi popup hiện lên
     _startNfcWriting();
   }
 
@@ -38,7 +34,6 @@ class _NfcWriterModalState extends State<NfcWriterModal> {
     super.dispose();
   }
 
-  /// Bắt đầu quá trình ghi dữ liệu lên thẻ NFC
   Future<void> _startNfcWriting() async {
     NfcAvailability availability = await NfcManager.instance.checkAvailability();
     if (availability != NfcAvailability.enabled) {
@@ -55,12 +50,10 @@ class _NfcWriterModalState extends State<NfcWriterModal> {
               _updateStatus(NfcStatus.error, 'Thẻ này không hỗ trợ NDEF hoặc không thể ghi.');
               return;
             }
-            final String myLink = 'https://nftsam.vecoi.com/';
-            final String myAndroidPackageName = 'com.example.csam_mobile'; // Thay bằng package name của bạn
+            final String myLink = 'https://nft.samnghigia.com/caysam/${widget.plant.caySamId}';
+            final String myAndroidPackageName = 'com.example.csam_mobile';
             final dataMap = {
               'caySamId':widget.plant.caySamId,
-              'maCaySam': widget.plant.maCaySam,
-              'viTriTrongLo': widget.plant.viTriTrongLo,
             };
             final dataToWrite = jsonEncode(dataMap);
             final record = _createNdefTextRecord(dataToWrite, languageCode: 'vi');
@@ -69,15 +62,14 @@ class _NfcWriterModalState extends State<NfcWriterModal> {
               'android.com', 'pkg', utf8.encode(myAndroidPackageName),
             );
 
-            final message = NdefMessage(records: [urirecord, record, aarRecord]);
+            final message = NdefMessage(records: [urirecord]);
             await ndef.write(message: message);
 
-            // await ndef.makeReadOnly();
+            await ndef.writeLock();
 
-            _updateStatus(NfcStatus.success, 'Đã ghi dữ liệu (chưa khóa) thành công!');
-
+            _updateStatus(NfcStatus.success, 'Đã ghi dữ liệu thành công!');
           } catch (e) {
-            _updateStatus(NfcStatus.error, 'Ghi thẻ thất bại. Vui lòng thử lại: $e');
+            _updateStatus(NfcStatus.error, 'Ghi thẻ thất bại. Vui lòng thử lại');
           }
         },
         pollingOptions: {
@@ -91,14 +83,16 @@ class _NfcWriterModalState extends State<NfcWriterModal> {
   }
 
   // Hàm helper để cập nhật trạng thái và dừng phiên NFC
-  void _updateStatus(NfcStatus status, String message) {
+  Future<void> _updateStatus(NfcStatus status, String message) async {
     NfcManager.instance.stopSession().catchError((_) {});
     if (mounted) {
       setState(() {
         _status = status;
         _feedbackMessage = message;
       });
-
+      if(status == NfcStatus.success){
+        await API().updateNFCCaySam( id: widget.plant.caySamId);
+      }
       if (status == NfcStatus.success || status == NfcStatus.error) {
         Future.delayed(const Duration(seconds: 2, milliseconds: 500), () {
           if (mounted) {
@@ -106,6 +100,7 @@ class _NfcWriterModalState extends State<NfcWriterModal> {
           }
         });
       }
+
     }
   }
 

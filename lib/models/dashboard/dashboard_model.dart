@@ -1,3 +1,5 @@
+import '../vuontrong/sensor_model.dart';
+
 class DashBoardtotal {
   final int totalVuonTrong;
   final int totalLoSam;
@@ -44,7 +46,7 @@ class DashBoardSucKhoe {
       totalTrungBinh: json['totalTrungBinh'] ?? 0,
       totalYeu: json['totalYeu'] ?? 0,
       totalRatYeu: json['totalRatYeu'] ?? 0,
-      HealthPercentage: json['healthPercentage'] ?? 0,
+      HealthPercentage: (json['healthPercentage'] ?? 0 as num).toDouble(),
     );
   }
 }

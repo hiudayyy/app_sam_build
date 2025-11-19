@@ -92,74 +92,115 @@ class UserProfile extends StatelessWidget {
   }
 
   void _showProfileDialog(BuildContext context, UserModel user) {
+    String ngayKhoiTaoFormatted = 'Không rõ ngày';
+
+    // ➡️ XỬ LÝ CHUỖI: Thử chuyển đổi String sang DateTime
+    if (user.ngayKhoiTao != null && user.ngayKhoiTao!.isNotEmpty) {
+      try {
+        // Giả sử chuỗi có định dạng ISO 8601 (ví dụ: "2025-11-12T15:54:57")
+        final DateTime dateTime = DateTime.parse(user.ngayKhoiTao);
+        ngayKhoiTaoFormatted = DateFormat('dd/MM/yyyy HH:mm').format(dateTime.toLocal()); // Định dạng lại
+      } catch (e) {
+        // Nếu không parse được, hiển thị chuỗi gốc hoặc thông báo lỗi
+        ngayKhoiTaoFormatted = user.ngayKhoiTao;
+        // Hoặc nếu bạn muốn hiển thị một chuỗi thân thiện khi parse lỗi:
+        // ngayKhoiTaoFormatted = 'Ngày không hợp lệ';
+
+        // print('Lỗi parse ngày: $e'); // In ra console để debug
+      }
+    }
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        titlePadding: const EdgeInsets.fromLTRB(24, 24, 16, 0),
+        contentPadding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
+
         title: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Avatar (Giữ nguyên)
             CircleAvatar(
               radius: 24,
               backgroundColor: Theme.of(context).primaryColor,
               child: Text(
-                (user.tenTaiKhoan ?? '')
-                    .trim()
-                    .isNotEmpty
-                    ? user.tenTaiKhoan[0].toUpperCase()
+                (user.tenTaiKhoan ?? '?').trim().isNotEmpty
+                    ? user.tenTaiKhoan![0].toUpperCase() // Dùng ! vì đã kiểm tra isNotEmpty
                     : '?',
-                style: TextStyle(
+                style: const TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.w600,
                   fontSize: 18,
                 ),
               ),
             ),
-            SizedBox(width: 16),
+            const SizedBox(width: 16),
+            // Tên tài khoản và Vai trò
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    user.tenTaiKhoan ?? "",
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                    user.tenTaiKhoan ?? "Tài khoản ẩn danh",
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
-                  Text(
-                     "",
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey[600],
-                      fontWeight: FontWeight.normal,
-                    ),
-                  ),
+                  // const SizedBox(height: 4),
+                  // Text(
+                  //   user.htPhanQuyenTaiKhoans.first.maVaiTro ?? "Chưa có vai trò",
+                  //   style: TextStyle(
+                  //     fontSize: 14,
+                  //     color: Colors.indigo.shade600, // Nhấn mạnh Vai trò
+                  //     fontWeight: FontWeight.w500,
+                  //   ),
+                  // ),
                 ],
               ),
             ),
           ],
         ),
+
+        // BODY (Nội dung chi tiết)
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildInfoRow('Email', user.email),
-            SizedBox(height: 12),
-            _buildInfoRow('ID', user.id ?? ""),
-            SizedBox(height: 16),
+            const Divider(),
+            const SizedBox(height: 8),
+
+            // 1. Số điện thoại (SDT)
+            _buildInfoRow(
+              'SĐT',
+              user.sdt,
+              icon: Icons.phone_android_outlined,
+            ),
+            const SizedBox(height: 12),
+
+            // 2. Email
+            _buildInfoRow(
+              'Email',
+              user.email,
+              icon: Icons.email_outlined,
+            ),
+            const SizedBox(height: 12),
+
+            // 3. Ngày khởi tạo (Thay thế Container thông báo cũ)
             Container(
-              padding: EdgeInsets.all(12),
+              padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.blue[50],
+                color: Colors.blue.shade50,
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.blue[200]!),
               ),
               child: Row(
                 children: [
-                  Icon(Icons.info_outline, color: Colors.blue[600], size: 16),
-                  SizedBox(width: 8),
+                  Icon(Icons.calendar_today_outlined, color: Colors.blue.shade600, size: 16),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'Tài khoản được tạo: ${DateFormat('dd/MM/yyyy').format(DateTime.now())}',
+                      'Tham gia từ: $ngayKhoiTaoFormatted',
                       style: TextStyle(
-                        color: Colors.blue[700],
-                        fontSize: 12,
+                        color: Colors.blue.shade700,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ),
@@ -168,10 +209,12 @@ class UserProfile extends StatelessWidget {
             ),
           ],
         ),
+
+        // ACTIONS
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: Text('Đóng'),
+            child: const Text('ĐÓNG'),
           ),
         ],
       ),
@@ -205,25 +248,32 @@ class UserProfile extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoRow(String label, String value) {
+  Widget _buildInfoRow(String label, String? value, {IconData? icon}) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SizedBox(
-          width: 60,
+        Icon(icon ?? Icons.label_outline, size: 16, color: Colors.grey[600]),
+        const SizedBox(width: 8),
+        Expanded(
+          flex: 2,
           child: Text(
             '$label:',
             style: TextStyle(
-              fontWeight: FontWeight.w500,
-              color: Colors.grey[600],
               fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: Colors.grey[800],
             ),
           ),
         ),
         Expanded(
+          flex: 3,
           child: Text(
-            value,
-            style: TextStyle(fontSize: 14),
+            value ?? 'Chưa xác định',
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.black87,
+              fontStyle: value == null ? FontStyle.italic : null,
+            ),
           ),
         ),
       ],

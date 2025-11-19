@@ -6,6 +6,7 @@ import '../models/cay_sam.dart';
 import '../models/nhat_ky.dart';
 import '../data/mock_data.dart';
 import '../models/vuontrong/caysam_model.dart';
+import '../utils/app_dimensions.dart';
 import '../widgets/fullscreenimageviewer.dart';
 
 class DiaryListScreen extends StatefulWidget {
@@ -425,13 +426,13 @@ class _DiaryListScreenState extends State<DiaryListScreen> {
                                     ],
                                   ],
                                 ),
-                                SizedBox(width: 16),
+                                SizedBox(width: 4),
 
                                 // Entry content
                                 Expanded(
                                   child: Card(
                                     child: Padding(
-                                      padding: EdgeInsets.all(16),
+                                      padding: EdgeInsets.all(AppDimensions.fontSizeExtraSmall),
                                       child: Column(
                                         crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [

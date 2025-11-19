@@ -12,6 +12,7 @@ import '../models/message_enum.dart';
 import '../models/user.dart';
 import '../models/user_model.dart';
 import '../services/auth_service.dart';
+import '../services/signalr_service.dart';
 
 class AuthProvider extends ChangeNotifier {
   final api = API();
@@ -95,6 +96,7 @@ class AuthProvider extends ChangeNotifier {
         return null;
       }
       await api.Logout(user);
+      SignalRService().disconnect();
       await AuthService.logout();
       _usermodel = null;
     //  _user = null;

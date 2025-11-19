@@ -8,6 +8,7 @@ class CaySamModel {
   final String? blockChain;
   final String? maCaySam;
   final int? tuoiCayId;
+  final bool? isNFC;
   final List<CaySamNhatKy?> caySamNhatKys;
 
   CaySamModel({
@@ -18,6 +19,7 @@ class CaySamModel {
     this.blockChain,
     this.maCaySam,
     this.tuoiCayId,
+    this.isNFC,
     required this.caySamNhatKys,
   });
 
@@ -30,6 +32,7 @@ class CaySamModel {
       blockChain: json['blockChain'],
       maCaySam: json['maCaySam'],
       tuoiCayId: json['tuoiCay_ID'] ?? 0,
+      isNFC: json['isNFC'] ?? false,
       caySamNhatKys: (json['caySamNhatKys'] as List<dynamic>? ?? [])
           .where((e) => e != null)
           .map((e) => CaySamNhatKy.fromJson(e as Map<String, dynamic>))
@@ -47,6 +50,7 @@ class CaySamModel {
       'maCaySam': maCaySam,
       'tuoiCay_ID': tuoiCayId,
       'caySamNhatKys': caySamNhatKys,
+      'isNFC' : isNFC
     };
   }
 }
