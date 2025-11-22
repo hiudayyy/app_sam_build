@@ -6,6 +6,7 @@ import 'package:http/http.dart';
 import '../api/api.dart';
 import '../models/kttoken.dart';
 import '../models/login_model.dart';
+import '../models/message_enum.dart';
 import '../models/user.dart';
 import '../models/user_model.dart';
 import '../services/auth_service.dart';
@@ -35,7 +36,7 @@ class AuthProvider extends ChangeNotifier {
       if(user == null){
         _error = user?.message;
         _usermodel = null;
-      }else if(user.message == "Ok"){
+      }else if(user.messCode == MessCode.IsOK){
         _usermodel = user.oneItem?.htTaiKhoan;
       }else{
         _error = user.message;

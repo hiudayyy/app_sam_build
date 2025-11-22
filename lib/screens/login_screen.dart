@@ -73,6 +73,7 @@ class _LoginScreenState extends State<LoginScreen> {
             ],
           ),
         ),
+        height: MediaQuery.of(context).size.height,
         child: SafeArea(
           child: SingleChildScrollView(
             padding: EdgeInsets.all(24),
@@ -332,101 +333,12 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
 
-                SizedBox(height: 32),
-
-                // Demo Accounts
-                Card(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Padding(
-                    padding: EdgeInsets.all(20),
-                    child: Column(
-                      children: [
-                        Text(
-                          'Tài khoản demo',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        SizedBox(height: 8),
-                        Text(
-                          'Nhấn vào để thử nghiệm với quyền khác nhau',
-                          style: TextStyle(
-                            color: Colors.grey[600],
-                            fontSize: 14,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                        SizedBox(height: 20),
-
-                        Consumer<AuthProvider>(
-                          builder: (context, authProvider, child) {
-                            return Column(
-                              children: [
-                                // First row - 2 buttons
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: _buildDemoButton('admin', 'Admin', authProvider.isLoading),
-                                    ),
-                                    SizedBox(width: 12),
-                                    Expanded(
-                                      child: _buildDemoButton('invester', 'Nhà đầu tư', authProvider.isLoading),
-                                    ),
-                                  ],
-                                ),
-                                SizedBox(height: 12),
-                                // Second row - 2 buttons
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: _buildDemoButton('nft_garden', 'Quản trị', authProvider.isLoading),
-                                    ),
-                                    SizedBox(width: 12),
-                                    Expanded(
-                                      child: _buildDemoButton('inspector', 'Kiểm định', authProvider.isLoading),
-                                    ),
-                                  ],
-                                ),
-                                SizedBox(height: 12),
-                                // Third row - 1 button centered
-                                SizedBox(
-                                  width: double.infinity,
-                                  child: _buildDemoButton('user', 'Làm vườn', authProvider.isLoading),
-                                ),
-                              ],
-                            );
-                          },
-                        ),
-
-                        SizedBox(height: 16),
-                        Container(
-                          padding: EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Colors.grey[100],
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            'Mật khẩu: password123',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey[700],
-                              fontFamily: 'monospace',
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
 
                 SizedBox(height: 32),
 
                 // Footer
                 Text(
-                  '© 2024 Smart Ginseng Farm Management',
+                  '© 2025 Smart Ginseng Farm Management',
                   style: TextStyle(
                     color: Colors.grey[500],
                     fontSize: 12,
