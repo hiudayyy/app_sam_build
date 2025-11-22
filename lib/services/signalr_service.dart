@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 // QUAN TRỌNG: Import thư viện mới (signalr_core)
 import 'package:signalr_core/signalr_core.dart';
-import 'package:logging/logging.dart';
 import 'dart:async';
 import '../models/kttoken.dart';
 import '../models/vuontrong/sensor_model.dart';
@@ -73,10 +72,6 @@ class SignalRService {
     final String urlWithToken = "$baseUrl/$hubName?AuthenticateToken=$bearerToken";
 
     print("🔑 Đang kết nối SignalR");
-    Logger.root.level = Level.ALL;
-    Logger.root.onRecord.listen((record) {
-      print('[${record.level.name}] ${record.time}: ${record.message}');
-    });
     hubConnection = HubConnectionBuilder()
     // (1) GỌI URL ĐÃ CHỨA TOKEN
         .withUrl(

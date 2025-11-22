@@ -15,7 +15,6 @@ dependencies:
   overlay_support: ^2.1.0
   #Singalr
   signalr_core: ^1.1.2
-  logging: ^1.2.0
   #NFC
   nfc_manager: ^4.1.1
   nfc_manager_ndef: ^1.1.0
