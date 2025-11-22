@@ -258,7 +258,7 @@ class _AddFarmScreenState extends State<AddFarmScreen> {
                         children: [
                           Icon(Icons.edit, size: 16),
                           SizedBox(width: 8),
-                          Text('Chỉnh sửa'),
+                          Text('Lưu'),
                         ],
                       ),
                     ),

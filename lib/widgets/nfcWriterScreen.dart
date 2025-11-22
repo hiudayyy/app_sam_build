@@ -47,7 +47,7 @@ class _NfcWriterModalState extends State<NfcWriterModal> {
           try {
             var ndef = Ndef.from(tag);
             if (ndef == null || !ndef.isWritable) {
-              _updateStatus(NfcStatus.error, 'Thẻ này không hỗ trợ NDEF hoặc không thể ghi.');
+              _updateStatus(NfcStatus.error, 'Thẻ này không thể ghi hoặc đã ghi.');
               return;
             }
             final String myLink = 'https://nft.samnghigia.com/caysam/${widget.plant.caySamId}';
