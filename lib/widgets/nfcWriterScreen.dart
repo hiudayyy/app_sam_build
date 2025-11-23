@@ -84,7 +84,16 @@ class _NfcWriterModalState extends State<NfcWriterModal> {
 
   // Hàm helper để cập nhật trạng thái và dừng phiên NFC
   Future<void> _updateStatus(NfcStatus status, String message) async {
-    NfcManager.instance.stopSession().catchError((_) {});
+    String? iosAlertMessage;
+    String? iosErrorMessage;
+
+    if (status == NfcStatus.success) {
+      iosAlertMessage = "Ghi thẻ thành công!";
+    } else if (status == NfcStatus.error) {
+      iosErrorMessage = message; // Hiện lỗi trên bảng iOS
+    }
+    NfcManager.instance.stopSession(alertMessageIos: iosAlertMessage,
+        errorMessageIos: iosErrorMessage).catchError((_) {});
     if (mounted) {
       setState(() {
         _status = status;

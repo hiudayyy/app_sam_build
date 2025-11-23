@@ -33,6 +33,17 @@ class AuthProvider extends ChangeNotifier {
 
 
 
+  Future<void> updateUserAfterEdit(Kttoken updatedTokenData) async {
+    try {
+      _usermodel = updatedTokenData.htTaiKhoan;
+      final prefs = await SharedPreferences.getInstance();
+      // Lưu ý: Phải encode cả object Kttoken (chứa cả token và user info)
+      await prefs.setString('ginseng_user', jsonEncode(updatedTokenData.toJson()));
+      notifyListeners();
+    } catch (e) {
+      print("Lỗi khi cập nhật local user: $e");
+    }
+  }
   Future<void> _checkStoredUser() async {
     try {
       _isLoading = true;

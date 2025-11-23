@@ -1,8 +1,13 @@
+import 'dart:convert';
+
 import 'package:csam_mobile/api/api_taikhoan.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../api/api.dart';
+import '../models/kttoken.dart';
+import '../models/message_enum.dart';
 import '../models/user_model.dart'; // Đảm bảo import đúng model của bạn
 import '../providers/auth_provider.dart';
 
@@ -175,6 +180,15 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
         "email": "${_emailController.text}",
       };
       final repose = await API().editmytaikhoan(data:edittk);
+      if (repose?.messCode == MessCode.IsOK) {
+        final prefs = await SharedPreferences.getInstance();
+        final userJson = prefs.getString("ginseng_user");
+        Kttoken? user;
+        if (userJson != null) {
+          user = Kttoken.fromJson(jsonDecode(userJson));
+          Provider.of<AuthProvider>(context, listen: false).updateUserAfterEdit(user);
+        }
+      }
       if (repose != null && repose.message == "OK") {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Cập nhật thông tin thành công! (Demo)')),
@@ -470,15 +484,31 @@ class _ChangePasswordDialogState extends State<ChangePasswordDialog> {
   bool _obscureNew = true;
   bool _obscureConfirm = true;
 
-  void _handleChangePassword() {
+  Future<void> _handleChangePassword() async {
     if (_passFormKey.currentState!.validate()) {
-      // TODO: Gọi API đổi mật khẩu ở đây
-      print("Đổi mật khẩu: ${_newPassController.text}");
+      final editmk = {
+        "matKhau": "${_oldPassController.text}",
+        "matKhauMoi": "${_newPassController.text}",
+      };
+      final repose = await API().editmypassword(data:editmk);
+      if (repose?.messCode == MessCode.IsOK) {
+        final prefs = await SharedPreferences.getInstance();
+        final userJson = prefs.getString("ginseng_user");
+        Kttoken? user;
+        if (userJson != null) {
+          user = Kttoken.fromJson(jsonDecode(userJson));
+          Provider.of<AuthProvider>(context, listen: false).updateUserAfterEdit(user);
+        }
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Đổi mật khẩu thành công!')),
+          );
+        Navigator.pop(context);
+      }else{
+        ScaffoldMessenger.of(context).showSnackBar(
+           SnackBar(content: Text('${repose?.message}hh!')),
+        );
+      }
 
-      Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Đổi mật khẩu thành công!')),
-      );
     }
   }
 
@@ -505,7 +535,6 @@ class _ChangePasswordDialogState extends State<ChangePasswordDialog> {
                 label: "Mật khẩu mới",
                 obscure: _obscureNew,
                 onToggle: () => setState(() => _obscureNew = !_obscureNew),
-                validator: (val) => (val != null && val.length < 6) ? "Mật khẩu phải trên 6 ký tự" : null,
               ),
               const SizedBox(height: 16),
               _buildPassField(
@@ -523,13 +552,34 @@ class _ChangePasswordDialogState extends State<ChangePasswordDialog> {
         ),
       ),
       actions: [
-        TextButton(
+        // 1. Nút HỦY (Nền trắng, viền xám)
+        ElevatedButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text("Hủy", style: TextStyle(color: Colors.grey)),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.white,
+            foregroundColor: Colors.black87,
+            elevation: 1,
+            side: BorderSide(color: Colors.grey.shade300, width: 1),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+            // Padding này quyết định độ cao của nút
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          ),
+          child: const Text("Hủy"),
         ),
         ElevatedButton(
           onPressed: _handleChangePassword,
-          style: ElevatedButton.styleFrom(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Theme.of(context).primaryColor, // Màu chủ đạo của app
+            foregroundColor: Colors.white,                   // Chữ màu trắng
+            elevation: 2,                                    // Bóng đổ cao hơn nút Hủy xíu
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),        // Bo góc giống nút Hủy
+            ),
+            // Padding PHẢI GIỐNG nút Hủy để 2 nút cao bằng nhau
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          ),
           child: const Text("Xác nhận"),
         ),
       ],
