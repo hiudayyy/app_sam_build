@@ -1,4 +1,4 @@
-import 'package:csam_mobile/api/api_caysam.dart';
+import 'package:nftsam/api/api_caysam.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../api/api.dart';

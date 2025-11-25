@@ -4,8 +4,8 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
-import 'package:csam_mobile/api/api_caysam.dart';
-import 'package:csam_mobile/models/vuontrong/caysam_model.dart';
+import 'package:nftsam/api/api_caysam.dart';
+import 'package:nftsam/models/vuontrong/caysam_model.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -17,8 +17,8 @@ import 'package:nfc_manager/nfc_manager_ios.dart';
 import 'package:nfc_manager_ndef/nfc_manager_ndef.dart'; // Cho Ndef.from(tag)
 
 // Imports khác của ứng dụng
-import 'package:csam_mobile/api/api.dart'; // Đảm bảo import API của bạn
-import 'package:csam_mobile/screens/plant_detail_screen.dart';
+import 'package:nftsam/api/api.dart'; // Đảm bảo import API của bạn
+import 'package:nftsam/screens/plant_detail_screen.dart';
 
 
 class NfcService {

@@ -1,10 +1,10 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:csam_mobile/api/api_caysam.dart';
-import 'package:csam_mobile/screens/plant_detail_screen.dart';
-import 'package:csam_mobile/services/http_override.dart';
-import 'package:csam_mobile/services/signalr_service.dart';
+import 'package:nftsam/api/api_caysam.dart';
+import 'package:nftsam/screens/plant_detail_screen.dart';
+import 'package:nftsam/services/http_override.dart';
+import 'package:nftsam/services/signalr_service.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';

@@ -42,17 +42,17 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions web = FirebaseOptions(
     apiKey: 'AIzaSyCLUbVdS6VEOi0bpbJjXd5wEUS1r1NuL9I',
-    appId: '1:525482222879:web:eed38197fb23551ca33c2a',
+    appId: '1:525482222879:web:cf67889378c425dfa33c2a',
     messagingSenderId: '525482222879',
     projectId: 'sam-nft-e4e59',
     authDomain: 'sam-nft-e4e59.firebaseapp.com',
     storageBucket: 'sam-nft-e4e59.firebasestorage.app',
-    measurementId: 'G-KFM2PB8S1N',
+    measurementId: 'G-BEYM8W0KFS',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyBhz3bwHwCCb0bgeNqeAtajrXCeKTJB1qA',
-    appId: '1:525482222879:android:56c77ea722565fc9a33c2a',
+    appId: '1:525482222879:android:0367616c68f83c3fa33c2a',
     messagingSenderId: '525482222879',
     projectId: 'sam-nft-e4e59',
     storageBucket: 'sam-nft-e4e59.firebasestorage.app',
@@ -60,7 +60,7 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyBG_gpejdSeEI0qgPK4wrp11RAvEYLA1x4',
-    appId: '1:525482222879:ios:0f2b96f4b06f31f0a33c2a',
+    appId: '1:525482222879:ios:fbe15086349561f2a33c2a',
     messagingSenderId: '525482222879',
     projectId: 'sam-nft-e4e59',
     storageBucket: 'sam-nft-e4e59.firebasestorage.app',
@@ -69,7 +69,7 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions macos = FirebaseOptions(
     apiKey: 'AIzaSyBG_gpejdSeEI0qgPK4wrp11RAvEYLA1x4',
-    appId: '1:525482222879:ios:0f2b96f4b06f31f0a33c2a',
+    appId: '1:525482222879:ios:fbe15086349561f2a33c2a',
     messagingSenderId: '525482222879',
     projectId: 'sam-nft-e4e59',
     storageBucket: 'sam-nft-e4e59.firebasestorage.app',
@@ -78,11 +78,12 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions windows = FirebaseOptions(
     apiKey: 'AIzaSyCLUbVdS6VEOi0bpbJjXd5wEUS1r1NuL9I',
-    appId: '1:525482222879:web:cf67889378c425dfa33c2a',
+    appId: '1:525482222879:web:d925d13e60a7a870a33c2a',
     messagingSenderId: '525482222879',
     projectId: 'sam-nft-e4e59',
     authDomain: 'sam-nft-e4e59.firebaseapp.com',
     storageBucket: 'sam-nft-e4e59.firebasestorage.app',
-    measurementId: 'G-BEYM8W0KFS',
+    measurementId: 'G-B6LJYZ2FGM',
   );
+
 }
