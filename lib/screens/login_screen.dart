@@ -105,7 +105,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     Text(
                       'Sâm Ngọc Linh Nghị gia',
                       style: TextStyle(
-                        fontSize: 28,
+                        fontSize: (MediaQuery.of(context).size.width / 375) * 25,
                         fontWeight: FontWeight.bold,
                         color: Colors.grey[900],
                       ),
