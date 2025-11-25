@@ -1,5 +1,5 @@
-import 'package:csam_mobile/api/api_caysam.dart';
-import 'package:csam_mobile/api/api_option.dart';
+import 'package:nftsam/api/api_caysam.dart';
+import 'package:nftsam/api/api_option.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../api/api.dart';

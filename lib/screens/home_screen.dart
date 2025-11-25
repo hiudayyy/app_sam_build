@@ -3,11 +3,11 @@ import 'dart:convert'; // Bổ sung
 import 'dart:io';
 
 import 'package:app_links/app_links.dart';
-import 'package:csam_mobile/api/api_caysam.dart';
-import 'package:csam_mobile/models/vuontrong/caysam_model.dart';
-import 'package:csam_mobile/models/vuontrong/losam_model.dart';
-import 'package:csam_mobile/screens/plant_management_view_screen.dart';
-import 'package:csam_mobile/screens/plants_screen.dart';
+import 'package:nftsam/api/api_caysam.dart';
+import 'package:nftsam/models/vuontrong/caysam_model.dart';
+import 'package:nftsam/models/vuontrong/losam_model.dart';
+import 'package:nftsam/screens/plant_management_view_screen.dart';
+import 'package:nftsam/screens/plants_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:nfc_manager/nfc_manager.dart';
 import 'package:overlay_support/overlay_support.dart'; // Bổ sung

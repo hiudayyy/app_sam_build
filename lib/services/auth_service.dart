@@ -1,6 +1,6 @@
 import 'dart:convert';
-import 'package:csam_mobile/api/api_login.dart';
-import 'package:csam_mobile/models/user_model.dart';
+import 'package:nftsam/api/api_login.dart';
+import 'package:nftsam/models/user_model.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../api/api.dart';
 import '../models/kttoken.dart';

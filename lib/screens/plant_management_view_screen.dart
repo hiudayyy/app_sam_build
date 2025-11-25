@@ -1,11 +1,11 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:csam_mobile/api/api_caysam.dart';
-import 'package:csam_mobile/api/api_caytrong.dart';
-import 'package:csam_mobile/api/api_option.dart';
-import 'package:csam_mobile/models/vuontrong/losamcamera_model.dart';
-import 'package:csam_mobile/screens/plant_detail_screen.dart';
+import 'package:nftsam/api/api_caysam.dart';
+import 'package:nftsam/api/api_caytrong.dart';
+import 'package:nftsam/api/api_option.dart';
+import 'package:nftsam/models/vuontrong/losamcamera_model.dart';
+import 'package:nftsam/screens/plant_detail_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';

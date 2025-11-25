@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
-import 'package:csam_mobile/api/api_login.dart';
-import 'package:csam_mobile/models/nhat_ky.dart';
+import 'package:nftsam/api/api_login.dart';
+import 'package:nftsam/models/nhat_ky.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/kttoken.dart';

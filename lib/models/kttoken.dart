@@ -1,4 +1,4 @@
-import 'package:csam_mobile/models/user_model.dart';
+import 'package:nftsam/models/user_model.dart';
 
 class Kttoken {
   final int messCode;

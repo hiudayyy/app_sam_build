@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
-import 'package:csam_mobile/api/api.dart';
-import 'package:csam_mobile/api/api_caysam.dart';
+import 'package:nftsam/api/api.dart';
+import 'package:nftsam/api/api_caysam.dart';
 import 'package:flutter/material.dart';
 import 'package:nfc_manager/nfc_manager.dart';
 import 'package:nfc_manager_ndef/nfc_manager_ndef.dart';
@@ -51,7 +51,7 @@ class _NfcWriterModalState extends State<NfcWriterModal> {
               return;
             }
             final String myLink = 'https://nft.samnghigia.com/caysam/${widget.plant.caySamId}';
-            final String myAndroidPackageName = 'com.example.csam_mobile';
+            final String myAndroidPackageName = 'com.huetechcoop.nftsam';
             final dataMap = {
               'caySamId':widget.plant.caySamId,
             };

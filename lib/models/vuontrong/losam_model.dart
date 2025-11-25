@@ -1,5 +1,5 @@
-import 'package:csam_mobile/models/vuontrong/sensor_model.dart';
-import 'package:csam_mobile/models/vuontrong/vuontrong_model.dart';
+import 'package:nftsam/models/vuontrong/sensor_model.dart';
+import 'package:nftsam/models/vuontrong/vuontrong_model.dart';
 
 import 'caysam_model.dart';
 import 'losamcamera_model.dart';

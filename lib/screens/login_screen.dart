@@ -1,7 +1,7 @@
 import 'dart:ffi' hide Size;
 
-import 'package:csam_mobile/api/api_login.dart';
-import 'package:csam_mobile/screens/register_screen.dart';
+import 'package:nftsam/api/api_login.dart';
+import 'package:nftsam/screens/register_screen.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';

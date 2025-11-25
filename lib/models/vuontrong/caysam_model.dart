@@ -1,4 +1,4 @@
-import 'package:csam_mobile/models/nhat_ky.dart';
+import 'package:nftsam/models/nhat_ky.dart';
 
 class CaySamModel {
   final String caySamId;

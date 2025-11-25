@@ -1,4 +1,4 @@
-import 'package:csam_mobile/models/user.dart';
+import 'package:nftsam/models/user.dart';
 import 'package:intl/intl.dart';
 
 import 'message_enum.dart';

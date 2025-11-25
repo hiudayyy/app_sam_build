@@ -1,11 +1,11 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:csam_mobile/api/api_caytrong.dart';
-import 'package:csam_mobile/api/api_dashboard.dart';
-import 'package:csam_mobile/api/api_thongbao.dart';
-import 'package:csam_mobile/screens/plant_management_view_screen.dart';
-import 'package:csam_mobile/screens/plants_screen.dart';
+import 'package:nftsam/api/api_caytrong.dart';
+import 'package:nftsam/api/api_dashboard.dart';
+import 'package:nftsam/api/api_thongbao.dart';
+import 'package:nftsam/screens/plant_management_view_screen.dart';
+import 'package:nftsam/screens/plants_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';

@@ -1,4 +1,4 @@
-# csam_mobile
+# nftsam
 
 A new Flutter project.
 
