@@ -2,6 +2,7 @@
 
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'dart:typed_data';
 import 'package:csam_mobile/api/api_caysam.dart';
 import 'package:csam_mobile/models/vuontrong/caysam_model.dart';
@@ -144,7 +145,7 @@ class NfcService {
       final Ndef? ndef = Ndef.from(tag);
       if (ndef == null) {
         print("❌ iOS/Android: Thẻ không hỗ trợ NDEF");
-        _showError(context, 'Thẻ không đúng định dạng.');
+        // _showError(context, 'Thẻ không đúng định dạng.');
         return;
       }
 
@@ -285,51 +286,79 @@ class NfcService {
   // --- QUẢN LÝ PHIÊN NFC ---
   // (Giữ nguyên: startNfcSession, stopNfcSession)
 
-  static void startNfcSession(BuildContext context) {
-    if (!_isNfcSessionRunning) {
-      try {
-        NfcManager.instance.startSession(
-          onDiscovered: (NfcTag tag) async {
-            print("Đã phát hiện một thẻ NFC. Đang xử lý...");
+  static Future<void> startNfcSession(BuildContext context) async {
+    // 1. Nếu đang có cờ chạy, chặn luôn để tránh spam nút
+    if (_isNfcSessionRunning) return;
+    _isNfcSessionRunning = true;
 
-            NfcManager.instance.stopSession();
-            _isNfcSessionRunning = false;
+    try {
+      // 2. BƯỚC QUAN TRỌNG NHẤT: Force Stop session cũ (nếu còn sót lại)
+      // Dùng catchError để bỏ qua lỗi nếu không có session nào
+      await NfcManager.instance.stopSession().catchError((_) {});
 
+      // 3. Đợi một chút cho hệ điều hành dọn dẹp tài nguyên (iOS cần cái này)
+      await Future.delayed(const Duration(milliseconds: 200));
+
+      // 4. Bắt đầu phiên mới
+      await NfcManager.instance.startSession(
+        alertMessageIos: "Vui lòng đưa thẻ lại gần điện thoại...",
+        onDiscovered: (NfcTag tag) async {
+          print("📡 Đã phát hiện thẻ...");
+
+          bool isSuccess = false;
+          String resultMessage = "";
+
+          try {
+            // Xử lý thẻ
             await _handleTagDiscovered(tag, context);
+            isSuccess = true;
+            resultMessage = "Thành công!";
+          } catch (e) {
+            isSuccess = false;
+            resultMessage = "Lỗi: ${e.toString()}";
+          } finally {
+            // Đóng session sau khi xử lý xong
+            _isNfcSessionRunning = false; // Reset cờ
 
-            startNfcSession(context);
-          },
-          pollingOptions: {
-            NfcPollingOption.iso14443,
-            NfcPollingOption.iso15693,
-            NfcPollingOption.iso18092,
-          },
-          onSessionErrorIos: (NfcReaderSessionErrorIos? e) {
-            if (e != null) {
-              print('NFC Session Error (iOS): $e');
-              if (e.code != '201') {
-                _showError(context, 'Lỗi NFC: ${e.message}');
-              }
+            if (Platform.isIOS) {
+              NfcManager.instance.stopSession(
+                alertMessageIos: isSuccess ? resultMessage : null,
+                errorMessageIos: isSuccess ? null : resultMessage,
+              );
+            } else {
+              NfcManager.instance.stopSession();
             }
-          },
-        ).then((_) {
-          _isNfcSessionRunning = true;
-          print("NFC start: Bắt đầu lắng nghe session thành công.");
-        }).catchError((e) {
-          if (e is PlatformException && e.code == 'not_supported') {
-            print('NFC không được hỗ trợ hoặc chưa bật.');
-          } else {
-            print("Lỗi khi bắt đầu NFC session: $e");
           }
+        },
+        pollingOptions: {
+          NfcPollingOption.iso14443,
+          NfcPollingOption.iso15693,
+        },
+        onSessionErrorIos: (NfcReaderSessionErrorIos? e) {
+          _isNfcSessionRunning = false;
+          // Bỏ qua lỗi nếu do người dùng hủy hoặc timeout hoặc đang bận
+          if (e != null && e.code != '200' && e.code != '201' && e.code != '202') {
+            _showError(context, 'Lỗi NFC: ${e.message} ${e.code.toString()}') ;
+          }
+        },
+      );
+
+      print("✅ NFC Session đã khởi động.");
+
+    } catch (e) {
+      _isNfcSessionRunning = false;
+
+      // Xử lý riêng lỗi "session_already_exists" nếu nó vẫn lọt qua
+      if (e is PlatformException && e.code == 'session_already_exists') {
+        print("⚠️ Phát hiện Session cũ bị kẹt. Đang thử reset...");
+        // Đệ quy gọi lại chính nó sau 1 giây để thử lại
+        Future.delayed(const Duration(seconds: 1), () {
+          startNfcSession(context);
         });
-      } on PlatformException catch (e) {
-        if (e.code == 'not_supported') {
-          print('NFC không được hỗ trợ (lỗi sync).');
-        } else {
-          print("Lỗi PlatformException khi bắt đầu NFC: $e");
-        }
-      } catch (e) {
-        print("Lỗi không xác định khi bắt đầu NFC: $e");
+      } else if (e is PlatformException && e.code == 'not_supported') {
+        // _showError(context, 'Thiết bị không hỗ trợ NFC.');
+      } else {
+        print("Lỗi khởi động NFC: $e");
       }
     }
   }

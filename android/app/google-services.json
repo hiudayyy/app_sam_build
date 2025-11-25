@@ -7,9 +7,9 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:525482222879:android:56c77ea722565fc9a33c2a",
+        "mobilesdk_app_id": "1:525482222879:android:0367616c68f83c3fa33c2a",
         "android_client_info": {
-          "package_name": "com.example.csam_mobile"
+          "package_name": "com.huetechcoop.nftsam"
         }
       },
       "oauth_client": [],

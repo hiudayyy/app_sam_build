@@ -150,7 +150,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     _currentTab = widget.tabcurrent == 2 ? NavTab.plants : NavTab.dashboard;
     WidgetsBinding.instance.addObserver(this);
     NfcService.startNfcSession(context);
-    _listenDeepLinkStream();
+    _initDeepLinkListener();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
         if (mounted) {
@@ -257,11 +257,26 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     }
   }
 
-  void _listenDeepLinkStream() {
+  // Gọi hàm này trong initState()
+  Future<void> _initDeepLinkListener() async {
+    try {
+      final Uri? initialUri = await _appLinks.getInitialLink();
+      if (initialUri != null) {
+        print('🚀 [Cold Start] App mở từ NFC/Link: $initialUri');
+        if (!mounted) return;
+        NfcService.processDeepLinkUri(initialUri, context);
+      }
+    } catch (e) {
+      print('Lỗi getInitialLink: $e');
+    }
+
+    // ---------------------------------------------------------
+    // PHẦN 2: Xử lý App ĐANG CHẠY (Foreground / Background) - Code của bạn
+    // ---------------------------------------------------------
     _linkSubscription = _appLinks.uriLinkStream.listen((Uri? uri) {
       if (!mounted) return;
       if (uri != null) {
-        print('✅ Deep Link Stream (Initial or Subsequent) đã nhận: $uri');
+        print('✅ [Stream] Nhận link khi đang trong app: $uri');
         NfcService.processDeepLinkUri(uri, context);
       }
     }, onError: (Object err) {
