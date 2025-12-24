@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:nftsam/api/api_option.dart';
 import 'package:nftsam/models/vuontrong/caysam_model.dart';
 import 'package:flutter/material.dart';
@@ -44,6 +45,7 @@ class _AddPlantScreenState extends State<AddPlantScreen> {
   final _viTriController = TextEditingController();
   final _gridPositionController = TextEditingController();
   final _soLaController = TextEditingController();
+  final _TrongluongController = TextEditingController();
   String? _tuoicay;
   String? _diemSucKhoe;
   String? _tinhTrang;
@@ -161,6 +163,19 @@ class _AddPlantScreenState extends State<AddPlantScreen> {
     );
   }
 
+  Future<File> testCompressAndGetFile(File file, String targetPath) async {
+    var result = await FlutterImageCompress.compressAndGetFile(
+      file.absolute.path,
+      targetPath,
+      quality: 80,      // Chất lượng 80%
+      minWidth: 1024,   // Ép chiều rộng về 1024
+      minHeight: 1024,  // Ép chiều cao về 1024
+      rotate: 0,        // Giữ nguyên góc xoay
+    );
+
+    // Nếu nén lỗi thì trả về file gốc, còn ngon thì trả về file đã nén
+    return result != null ? File(result.path) : file;
+  }
   Future<void> _pickImageTQ() async {
     try {
       final XFile? image = await _picker.pickImage(
@@ -171,8 +186,12 @@ class _AddPlantScreenState extends State<AddPlantScreen> {
       );
 
       if (image != null) {
+        File originalFile = File(image.path);
+        final Directory tempDir = await getTemporaryDirectory();
+        final String targetPath = '${tempDir.path}/${DateTime.now().millisecondsSinceEpoch}.jpg';
+        File compressedFile = await testCompressAndGetFile(originalFile, targetPath);
         setState(() {
-          _selectedImageTQ = File(image.path);
+          _selectedImageTQ = compressedFile;
           _selectedImageTQUrl = null;
         });
       }
@@ -206,8 +225,12 @@ class _AddPlantScreenState extends State<AddPlantScreen> {
       );
 
       if (image != null) {
+        File originalFile = File(image.path);
+        final Directory tempDir = await getTemporaryDirectory();
+        final String targetPath = '${tempDir.path}/${DateTime.now().millisecondsSinceEpoch}.jpg';
+        File compressedFile = await testCompressAndGetFile(originalFile, targetPath);
         setState(() {
-          _selectedImageTQ = File(image.path);
+          _selectedImageTQ = compressedFile;
           _selectedImageTQUrl = null;
         });
       }
@@ -233,8 +256,12 @@ class _AddPlantScreenState extends State<AddPlantScreen> {
       );
 
       if (image != null) {
+        File originalFile = File(image.path);
+        final Directory tempDir = await getTemporaryDirectory();
+        final String targetPath = '${tempDir.path}/${DateTime.now().millisecondsSinceEpoch}.jpg';
+        File compressedFile = await testCompressAndGetFile(originalFile, targetPath);
         setState(() {
-          _selectedImageCT = File(image.path);
+          _selectedImageCT = compressedFile;
           _selectedImageCTUrl = null;
         });
       }
@@ -260,8 +287,12 @@ class _AddPlantScreenState extends State<AddPlantScreen> {
       );
 
       if (image != null) {
+        File originalFile = File(image.path);
+        final Directory tempDir = await getTemporaryDirectory();
+        final String targetPath = '${tempDir.path}/${DateTime.now().millisecondsSinceEpoch}.jpg';
+        File compressedFile = await testCompressAndGetFile(originalFile, targetPath);
         setState(() {
-          _selectedImageCT = File(image.path);
+          _selectedImageCT = compressedFile;
           _selectedImageCTUrl = null;
         });
       }
@@ -321,6 +352,7 @@ class _AddPlantScreenState extends State<AddPlantScreen> {
 
       _soLaController.text =
           widget.caysam?.caySamNhatKys.first?.soLa.toString() ?? "";
+      _TrongluongController.text = widget.caysam?.caySamNhatKys.firstOrNull?.trongLuong?.toString() ?? "";
       _diemSucKhoe =
           widget.caysam?.caySamNhatKys.first?.diemSucKhoe.toString() ?? "";
       final hinhTQ = widget.caysam?.caySamNhatKys.first?.hinhAnhTongQuan;
@@ -359,6 +391,7 @@ class _AddPlantScreenState extends State<AddPlantScreen> {
   }
 
   void _handleSubmit() {
+    double trongLuong = double.tryParse(_TrongluongController.text.replaceAll(',', '.')) ?? 0.0;
     if (_formKey.currentState!.validate()) {
       final plantData = {
         "CaySam": {
@@ -372,6 +405,7 @@ class _AddPlantScreenState extends State<AddPlantScreen> {
           "SoLa": int.parse(_soLaController.text ?? ""),
           "DiemSucKhoe": int.parse(_diemSucKhoe ?? ""),
           "TinhTrang": int.parse(_tinhTrang ?? ""),
+          "TrongLuong" : trongLuong,
         },
       };
       widget.onSubmit(
@@ -382,10 +416,12 @@ class _AddPlantScreenState extends State<AddPlantScreen> {
   }
 
   void _handleSubmitnk() {
+    double trongLuong = double.tryParse(_TrongluongController.text.replaceAll(',', '.')) ?? 0.0;
     if (_formKey.currentState!.validate()) {
+      bool isAnhTongQuan = _selectedImageTQ != null;
       final plantData = {
         "TuoiId": int.parse(_tuoicay ?? ""),
-        "HinhAnh": true,
+        "HinhAnh": isAnhTongQuan,
         "CaySamNhatKy": {
           "NgayGhi": DateTime.now().toIso8601String(),
           "SoLa": int.parse(_soLaController.text ?? ""),
@@ -393,6 +429,7 @@ class _AddPlantScreenState extends State<AddPlantScreen> {
           "TinhTrang": int.parse(_tinhTrang ?? ""),
           "GhiChu": _ghiChuController.text,
           "IsThongBao": _sendNotification,
+          "TrongLuong" : trongLuong,
         },
       };
       widget.onSubmit(
@@ -403,6 +440,7 @@ class _AddPlantScreenState extends State<AddPlantScreen> {
   }
 
   void _handleSubmitnktm() {
+    double trongLuong = double.tryParse(_TrongluongController.text.replaceAll(',', '.')) ?? 0.0;
     if (_formKey.currentState!.validate()) {
       final plantData = {
         "CaySamId": widget.caysam?.caySamId,
@@ -412,6 +450,7 @@ class _AddPlantScreenState extends State<AddPlantScreen> {
         "TinhTrang": int.parse(_tinhTrang ?? ""),
         "GhiChu": _ghiChuController.text,
         "IsThongBao": _sendNotification,
+        "TrongLuong" : trongLuong,
       };
       widget.onSubmit(
         plantData,
@@ -543,15 +582,22 @@ class _AddPlantScreenState extends State<AddPlantScreen> {
                 ),
                 SizedBox(height: 16),
                 DropdownButtonFormField<String>(
-                  value: OptionLoSamDiemSucKhoe.any(
-                          (opt) => opt.value == _diemSucKhoe)
+                  value: OptionLoSamDiemSucKhoe.any((opt) => opt.value == _diemSucKhoe)
                       ? _diemSucKhoe
-                      : null,
+                      : null, // Nếu giá trị là null, validator sẽ bắt được
                   decoration: const InputDecoration(
                     labelText: 'Sức khỏe',
                     border: OutlineInputBorder(),
                     prefixIcon: Icon(Icons.monitor_heart),
                   ),
+                  // --- THÊM PHẦN NÀY ---
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Vui lòng chọn mức độ sức khỏe'; // Dòng chữ đỏ sẽ hiện ra
+                    }
+                    return null; // Hợp lệ
+                  },
+                  // ---------------------
                   items: OptionLoSamDiemSucKhoe.map((opt) {
                     Color color;
                     switch (opt.value) {
@@ -581,8 +627,8 @@ class _AddPlantScreenState extends State<AddPlantScreen> {
                           Container(
                             width: 12,
                             height: 12,
-                            decoration: BoxDecoration(
-                                color: color, shape: BoxShape.circle),
+                            decoration:
+                            BoxDecoration(color: color, shape: BoxShape.circle),
                           ),
                           const SizedBox(width: 8),
                           Text(opt.text),
@@ -646,6 +692,42 @@ class _AddPlantScreenState extends State<AddPlantScreen> {
                   },
                 ),
                 SizedBox(height: 16),
+                TextFormField(
+                  controller: _TrongluongController,
+                  decoration: const InputDecoration(
+                    labelText: 'Trọng lượng',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.monitor_weight),
+                    suffixText: '(gam)',
+                    // Hoặc dùng suffixStyle nếu muốn chỉnh font chữ
+                  ),
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
+                  ],
+                  onChanged: (value) {
+                    // Xử lý giá trị khi nhập
+                    if (value.isEmpty) {
+                      // Xử lý khi xóa hết
+                    } else {
+                      double? weight = double.tryParse(value);
+                    }
+                  },
+                ),
+                if (widget.caysam != null)
+                  CheckboxListTile(
+                    title: const Text("Gửi thông báo"),
+                    value: _sendNotification,
+                    onChanged: (bool? value) {
+                      setState(() {
+                        _sendNotification = value ?? false;
+                      });
+                    },
+                    secondary: const Icon(Icons.notifications_active_outlined),
+                    controlAffinity: ListTileControlAffinity.leading,
+                    contentPadding: EdgeInsets.zero,
+                    activeColor: Theme.of(context).primaryColorDark,
+                  ),
                 if (widget.caysam != null)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 16.0),
@@ -668,20 +750,7 @@ class _AddPlantScreenState extends State<AddPlantScreen> {
                     },
                   ),
                 ),
-                if (widget.caysam != null)
-                  CheckboxListTile(
-                  title: const Text("Gửi thông báo"),
-                  value: _sendNotification,
-                  onChanged: (bool? value) {
-                    setState(() {
-                      _sendNotification = value ?? false;
-                    });
-                  },
-                  secondary: const Icon(Icons.notifications_active_outlined),
-                  controlAffinity: ListTileControlAffinity.leading,
-                  contentPadding: EdgeInsets.zero,
-                  activeColor: Theme.of(context).primaryColorDark,
-                ),
+
                 // ===== KẾT THÚC WIDGET MỚI =====
                 Card(
                   elevation: 2,

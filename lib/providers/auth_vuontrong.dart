@@ -34,7 +34,7 @@ class AuthProvider extends ChangeNotifier {
       notifyListeners();
       final user = await api.login(credentials);
       if(user == null){
-        _error = user?.message;
+        _error = "Lỗi API";
         _usermodel = null;
       }else if(user.messCode == MessCode.IsOK){
         _usermodel = user.oneItem?.htTaiKhoan;

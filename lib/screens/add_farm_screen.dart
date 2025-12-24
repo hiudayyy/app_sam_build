@@ -125,15 +125,14 @@ class _AddFarmScreenState extends State<AddFarmScreen> {
 
   bool _validateForm() {
     errors.clear();
-
-    if (vuontrongData.tenVuon.trim().isEmpty) {
-      errors['maLo'] = 'Tên vườn là bắt buộc';
-    }
-    if (vuontrongData.viTri.trim().isEmpty) {
-      errors['tenLo'] = 'Vị trí';
-    }
-
-    setState(() {});
+    setState(() {
+      if (vuontrongData.tenVuon.trim().isEmpty) {
+        errors['tenvuon'] = 'Tên vườn là bắt buộc';
+      }
+      if (vuontrongData.viTri.trim().isEmpty) {
+        errors['vitri'] = 'Nhập thông tin vị trí';
+      }
+    });
     return errors.isEmpty;
   }
 

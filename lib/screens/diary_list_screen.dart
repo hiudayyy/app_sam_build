@@ -1,12 +1,12 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:nftsam/api/api_caysam.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:shimmer/shimmer.dart';
 import '../api/api.dart';
 import '../models/cay_sam.dart';
 import '../models/nhat_ky.dart';
-import '../data/mock_data.dart';
 import '../models/vuontrong/caysam_model.dart';
-import '../utils/app_dimensions.dart';
 import '../widgets/fullscreenimageviewer.dart';
 
 class DiaryListScreen extends StatefulWidget {
@@ -23,25 +23,24 @@ class DiaryListScreen extends StatefulWidget {
 }
 
 class _DiaryListScreenState extends State<DiaryListScreen> {
-  bool sortNewest = true;
   bool showImages = true;
+  late Future<List<CaySamNhatKy>> _diaryFuture;
 
-  // Health point colors - đồng bộ với React
+  // Health point colors
   static const Map<int, Map<String, dynamic>> healthColors = {
-    1: {'color': Colors.red, 'label': 'Rất yếu', 'bgColor': Color(0xFFFFEBEE)},
-    2: {'color': Colors.orange, 'label': 'Yếu', 'bgColor': Color(0xFFFFF3E0)},
-    3: {'color': Colors.amber, 'label': 'Trung bình', 'bgColor': Color(0xFFFFFDE7)},
-    4: {'color': Colors.blue, 'label': 'Tốt', 'bgColor': Color(0xFFE3F2FD)},
-    5: {'color': Colors.green, 'label': 'Rất tốt', 'bgColor': Color(0xFFE8F5E8)},
+    1: {'color': Color(0xFFE53935), 'label': 'Rất yếu', 'bg': Color(0xFFFFEBEE)},
+    2: {'color': Color(0xFFFB8C00), 'label': 'Yếu', 'bg': Color(0xFFFFF3E0)},
+    3: {'color': Color(0xFFFDD835), 'label': 'TB', 'bg': Color(0xFFFFFDE7)},
+    4: {'color': Color(0xFF1E88E5), 'label': 'Tốt', 'bg': Color(0xFFE3F2FD)},
+    5: {'color': Color(0xFF43A047), 'label': 'Rất tốt', 'bg': Color(0xFFE8F5E8)},
   };
 
-  // Get diary entries for plant
-  Future<List<CaySamNhatKy>> getPlantDiaryEntries() async {
-    final entries = await API().getNhatKysbyid(widget.plant.caySamId);
-    return entries;
+  @override
+  void initState() {
+    super.initState();
+    _diaryFuture = API().getNhatKysbyid(widget.plant.caySamId);
   }
 
-  // Get health trend between two entries
   String? getHealthTrend(int currentHealth, int? previousHealth) {
     if (previousHealth == null) return null;
     if (currentHealth > previousHealth) return 'up';
@@ -49,794 +48,448 @@ class _DiaryListScreenState extends State<DiaryListScreen> {
     return 'stable';
   }
 
-  // Format relative date
   String formatRelativeDate(String? dateString) {
     if (dateString == null || dateString.isEmpty) return "";
-
-    DateTime? date;
     try {
-      date = DateTime.parse(dateString);
+      final date = DateTime.parse(dateString);
+      final now = DateTime.now();
+      final difference = now.difference(date).inDays;
+      if (difference == 0) return 'Hôm nay';
+      if (difference == 1) return 'Hôm qua';
+      if (difference < 7) return '$difference ngày trước';
+      return DateFormat('dd/MM/yyyy').format(date);
     } catch (_) {
-      return ""; // nếu parse lỗi thì trả về rỗng
+      return "";
     }
-
-    final now = DateTime.now();
-    final difference = now.difference(date).inDays;
-
-    if (difference == 0) return 'Hôm nay';
-    if (difference == 1) return 'Hôm qua';
-    if (difference < 7) return '$difference ngày trước';
-    if (difference < 30) return '${(difference / 7).floor()} tuần trước';
-    if (difference < 365) return '${(difference / 30).floor()} tháng trước';
-    return '${(difference / 365).floor()} năm trước';
   }
-
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<List<CaySamNhatKy>>(
-      future: getPlantDiaryEntries(), // truyền id cây
-      builder: (context, snapshot) {
-        if (snapshot.hasError) {
-          return Center(child: Text("Lỗi: ${snapshot.error}"));
-        }
+    double screenWidth = MediaQuery.of(context).size.width;
+    double scale = (screenWidth / 375.0).clamp(0.85, 1.15);
 
-        final diaryEntries = snapshot.data ?? [];
-
-        final totalEntries = diaryEntries.length;
-        final avgHealth = diaryEntries.isNotEmpty
-            ? (diaryEntries.fold<double>(
-            0.0, (sum, entry) => sum + entry.diemSucKhoe) /
-            diaryEntries.length)
-            : 0.0;
-        final healthTrend = diaryEntries.length >= 2
-            ? getHealthTrend(
-            diaryEntries[0].diemSucKhoe, diaryEntries[1].diemSucKhoe)
-            : null;
-        final dateRange = diaryEntries.isNotEmpty
-            ? {
-          'from': diaryEntries.last.ngayGhi != null
-              ? DateFormat('dd/MM/yyyy')
-              .format(DateTime.parse(diaryEntries.last.ngayGhi!))
-              : '',
-          'to': diaryEntries.first.ngayGhi != null
-              ? DateFormat('dd/MM/yyyy')
-              .format(DateTime.parse(diaryEntries.first.ngayGhi!))
-              : '',
-        }
-            : {};
-        return Scaffold(
-          body: Column(
-            children: [
-              // Custom Header - đồng bộ với React
-              Container(
-                padding: EdgeInsets.only(
-                  top: MediaQuery.of(context).padding.top + 8,
-                  left: 16,
-                  right: 16,
-                  bottom: 8,
+    return Scaffold(
+      backgroundColor: const Color(0xFFF2F4F8),
+      body: Column(
+        children: [
+          // === HEADER ===
+          Container(
+            padding: EdgeInsets.only(
+              top: MediaQuery.of(context).padding.top + 10 * scale,
+              left: 16 * scale,
+              right: 16 * scale,
+              bottom: 20 * scale,
+            ),
+            decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Color(0xFF2E7D32), Color(0xFF66BB6A)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
                 ),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  border: Border(
-                    bottom: BorderSide(color: Colors.grey.shade300, width: 1),
-                  ),
+                borderRadius: BorderRadius.only(
+                  bottomLeft: Radius.circular(24 * scale),
+                  bottomRight: Radius.circular(24 * scale),
                 ),
-                child: Row(
+                boxShadow: [
+                  BoxShadow(color: Colors.green.withOpacity(0.3), blurRadius: 10, offset: Offset(0, 4))
+                ]
+            ),
+            child: Column(
+              children: [
+                Row(
                   children: [
                     IconButton(
-                      icon: Icon(Icons.arrow_back),
+                      icon: Icon(Icons.arrow_back, color: Colors.white, size: 24 * scale),
                       onPressed: widget.onBack,
                       padding: EdgeInsets.zero,
                       constraints: BoxConstraints(),
                     ),
-                    SizedBox(width: 16),
+                    SizedBox(width: 12 * scale),
                     Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Lịch sử nhật ký',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          Text(
-                            'ID: ${widget.plant.maCaySam}',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey[600],
-                            ),
-                          ),
-                        ],
+                      child: Text(
+                        'Nhật ký sinh trưởng',
+                        style: TextStyle(fontSize: 18 * scale, fontWeight: FontWeight.bold, color: Colors.white),
                       ),
                     ),
-                    Container(
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.grey.shade300),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          GestureDetector(
-                            onTap: () => setState(() => showImages = !showImages),
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 200), // mượt khi đổi màu
-                              curve: Curves.easeInOut,
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: showImages ? Colors.blue : Colors.transparent,
-                                borderRadius: BorderRadius.circular(4),
-                                border: Border.all(color: Colors.grey.shade300), // tuỳ chọn: viền nhẹ
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    Icons.visibility,
-                                    size: 12,
-                                    color: showImages ? Colors.white : Colors.grey[600],
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    'Ảnh',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: showImages ? Colors.white : Colors.grey[600],
-                                    ),
-                                  ),
-                                ],
-                              ),
+                    GestureDetector(
+                      onTap: () => setState(() => showImages = !showImages),
+                      child: Container(
+                        padding: EdgeInsets.symmetric(horizontal: 10 * scale, vertical: 6 * scale),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: Colors.white.withOpacity(0.4)),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(showImages ? Icons.visibility_off : Icons.visibility,
+                                color: Colors.white, size: 14 * scale),
+                            SizedBox(width: 4 * scale),
+                            Text(
+                              showImages ? 'Ẩn ảnh':'Hiện ảnh',
+                              style: TextStyle(color: Colors.white, fontSize: 12 * scale, fontWeight: FontWeight.w500),
                             ),
-                          )
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
+                    )
                   ],
                 ),
-              ),
+                SizedBox(height: 16 * scale),
+                Row(
+                  children: [
+                    Container(
+                      padding: EdgeInsets.all(8 * scale),
+                      decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), shape: BoxShape.circle),
+                      child: Icon(Icons.qr_code, color: Colors.white, size: 20 * scale),
+                    ),
+                    SizedBox(width: 12 * scale),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(widget.plant.maCaySam ?? "N/A",
+                            style: TextStyle(color: Colors.white, fontSize: 16 * scale, fontWeight: FontWeight.w800)),
+                        Text("Mã định danh", style: TextStyle(color: Colors.white70, fontSize: 12 * scale)),
+                      ],
+                    ),
+                  ],
+                )
+              ],
+            ),
+          ),
 
-              // Scrollable Content
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: EdgeInsets.all(16),
+          // === BODY CONTENT ===
+          Expanded(
+            child: FutureBuilder<List<CaySamNhatKy>>(
+              future: _diaryFuture,
+              builder: (context, snapshot) {
+                if (snapshot.hasError) return Center(child: Text("Lỗi tải dữ liệu"));
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                final diaryEntries = snapshot.data ?? [];
+
+                final totalEntries = diaryEntries.length;
+                final avgHealth = diaryEntries.isNotEmpty
+                    ? (diaryEntries.fold<double>(0.0, (sum, entry) => sum + entry.diemSucKhoe) / totalEntries)
+                    : 0.0;
+                final healthTrend = diaryEntries.length >= 2
+                    ? getHealthTrend(diaryEntries[0].diemSucKhoe, diaryEntries[1].diemSucKhoe)
+                    : null;
+
+                return SingleChildScrollView(
+                  padding: EdgeInsets.fromLTRB(16 * scale, 20 * scale, 16 * scale, 30 * scale),
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Statistics Summary Card
-                      Card(
-                        child: Padding(
-                          padding: EdgeInsets.all(16),
-                          child: Column(
-                            children: [
-                              Row(
+                      // --- SUMMARY CARD ---
+                      Container(
+                        margin: EdgeInsets.only(bottom: 24 * scale),
+                        padding: EdgeInsets.all(16 * scale),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16 * scale),
+                          boxShadow: [
+                            BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 15, offset: Offset(0, 5))
+                          ],
+                        ),
+                        child: Row(
+                          children: [
+                            _buildSummaryItem(Icons.folder_copy_outlined, "$totalEntries", "Bản ghi", Colors.blue, scale),
+                            Container(width: 1, height: 40 * scale, color: Colors.grey.shade200),
+                            _buildSummaryItem(Icons.star_rounded, avgHealth.toStringAsFixed(1), "Điểm TB", Colors.orange, scale),
+                            Container(width: 1, height: 40 * scale, color: Colors.grey.shade200),
+                            _buildSummaryItem(
+                                healthTrend == 'up' ? Icons.trending_up : Icons.trending_down,
+                                healthTrend == 'up' ? "Tốt lên" : (healthTrend == 'down' ? "Giảm" : "--"),
+                                "Xu hướng",
+                                healthTrend == 'up' ? Colors.green : Colors.grey,
+                                scale
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      // --- TIMELINE LIST ---
+                      if (diaryEntries.isEmpty)
+                        _buildEmptyState(scale)
+                      else
+                        ListView.builder(
+                          physics: NeverScrollableScrollPhysics(),
+                          shrinkWrap: true,
+                          padding: EdgeInsets.zero,
+                          itemCount: diaryEntries.length,
+                          itemBuilder: (context, index) {
+                            final entry = diaryEntries[index];
+                            final healthInfo = healthColors[entry.diemSucKhoe] ?? healthColors[5]!;
+                            final bool isLast = index == diaryEntries.length - 1;
+
+                            return IntrinsicHeight(
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Expanded(
-                                    child: Column(
-                                      children: [
-                                        Text(
-                                          '$totalEntries',
-                                          style: TextStyle(
-                                            fontSize: 24,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                        SizedBox(height: 4),
-                                        Text(
-                                          'Tổng bản ghi',
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            color: Colors.grey[600],
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  Expanded(
-                                    child: Column(
-                                      children: [
-                                        Row(
-                                          mainAxisAlignment: MainAxisAlignment.center,
+                                  // 1. Cột Ngày Tháng
+                                  Column(
+                                    children: [
+                                      Container(
+                                        width: 50 * scale,
+                                        margin: EdgeInsets.only(bottom: 4 * scale),
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.end,
                                           children: [
                                             Text(
-                                              avgHealth.toStringAsFixed(1),
-                                              style: TextStyle(
-                                                fontSize: 24,
-                                                fontWeight: FontWeight.bold,
-                                              ),
+                                              entry.ngayGhi != null ? DateFormat('dd').format(DateTime.parse(entry.ngayGhi!)) : '',
+                                              style: TextStyle(fontSize: 18 * scale, fontWeight: FontWeight.bold, color: Colors.black87),
                                             ),
-                                            if (healthTrend != null) ...[
-                                              SizedBox(width: 4),
-                                              Icon(
-                                                healthTrend == 'up'
-                                                    ? Icons.trending_up
-                                                    : healthTrend == 'down'
-                                                    ? Icons.trending_down
-                                                    : Icons.trending_flat,
-                                                size: 16,
-                                                color: healthTrend == 'up'
-                                                    ? Colors.green
-                                                    : healthTrend == 'down'
-                                                    ? Colors.red
-                                                    : Colors.grey,
-                                              ),
-                                            ],
+                                            Text(
+                                              entry.ngayGhi != null ? "Thg ${DateFormat('MM').format(DateTime.parse(entry.ngayGhi!))}" : '',
+                                              style: TextStyle(fontSize: 11 * scale, fontWeight: FontWeight.w500, color: Colors.grey[600]),
+                                            ),
                                           ],
                                         ),
-                                        SizedBox(height: 4),
-                                        Text(
-                                          'Điểm TB / 5',
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            color: Colors.grey[600],
+                                      ),
+                                    ],
+                                  ),
+
+                                  // 2. Cột Timeline
+                                  Container(
+                                    width: 30 * scale,
+                                    child: Column(
+                                      children: [
+                                        Container(
+                                          margin: EdgeInsets.only(top: 4 * scale),
+                                          width: 12 * scale, height: 12 * scale,
+                                          decoration: BoxDecoration(
+                                              color: Colors.white,
+                                              border: Border.all(color: healthInfo['color'] as Color, width: 2.5),
+                                              shape: BoxShape.circle,
+                                              boxShadow: [BoxShadow(color: (healthInfo['color'] as Color).withOpacity(0.3), blurRadius: 4)]
                                           ),
                                         ),
+                                        if (!isLast)
+                                          Expanded(
+                                            child: Container(
+                                              width: 2,
+                                              margin: EdgeInsets.symmetric(vertical: 4),
+                                              color: Colors.grey.shade300,
+                                            ),
+                                          )
                                       ],
                                     ),
                                   ),
-                                ],
-                              ),
 
-                              if (dateRange != null) ...[
-                                SizedBox(height: 12),
-                                Container(
-                                  padding: EdgeInsets.only(top: 12),
-                                  decoration: BoxDecoration(
-                                    border: Border(top: BorderSide(color: Colors.grey.shade300)),
-                                  ),
-                                  child: Text(
-                                    'Từ ${dateRange['from']} đến ${dateRange['to']}',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.grey[600],
-                                    ),
-                                    textAlign: TextAlign.center,
-                                  ),
-                                ),
-                              ],
-                            ],
-                          ),
-                        ),
-                      ),
-                      SizedBox(height: 16),
-
-                      // Sort Controls
-                      Row(
-                        children: [
-                          Text(
-                            'Quá trình phát triển',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          Spacer(),
-                          /*Container(
-                            decoration: BoxDecoration(
-                              border: Border.all(color: Colors.grey.shade300),
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                InkWell(
-                                  onTap: () => setState(() => sortNewest = true),
-                                  child: Container(
-                                    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                    decoration: BoxDecoration(
-                                      color: sortNewest ? Colors.blue : Colors.transparent,
-                                      borderRadius: BorderRadius.circular(4),
-                                    ),
-                                    child: Text(
-                                      'Mới nhất',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: sortNewest ? Colors.white : Colors.grey[700],
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                InkWell(
-                                  onTap: () => setState(() => sortNewest = false),
-                                  child: Container(
-                                    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                    decoration: BoxDecoration(
-                                      color: !sortNewest ? Colors.blue : Colors.transparent,
-                                      borderRadius: BorderRadius.circular(4),
-                                    ),
-                                    child: Text(
-                                      'Cũ nhất',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: !sortNewest ? Colors.white : Colors.grey[700],
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),*/
-                        ],
-                      ),
-                      SizedBox(height: 16),
-
-                      // Timeline Entries
-                      if (diaryEntries.isNotEmpty) ...[
-                        ...diaryEntries.asMap().entries.map((entryWithIndex) {
-                          final index = entryWithIndex.key;
-                          final entry = entryWithIndex.value;
-                          final healthInfo = healthColors[entry.diemSucKhoe] ?? healthColors[5]!;
-                          final previousEntry = index < diaryEntries.length - 1 ? diaryEntries[index + 1] : null;
-                          final trend = getHealthTrend(entry.diemSucKhoe, previousEntry?.diemSucKhoe);
-
-                          return Container(
-                            margin: EdgeInsets.only(bottom: 16),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                // Timeline dot và connector
-                                Column(
-                                  children: [
-                                    Container(
-                                      width: 48,
-                                      height: 48,
+                                  // 3. Nội dung Card
+                                  Expanded(
+                                    child: Container(
+                                      margin: EdgeInsets.only(bottom: 20 * scale),
                                       decoration: BoxDecoration(
-                                        color: healthInfo['color'],
-                                        shape: BoxShape.circle,
-                                      ),
-                                      child: Container(
-                                        margin: EdgeInsets.all(6),
-                                        decoration: BoxDecoration(
-                                          color: Colors.white,
-                                          shape: BoxShape.circle,
-                                        ),
-                                        child: Icon(
-                                          Icons.eco,
-                                          size: 16,
-                                          color: Colors.grey[600],
-                                        ),
-                                      ),
-                                    ),
-                                    if (trend != null) ...[
-                                      SizedBox(height: 4),
-                                      Icon(
-                                        trend == 'up'
-                                            ? Icons.trending_up
-                                            : trend == 'down'
-                                            ? Icons.trending_down
-                                            : Icons.trending_flat,
-                                        size: 12,
-                                        color: trend == 'up'
-                                            ? Colors.green
-                                            : trend == 'down'
-                                            ? Colors.red
-                                            : Colors.grey,
-                                      ),
-                                    ],
-                                    // Timeline connector
-                                    if (index < diaryEntries.length - 1) ...[
-                                      SizedBox(height: 8),
-                                      Container(
-                                        width: 2,
-                                        height: 40,
-                                        color: Colors.grey.shade300,
-                                      ),
-                                    ],
-                                  ],
-                                ),
-                                SizedBox(width: 4),
-
-                                // Entry content
-                                Expanded(
-                                  child: Card(
-                                    child: Padding(
-                                      padding: EdgeInsets.all(AppDimensions.fontSizeExtraSmall),
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          // Header with date and health badge
-                                          Row(
-                                            children: [
-                                              Icon(Icons.calendar_today, size: 12),
-                                              SizedBox(width: 4),
-                                              Text(
-                                                entry.ngayGhi != null
-                                                    ? DateFormat('dd/MM/yyyy').format(DateTime.parse(entry.ngayGhi!))
-                                                    : '',
-                                                style: const TextStyle(
-                                                  fontSize: 14,
-                                                  fontWeight: FontWeight.w500,
-                                                ),
-                                              ),
-
-                                              SizedBox(width: 8),
-                                              Text(
-                                                '(${formatRelativeDate(entry.ngayGhi)})',
-                                                style: TextStyle(
-                                                  fontSize: 12,
-                                                  color: Colors.grey[600],
-                                                ),
-                                              ),
-                                              Spacer(),
-                                              Container(
-                                                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                                decoration: BoxDecoration(
-                                                  color: healthInfo['color'],
-                                                  borderRadius: BorderRadius.circular(12),
-                                                ),
-                                                child: Text(
-                                                  '${entry.diemSucKhoe}/5 - ${healthInfo['label']}',
-                                                  style: TextStyle(
-                                                    fontSize: 10,
-                                                    color: Colors.white,
-                                                    fontWeight: FontWeight.w500,
-                                                  ),
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                          SizedBox(height: 12),
-
-                                          // Measurements grid
-                                          Row(
-                                            children: [
-                                              Expanded(
-                                                child: Column(
-                                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                                  children: [
-                                                    Text(
-                                                      'Số lá',
-                                                      style: TextStyle(
-                                                        fontSize: 12,
-                                                        color: Colors.grey[600],
-                                                      ),
-                                                    ),
-                                                    Text(
-                                                      '${entry.soLa} lá',
-                                                      style: TextStyle(
-                                                        fontSize: 14,
-                                                        fontWeight: FontWeight.w500,
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                              Expanded(
-                                                child: Column(
-                                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                                  children: [
-                                                    Text(
-                                                      'Sức khỏe',
-                                                      style: TextStyle(
-                                                        fontSize: 12,
-                                                        color: Colors.grey[600],
-                                                      ),
-                                                    ),
-                                                    Row(
-                                                      children: [
-                                                        Container(
-                                                          width: 8,
-                                                          height: 8,
-                                                          decoration: BoxDecoration(
-                                                            color: healthInfo['color'],
-                                                            shape: BoxShape.circle,
-                                                          ),
-                                                        ),
-                                                        SizedBox(width: 4),
-                                                        Text(
-                                                          '${entry.diemSucKhoe}/5',
-                                                          style: TextStyle(
-                                                            fontSize: 14,
-                                                            fontWeight: FontWeight.w500,
-                                                          ),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                          SizedBox(height: 12),
-
-                                          // Status badges
-                                          // Wrap(
-                                          //   spacing: 8,
-                                          //   children: [
-                                          //     if (entry.tinhTrang.song)
-                                          //       Container(
-                                          //         padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                          //         decoration: BoxDecoration(
-                                          //           color: Colors.green[100],
-                                          //           borderRadius: BorderRadius.circular(12),
-                                          //         ),
-                                          //         child: Text(
-                                          //           'Còn sống',
-                                          //           style: TextStyle(
-                                          //             fontSize: 10,
-                                          //             color: Colors.green[800],
-                                          //           ),
-                                          //         ),
-                                          //       ),
-                                          //     if (entry.tinhTrang.nguDong)
-                                          //       Container(
-                                          //         padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                          //         decoration: BoxDecoration(
-                                          //           color: Colors.blue[100],
-                                          //           borderRadius: BorderRadius.circular(12),
-                                          //         ),
-                                          //         child: Text(
-                                          //           'Ngủ đông',
-                                          //           style: TextStyle(
-                                          //             fontSize: 10,
-                                          //             color: Colors.blue[800],
-                                          //           ),
-                                          //         ),
-                                          //       ),
-                                          //     if (entry.tinhTrang.chet)
-                                          //       Container(
-                                          //         padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                          //         decoration: BoxDecoration(
-                                          //           color: Colors.red[100],
-                                          //           borderRadius: BorderRadius.circular(12),
-                                          //         ),
-                                          //         child: Text(
-                                          //           'Đã chết',
-                                          //           style: TextStyle(
-                                          //             fontSize: 10,
-                                          //             color: Colors.red[800],
-                                          //           ),
-                                          //         ),
-                                          //       ),
-                                          //   ],
-                                          // ),
-
-                                          // Images
-                                          if (showImages && (entry.hinhAnhTongQuan != null || entry.hinhAnhChiTiet != null)) ...[
-                                            SizedBox(height: 12),
-                                            Row(
-                                              children: [
-                                                Icon(Icons.camera_alt, size: 12, color: Colors.grey[600]),
-                                                SizedBox(width: 4),
-                                                Text(
-                                                  'Hình ảnh ghi nhận',
-                                                  style: TextStyle(
-                                                    fontSize: 12,
-                                                    color: Colors.grey[600],
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                            SizedBox(height: 8),
-                                            Row(
-                                              children: [
-                                                if (entry.hinhAnhTongQuan != null) ...[
-                                                  Expanded(
-                                                    child: Column(
-                                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                                      children: [
-                                                        Text(
-                                                          'Tổng quan',
-                                                          style: TextStyle(
-                                                            fontSize: 12,
-                                                            color: Colors.grey[600],
-                                                          ),
-                                                        ),
-                                                        SizedBox(height: 4),
-                                                        GestureDetector(
-                                                          onTap: () {
-                                                            Navigator.push(
-                                                              context,
-                                                              MaterialPageRoute(
-                                                                builder: (_) => FullScreenImageViewer(
-                                                                  imageUrl: entry.hinhAnhTongQuan!,
-                                                                ),
-                                                              ),
-                                                            );
-                                                          },
-                                                          child: Container(
-                                                            height: 80,
-                                                            width: double.infinity,
-                                                            decoration: BoxDecoration(
-                                                              color: Colors.grey[300],
-                                                              borderRadius: BorderRadius.circular(8),
-                                                            ),
-                                                            child: ClipRRect(
-                                                              borderRadius: BorderRadius.circular(8),
-                                                              child: Image.network(
-                                                                entry.hinhAnhTongQuan!,
-                                                                fit: BoxFit.cover,
-                                                                errorBuilder: (context, error, stackTrace) {
-                                                                  return Container(
-                                                                    color: Colors.grey[300],
-                                                                    child: const Icon(Icons.image, size: 24),
-                                                                  );
-                                                                },
-                                                              ),
-                                                            ),
-                                                          ),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                  ),
-                                                ],
-                                                if (entry.hinhAnhTongQuan != null && entry.hinhAnhChiTiet != null)
-                                                  SizedBox(width: 8),
-                                                if (entry.hinhAnhChiTiet != null) ...[
-                                                  Expanded(
-                                                    child: Column(
-                                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                                      children: [
-                                                        Text(
-                                                          'Chi tiết',
-                                                          style: TextStyle(
-                                                            fontSize: 12,
-                                                            color: Colors.grey[600],
-                                                          ),
-                                                        ),
-                                                        SizedBox(height: 4),
-                                                        GestureDetector(
-                                                          onTap: () {
-                                                            Navigator.push(
-                                                              context,
-                                                              MaterialPageRoute(
-                                                                builder: (_) => FullScreenImageViewer(imageUrl: entry.hinhAnhChiTiet!),
-                                                              ),
-                                                            );
-                                                          },
-                                                          child: Hero(
-                                                            tag: entry.hinhAnhChiTiet!,
-                                                            child: Container(
-                                                              height: 80,
-                                                              width: double.infinity,
-                                                              decoration: BoxDecoration(
-                                                                color: Colors.grey[300],
-                                                                borderRadius: BorderRadius.circular(8),
-                                                              ),
-                                                              child: ClipRRect(
-                                                                borderRadius: BorderRadius.circular(8),
-                                                                child: Image.network(
-                                                                  entry.hinhAnhChiTiet!,
-                                                                  fit: BoxFit.cover,
-                                                                  errorBuilder: (context, error, stackTrace) {
-                                                                    return Container(
-                                                                      color: Colors.grey[300],
-                                                                      alignment: Alignment.center,
-                                                                      child: const Icon(Icons.image, size: 24),
-                                                                    );
-                                                                  },
-                                                                ),
-                                                              ),
-                                                            ),
-                                                          ),
-                                                        )
-                                                      ],
-                                                    ),
-                                                  ),
-                                                ],
-                                              ],
-                                            ),
-                                          ],
-
-                                          // Notes
-                                          if (entry.ghiChu != null && entry.ghiChu!.isNotEmpty) ...[
-                                            SizedBox(height: 12),
-                                            Container(
-                                              padding: EdgeInsets.all(8),
-                                              decoration: BoxDecoration(
-                                                color: Colors.grey[100],
-                                                borderRadius: BorderRadius.circular(8),
-                                              ),
-                                              child: Column(
-                                                crossAxisAlignment: CrossAxisAlignment.start,
-                                                children: [
-                                                  Text(
-                                                    'Ghi chú:',
-                                                    style: TextStyle(
-                                                      fontSize: 12,
-                                                      color: Colors.grey[600],
-                                                    ),
-                                                  ),
-                                                  SizedBox(height: 4),
-                                                  Text(
-                                                    entry.ghiChu!,
-                                                    style: TextStyle(fontSize: 12),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                          ],
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(12 * scale),
+                                        boxShadow: [
+                                          BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 6, offset: Offset(0, 3))
                                         ],
                                       ),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          );
-                        }).toList(),
+                                      child: ClipRRect(
+                                        borderRadius: BorderRadius.circular(12 * scale),
+                                        child: IntrinsicHeight(
+                                          child: Row(
+                                            children: [
+                                              // Strip màu
+                                              Container(
+                                                width: 5 * scale,
+                                                color: healthInfo['color'],
+                                              ),
+                                              // Content
+                                              Expanded(
+                                                child: Padding(
+                                                  padding: EdgeInsets.all(12 * scale),
+                                                  child: Column(
+                                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                                    children: [
+                                                      // Header card
+                                                      Row(
+                                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                        children: [
+                                                          Text(
+                                                            formatRelativeDate(entry.ngayGhi),
+                                                            style: TextStyle(fontSize: 11 * scale, fontStyle: FontStyle.italic, color: Colors.grey[500]),
+                                                          ),
+                                                          Container(
+                                                            padding: EdgeInsets.symmetric(horizontal: 8 * scale, vertical: 2 * scale),
+                                                            decoration: BoxDecoration(
+                                                              color: (healthInfo['color'] as Color).withOpacity(0.1),
+                                                              borderRadius: BorderRadius.circular(4),
+                                                            ),
+                                                            child: Text(
+                                                              "${healthInfo['label']}",
+                                                              style: TextStyle(fontSize: 10 * scale, fontWeight: FontWeight.bold, color: healthInfo['color']),
+                                                            ),
+                                                          )
+                                                        ],
+                                                      ),
+                                                      SizedBox(height: 8 * scale),
 
-                        // Summary footer for long lists
-                        if (diaryEntries.length > 5) ...[
-                          Card(
-                            child: Padding(
-                              padding: EdgeInsets.all(16),
-                              child: Column(
-                                children: [
-                                  Text(
-                                    'Đã hiển thị ${diaryEntries.length} bản ghi nhật ký',
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      color: Colors.grey[600],
-                                    ),
-                                    textAlign: TextAlign.center,
-                                  ),
-                                  if (dateRange != null) ...[
-                                    SizedBox(height: 4),
-                                    Text(
-                                      'Quá trình phát triển từ ${dateRange['from']} đến ${dateRange['to']}',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: Colors.grey[600],
+                                                      // Stats
+                                                      Row(
+                                                        children: [
+                                                          Icon(Icons.eco, size: 14 * scale, color: Colors.green),
+                                                          SizedBox(width: 4 * scale),
+                                                          Text("${entry.soLa} lá", style: TextStyle(fontSize: 13 * scale, fontWeight: FontWeight.w600)),
+                                                          SizedBox(width: 16 * scale),
+                                                          Icon(Icons.favorite, size: 14 * scale, color: Colors.redAccent),
+                                                          SizedBox(width: 4 * scale),
+                                                          Text("${entry.diemSucKhoe}/5 điểm", style: TextStyle(fontSize: 13 * scale, fontWeight: FontWeight.w600)),
+                                                        ],
+                                                      ),
+
+                                                      SizedBox(height: 8 * scale),
+                                                      Divider(height: 1, color: Colors.grey.shade200),
+                                                      SizedBox(height: 8 * scale),
+
+                                                      // Ghi chú
+                                                      if (entry.ghiChu != null && entry.ghiChu!.isNotEmpty)
+                                                        Container(
+                                                          width: double.infinity,
+                                                          padding: EdgeInsets.all(8 * scale),
+                                                          margin: EdgeInsets.only(bottom: 12 * scale),
+                                                          decoration: BoxDecoration(
+                                                            color: Colors.grey[50],
+                                                            borderRadius: BorderRadius.circular(6 * scale),
+                                                          ),
+                                                          child: Column(
+                                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                                            children: [
+                                                              Text("Ghi chú:",
+                                                                  style: TextStyle(fontSize: 11 * scale, fontWeight: FontWeight.bold, color: Colors.grey[700])),
+                                                              SizedBox(height: 2 * scale),
+                                                              Text(
+                                                                entry.ghiChu!,
+                                                                style: TextStyle(fontSize: 12 * scale, color: Colors.black87),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        ),
+
+                                                      // HÌNH ẢNH (ĐÃ CẬP NHẬT: TIÊU ĐỀ Ở TRÊN)
+                                                      if (showImages && (entry.hinhAnhTongQuan != null || entry.hinhAnhChiTiet != null)) ...[
+                                                        Row(
+                                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                                          children: [
+                                                            if (entry.hinhAnhTongQuan != null)
+                                                              _buildThumbImage(context, entry.hinhAnhTongQuan!, "Hình ảnh tổng quan", scale),
+
+                                                            if (entry.hinhAnhTongQuan != null && entry.hinhAnhChiTiet != null)
+                                                              SizedBox(width: 8 * scale),
+
+                                                            if (entry.hinhAnhChiTiet != null)
+                                                              _buildThumbImage(context, entry.hinhAnhChiTiet!, "Hình ảnh chi tiết", scale),
+                                                          ],
+                                                        )
+                                                      ]
+                                                    ],
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
                                       ),
-                                      textAlign: TextAlign.center,
                                     ),
-                                  ],
+                                  ),
                                 ],
                               ),
-                            ),
-                          ),
-                        ],
-                      ] else ...[
-                        // Empty state
-                        Card(
-                          child: Padding(
-                            padding: EdgeInsets.all(48),
-                            child: Column(
-                              children: [
-                                Icon(
-                                  Icons.calendar_today,
-                                  size: 48,
-                                  color: Colors.grey[400],
-                                ),
-                                SizedBox(height: 16),
-                                Text(
-                                  'Chưa có nhật ký nào',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                                SizedBox(height: 8),
-                                Text(
-                                  'Bắt đầu ghi lại quá trình phát triển của cây ${widget.plant.maCaySam}',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: Colors.grey[600],
-                                  ),
-                                  textAlign: TextAlign.center,
-                                ),
-                                SizedBox(height: 16),
-                                ElevatedButton(
-                                  onPressed: widget.onBack,
-                                  child: Text('Quay lại chi tiết cây'),
-                                ),
-                              ],
-                            ),
-                          ),
+                            );
+                          },
                         ),
-                      ],
                     ],
                   ),
-                ),
-              ),
-            ],
+                );
+              },
+            ),
           ),
-        );
-      },
+        ],
+      ),
     );
   }
 
+  Widget _buildSummaryItem(IconData icon, String value, String label, Color color, double scale) {
+    return Expanded(
+      child: Column(
+        children: [
+          Icon(icon, color: color, size: 22 * scale),
+          SizedBox(height: 4 * scale),
+          Text(value, style: TextStyle(fontSize: 16 * scale, fontWeight: FontWeight.bold, color: Colors.black87)),
+          Text(label, style: TextStyle(fontSize: 10 * scale, color: Colors.grey[500], fontWeight: FontWeight.w500)),
+        ],
+      ),
+    );
+  }
+
+  // Widget ảnh ĐÃ SỬA: Label nằm trên Image
+  Widget _buildThumbImage(BuildContext context, String url, String label, double scale) {
+    return Expanded(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start, // Căn trái text
+        children: [
+          // 1. Dòng chữ tiêu đề Ở TRÊN
+          Padding(
+            padding: EdgeInsets.only(left: 2 * scale, bottom: 6 * scale),
+            child: Text(
+              label, // "Hình ảnh tổng quan"
+              style: TextStyle(
+                  fontSize: 11 * scale,
+                  color: Colors.grey[600],
+                  fontWeight: FontWeight.w500
+              ),
+            ),
+          ),
+
+          // 2. Hình ảnh Ở DƯỚI
+          GestureDetector(
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => FullScreenImageViewer(imageUrl: url))),
+            child: Hero(
+              tag: url,
+              child: Container(
+                height: 140 * scale,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(8 * scale),
+                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 4, offset: Offset(0, 2))],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8 * scale),
+                  child: CachedNetworkImage(
+                    imageUrl: url,
+                    fit: BoxFit.cover,
+                    placeholder: (context, url) => Shimmer.fromColors(
+                      baseColor: Colors.grey[300]!,
+                      highlightColor: Colors.grey[100]!,
+                      child: Container(color: Colors.white),
+                    ),
+                    errorWidget: (context, url, error) => Container(
+                      color: Colors.grey[200],
+                      child: Icon(Icons.broken_image, color: Colors.grey),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyState(double scale) {
+    return Center(
+      child: Column(
+        children: [
+          SizedBox(height: 40 * scale),
+          Icon(Icons.notes_rounded, size: 60 * scale, color: Colors.grey.shade300),
+          SizedBox(height: 10 * scale),
+          Text("Chưa có nhật ký nào", style: TextStyle(color: Colors.grey, fontSize: 14 * scale)),
+        ],
+      ),
+    );
+  }
 }

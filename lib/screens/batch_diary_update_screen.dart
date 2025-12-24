@@ -296,7 +296,6 @@ class _BatchDiaryUpdateScreenState extends State<BatchDiaryUpdateScreen> {
                   ),
                 ),
                 SizedBox(height: 16),
-
                 // Update Form Section
                 if (_selectedPlantIds.isNotEmpty) ...[
                   Card(

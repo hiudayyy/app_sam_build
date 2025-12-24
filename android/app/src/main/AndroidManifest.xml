@@ -15,8 +15,7 @@
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:launchMode="singleTop"
-            android:taskAffinity=""
+            android:launchMode="singleTask"
             android:theme="@style/LaunchTheme"
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
             android:hardwareAccelerated="true"
@@ -26,36 +25,31 @@
                 android:name="io.flutter.embedding.android.NormalTheme"
                 android:resource="@style/NormalTheme" />
 
-            <!-- 1. Bộ lọc Mặc định: Mở ứng dụng từ màn hình chính -->
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
 
-           <intent-filter android:autoVerify="true">
+            <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="https" 
-      android:host="nft.samnghigia.com"
-      android:pathPrefix="/caysam" />
-<data android:scheme="http" 
-      android:host="nft.samnghigia.com"
-      android:pathPrefix="/caysam" />
+
+                <data android:scheme="http" android:host="nft.samnghigia.com" android:pathPrefix="/caysam" />
+                <data android:scheme="https" android:host="nft.samnghigia.com" android:pathPrefix="/caysam"/>
             </intent-filter>
 
             <intent-filter>
                 <action android:name="android.nfc.action.NDEF_DISCOVERED"/>
-                <data android:mimeType="text/plain"/> 
                 <category android:name="android.intent.category.DEFAULT"/>
+
+                <data android:scheme="https"
+                    android:host="nft.samnghigia.com"
+                    android:pathPrefix="/caysam" />
             </intent-filter>
-            
-            <intent-filter>
-                <action android:name="android.nfc.action.TECH_DISCOVERED"/>
-                <category android:name="android.intent.category.DEFAULT"/>
-            </intent-filter>
+
             <meta-data android:name="android.nfc.action.TECH_DISCOVERED"
-                       android:resource="@xml/nfc_tech_filter"/>
+                android:resource="@xml/nfc_tech_filter"/>
         </activity>
 
         <meta-data

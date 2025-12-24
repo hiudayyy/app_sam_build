@@ -12,6 +12,7 @@ import '../models/user_model.dart';
 import '../models/vuontrong/caysam_model.dart';
 import '../models/vuontrong/losam_model.dart';
 import '../models/vuontrong/vuontrong_model.dart';
+import '../providers/auth_provider.dart';
 import '../services/local_service.dart';
 import 'api.dart';
 
@@ -50,8 +51,7 @@ extension APIExtension on API {
         jsonRes,
             (json) => Kttoken.fromJson(json),
       );
-      final tokd = await API().resetToken(user!);
-      print(tokd);
+       await AuthProvider().resetTokenAu(user!);
       return data;
     } else {
       print("❌ Lỗi: ${response.statusCode} - $response");
@@ -83,8 +83,7 @@ extension APIExtension on API {
     };
 
     // 🔹 Gửi request POST
-    final response =
-    await http.post(url, headers: headers, body: jsonEncode(data));
+    final response = await http.post(url, headers: headers, body: jsonEncode(data));
     if (response.statusCode == 200) {
 
       final jsonRes = jsonDecode(response.body);
@@ -92,8 +91,7 @@ extension APIExtension on API {
         jsonRes,
             (json) => Kttoken.fromJson(json),
       );
-      final tokd = await API().resetToken(user!);
-      print(tokd);
+      await AuthProvider().resetTokenAu(user!);
       return data;
     } else {
       print("❌ Lỗi: ${response.statusCode} - $response");

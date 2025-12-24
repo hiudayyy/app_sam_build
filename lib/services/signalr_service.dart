@@ -32,20 +32,15 @@ class SignalRService {
   bool _isRetryScheduled = false;
 
   Future<void> initSignalR() async {
-    // Tối ưu: Nếu đã kết nối, không chạy lại
     if (hubConnection != null && hubConnection!.state == HubConnectionState.connected) {
       print("SignalR (CORE) đã được kết nối trước đó.");
       return;
     }
-    // Nếu đang có lịch hẹn 10s, không chạy
     if (_isRetryScheduled) {
       print("Đang trong lịch kết nối lại (CORE), vui lòng đợi...");
       return;
     }
-
-    // --- PHẦN LẤY TOKEN ---
     print("Đang tạo HubConnection (CORE) mới...");
-
     final prefs = await SharedPreferences.getInstance();
     final tokenString = prefs.getString("ginseng_user");
     if (tokenString == null || tokenString.isEmpty) {
@@ -53,14 +48,12 @@ class SignalRService {
       _handleConnectionError("Token not found");
       return;
     }
-
     final String bearerToken;
     try {
       final Map<String, dynamic> json = jsonDecode(tokenString);
       final user = Kttoken.fromJson(json);
       if (user.authenticateToken.isEmpty) {
-        print("❌ LỖI SIGNALR (CORE): 'authenticateToken' bị rỗng. Sẽ thử lại sau 10s.");
-        _handleConnectionError("Token rỗng");
+        print("❌ LỖI SIGNALR (CORE): 'authenticateToken' bị rỗng");
         return;
       }
       bearerToken = user.authenticateToken;

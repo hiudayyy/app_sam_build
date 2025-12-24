@@ -28,8 +28,6 @@ final SignalRService signalRService = SignalRService();
 Future<void> _navigateToPlant(String plantId) async {
   // Logic này được chuyển từ onNotificationTapped
   final CaySamModel? model = await API().getCaySamById(plantId);
-
-  // Đảm bảo navigatorKey đã sẵn sàng
   if (navigatorKey.currentState != null) {
     if (model != null) {
       navigatorKey.currentState!.push(

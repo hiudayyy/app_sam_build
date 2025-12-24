@@ -53,7 +53,7 @@ extension APIExtension on API {
       Uri.parse(linkURL),
       headers: headers,
     );
-
+    print(response.statusCode);
     if (response.statusCode == 200) {
       Map<String, dynamic> responseJson = jsonDecode(response.body);
       final data = ApiResponse<Kttoken>.fromJson(

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:nftsam/api/api_caysam.dart';
 import 'package:nftsam/api/api_caytrong.dart';
 import 'package:nftsam/api/api_option.dart';
@@ -8,6 +9,7 @@ import 'package:nftsam/models/vuontrong/caysam_model.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:shimmer/shimmer.dart';
 import '../api/api.dart';
 import '../models/cay_sam.dart';
 import '../models/kttoken.dart';
@@ -31,7 +33,6 @@ class PlantDetailScreen extends StatefulWidget {
 
   const PlantDetailScreen({
     Key? key,
-    // required this.plants,
     required this.plant,
     this.diary,
     this.environment,
@@ -282,28 +283,58 @@ class _State extends State<PlantDetailScreen> {
         padding: EdgeInsets.all(16),
         child: Container(
           width: double.infinity,
-          height: 200,
+          height: MediaQuery.of(context).size.height / 3,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(8),
             color: Colors.grey[300],
           ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: Image.network(
-              latestEntry?.hinhAnhTongQuan ??
-                  'https://images.unsplash.com/photo-1589110254547-202e8e05be49?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxnaW5zZW5nJTIwcGxhbnRzJTIwY3VsdGl2YXRpb258ZW58MXx8fHwxNzU3MTMwNTkzfDA&ixlib=rb-4.1.0&q=80&w=800',
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) {
+          child: Builder(
+            builder: (context) {
+              String? imageUrl = latestEntry?.hinhAnhTongQuan;
+              if (imageUrl == null && widget.plant.caySamNhatKys.isNotEmpty) {
+                imageUrl = widget.plant.caySamNhatKys.first?.hinhAnhTongQuan;
+              }
+              Widget buildPlaceholder({required IconData icon, String? message}) {
                 return Container(
-                  color: Colors.grey[300],
-                  child: Icon(
-                    Icons.eco,
-                    color: Colors.grey[600],
-                    size: 64,
-                  ),
+                  color: Colors.grey[200], // Màu nền nhẹ hơn
+                  alignment: Alignment.center,
+                  child: Icon(icon, color: Colors.grey[400], size: 40),
                 );
-              },
-            ),
+              }
+              final bool isClickable = (imageUrl != null && imageUrl.isNotEmpty);
+
+              Widget imageWidget;
+
+              if (!isClickable) {
+                imageWidget = buildPlaceholder(icon: Icons.spa);
+              } else {
+                // Trường hợp 2: Dùng CachedNetworkImage
+                imageWidget = CachedNetworkImage(
+                  imageUrl: imageUrl,
+                  fit: BoxFit.cover,
+                  width: double.infinity,
+                  height: double.infinity,
+                  placeholder: (context, url) => buildShimmerLoading(),
+                  errorWidget: (context, url, error) => buildPlaceholder(icon: Icons.broken_image_outlined),
+                  fadeInDuration: const Duration(milliseconds: 300),
+                );
+              }
+              return ClipRRect(
+                borderRadius: BorderRadius.circular(12.0),
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: isClickable
+                        ? () {
+                      _showFullScreenImage(context, imageUrl!);
+                    }
+                        : null,
+                    splashColor: Colors.white.withOpacity(0.3),
+                    child: imageWidget,
+                  ),
+                ),
+              );
+            },
           ),
         ),
       ),
@@ -320,150 +351,229 @@ class _State extends State<PlantDetailScreen> {
     );
   }
 
-  // HÀM _buildBasicInfo ĐÃ ĐƯỢC THIẾT KẾ LẠI HOÀN TOÀN
   Widget _buildBasicInfo() {
-    final latestStatusValue = widget.plant.caySamNhatKys.isNotEmpty
-        ? widget.plant.caySamNhatKys.first?.tinhTrang.toString()
-        : null;
-    final bool daGhiNFC = widget.plant.isNFC ?? false;
+    double screenWidth = MediaQuery.of(context).size.width;
+    double scale = (screenWidth / 375.0).clamp(0.85, 1.15);
 
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    final int latestStatusValue = widget.plant.caySamNhatKys.isNotEmpty
+        ? (widget.plant.caySamNhatKys.first?.tinhTrang ?? -1)
+        : -1;
+
+    final bool daGhiNFC = widget.plant.isNFC ?? false;
+    final bool isAdmin = user?.htTaiKhoan.htPhanQuyenTaiKhoans.any(
+          (pq) => pq.maVaiTro != "nft_invester" && pq.maVaiTro == "nft_admin",
+    ) ?? false;
+    String tuoiCayText = OptionLoSamLoaiTuoi.firstWhere(
+          (opt) => opt.value == widget.plant.tuoiCayId.toString(),
+      orElse: () => OptionModel(value: "-1", text: "Chưa rõ"),
+    ).text;
+
+    return Container(
+      margin: EdgeInsets.symmetric(vertical: 8 * scale, horizontal: 4 * scale),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16 * scale),
+        border: Border.all(color: Colors.grey.shade300, width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.06),
+            offset: const Offset(0, 4),
+            blurRadius: 12,
+          ),
+        ],
+      ),
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8.0),
+        padding: EdgeInsets.all(16 * scale),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // --- HÀNG TIÊU ĐỀ VÀ NÚT BẤM ---
-            Padding(
-              padding:
-              EdgeInsets.only(left: 16, right: 16, top: 8, bottom: 8),
-              child: Row(
-                children: [
-                  Icon(Icons.eco_outlined, color: Colors.green, size: 24),
-                  SizedBox(width: 8),
-                  Text(
-                    'Thông tin',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
+            // ... (Phần 1: Title & Header giữ nguyên) ...
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: EdgeInsets.all(8 * scale),
+                      decoration: BoxDecoration(
+                        color: Colors.green.shade50,
+                        borderRadius: BorderRadius.circular(8 * scale),
+                        border: Border.all(color: Colors.green.shade200),
+                      ),
+                      child: Icon(Icons.spa_rounded, color: Colors.green.shade700, size: 20 * scale),
                     ),
-                  ),
-                  // Thêm icon báo đã ghi NFC (tùy chọn)
-                  if (daGhiNFC)
-                    Padding(
-                      padding: const EdgeInsets.only(left: 8.0),
-                      child: Icon(
-                        Icons.nfc,
-                        color: Colors.blue.shade700,
-                        size: 20,
+                    SizedBox(width: 10 * scale),
+                    Text(
+                      'Thông tin chung',
+                      style: TextStyle(
+                        fontSize: 15 * scale,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.blueGrey[800],
                       ),
                     ),
-                  Spacer(),
-                  // Cập nhật nút bấm dựa trên trạng thái daGhiNFC
-                  if (user?.htTaiKhoan.htPhanQuyenTaiKhoans.any(
-                        (pq) => pq.maVaiTro != "nft_invester" && pq.maVaiTro == "nft_admin",
-                  ) ??
-                      false)
-                  ElevatedButton.icon(
-                    onPressed: () {
-                      // Gọi hàm hiển thị popup
-                      _showNfcWriterModal(context);
-                    },
-                    style: ElevatedButton.styleFrom(
-                      // Nếu đã ghi thì dùng màu xanh dương, chưa ghi dùng màu xanh lá
-                      backgroundColor:
-                      daGhiNFC ? Colors.blue.shade700 : Colors.green,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 6),
+                    if (daGhiNFC) ...[
+                      SizedBox(width: 8 * scale),
+                      Icon(Icons.nfc_rounded, size: 16 * scale, color: Colors.blue[600]),
+                    ]
+                  ],
+                ),
+                if (isAdmin)
+                  _buildTechNfcButton(
+                    isRecorded: daGhiNFC,
+                    onTap: () => _showNfcWriterModal(context),
+                    scale: scale,
+                  ),
+              ],
+            ),
+
+            SizedBox(height: 16 * scale),
+
+            // ... (Phần 2: Mã định danh giữ nguyên) ...
+            Container(
+              width: double.infinity,
+              padding: EdgeInsets.all(12 * scale),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade50,
+                borderRadius: BorderRadius.circular(12 * scale),
+                border: Border.all(color: Colors.grey.shade300),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                      padding: EdgeInsets.all(8 * scale),
+                      decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, border: Border.all(color: Colors.grey.shade200)),
+                      child: Icon(Icons.qr_code_2_rounded, size: 24 * scale, color: Colors.black87)
+                  ),
+                  SizedBox(width: 12 * scale),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text("Mã định danh", style: TextStyle(fontSize: 10 * scale, color: Colors.grey[500], fontWeight: FontWeight.w600)),
+                      SizedBox(height: 2 * scale),
+                      Text(
+                        widget.plant.maCaySam ?? 'N/A',
+                        style: TextStyle(
+                          fontSize: 16 * scale,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.black87,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+
+            SizedBox(height: 12 * scale),
+
+            // === 3. GRID INFO (VỊ TRÍ - TUỔI - TRỌNG LƯỢNG) ===
+            // ✨ CẬP NHẬT: Chia thành 3 cột đều nhau
+            IntrinsicHeight( // Giúp các ô có chiều cao bằng nhau
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Cột 1: Vị trí
+                  Expanded(
+                    child: _buildDetailBox(
+                      icon: Icons.location_on_rounded,
+                      iconColor: Colors.redAccent,
+                      label: "Vị trí lô",
+                      value: widget.plant.viTriTrongLo ?? '--',
+                      scale: scale,
                     ),
-                    icon: Icon(
-                      // Nếu đã ghi thì dùng icon check, chưa ghi dùng icon nfc
-                      daGhiNFC ? Icons.check_circle_outline : Icons.nfc,
-                      size: 20,
+                  ),
+                  SizedBox(width: 8 * scale), // Giảm khoảng cách để vừa 3 ô
+
+                  // Cột 2: Tuổi
+                  Expanded(
+                    child: _buildDetailBox(
+                      icon: Icons.history_edu_rounded,
+                      iconColor: Colors.orange,
+                      label: "Độ tuổi",
+                      value: tuoiCayText,
+                      scale: scale,
                     ),
-                    label: Text(
-                      // Thay đổi text của nút
-                      daGhiNFC ? 'Ghi lại NFC' : 'Ghi thẻ NFC',
+                  ),
+                  SizedBox(width: 8 * scale),
+
+                  // Cột 3: Trọng lượng (Mới thêm)
+                  Expanded(
+                    child: _buildDetailBox(
+                      icon: Icons.monitor_weight_rounded, // Icon cái cân
+                      iconColor: Colors.teal,             // Màu xanh ngọc
+                      label: "Trọng lượng",
+                      // Giả sử model có trường trongLuong, thêm đơn vị 'g'
+                      value: widget.plant.caySamNhatKys != null
+                          ? "${widget.plant.caySamNhatKys.first?.trongLuong ?? "--"} g"
+                          : "--",
+                      scale: scale,
                     ),
                   ),
                 ],
               ),
             ),
-            const Divider(height: 1),
 
-            // --- HÀNG MÃ CÂY SÂM ---
-            _buildInfoRow(
-              icon: Icons.qr_code_2_rounded,
-              label: 'Mã cây sâm',
-              content: Text(
-                widget.plant.maCaySam ?? 'Chưa có',
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                ),
+            SizedBox(height: 12 * scale),
+
+            // ... (Phần 4: Tình trạng giữ nguyên) ...
+            Container(
+              padding: EdgeInsets.symmetric(horizontal: 12 * scale, vertical: 10 * scale),
+              decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12 * scale),
+                  border: Border.all(color: Colors.grey.shade200)
               ),
-            ),
-
-            // --- HÀNG VỊ TRÍ ---
-            _buildInfoRow(
-              icon: Icons.location_on_outlined,
-              label: 'Vị trí',
-              content: Text(
-                widget.plant.viTriTrongLo ?? 'Chưa có',
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ),
-
-            // --- HÀNG TUỔI CÂY ---
-            _buildInfoRow(
-              icon: Icons.timelapse_rounded,
-              label: 'Tuổi cây',
-              content: Text(
-                OptionLoSamLoaiTuoi
-                    .firstWhere(
-                      (opt) => opt.value == widget.plant.tuoiCayId.toString(),
-                  orElse: () => OptionModel(value: "-1", text: "Chưa rõ"),
-                )
-                    .text,
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ),
-
-            // --- HÀNG TÌNH TRẠNG ---
-            _buildInfoRow(
-              icon: Icons.monitor_heart_outlined,
-              label: 'Tình trạng',
-              content: _buildStatusChip(latestStatusValue),
-            ),
-
-            // --- HÀNG BLOCKCHAIN (nếu có) ---
-            if (widget.plant.blockChain != null && widget.plant.blockChain!.isNotEmpty) ...[
-              const Divider(indent: 16, endIndent: 16),
-              ListTile(
-                leading:
-                Icon(Icons.link_rounded, color: Colors.purple.shade300),
-                title: const Text(
-                  'Blockchain ID',
-                  style: TextStyle(fontSize: 14, color: Colors.grey),
-                ),
-                subtitle: Text(
-                  widget.plant.blockChain!,
-                  style: const TextStyle(
-                    fontFamily: 'monospace',
-                    fontSize: 12,
-                    color: Colors.black54,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.monitor_heart_rounded, color: Colors.blue, size: 18 * scale),
+                      SizedBox(width: 8 * scale),
+                      Text("Tình trạng hiện tại", style: TextStyle(fontSize: 12 * scale, color: Colors.grey[700], fontWeight: FontWeight.w600)),
+                    ],
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                  _buildBeautifulStatusChip(latestStatusValue, scale),
+                ],
+              ),
+            ),
+
+            // ... (Phần 5: Blockchain giữ nguyên) ...
+            if (widget.plant.blockChain != null && widget.plant.blockChain!.isNotEmpty) ...[
+              SizedBox(height: 12 * scale),
+              Container(
+                width: double.infinity,
+                padding: EdgeInsets.all(12 * scale),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF8F0FF),
+                  borderRadius: BorderRadius.circular(12 * scale),
+                  border: Border.all(color: Colors.purple.shade100),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.link_rounded, size: 14 * scale, color: Colors.purple),
+                        SizedBox(width: 6 * scale),
+                        Text(
+                          "Blockchain Address",
+                          style: TextStyle(fontSize: 10 * scale, fontWeight: FontWeight.w700, color: Colors.purple.shade400),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 4 * scale),
+                    Text(
+                      widget.plant.blockChain!,
+                      style: TextStyle(
+                        fontFamily: 'monospace',
+                        fontSize: 10 * scale,
+                        color: Colors.purple.shade900,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
                 ),
               ),
             ]
@@ -473,6 +583,238 @@ class _State extends State<PlantDetailScreen> {
     );
   }
 
+  Widget _buildDetailBox({
+    required IconData icon,
+    required Color iconColor,
+    required String label,
+    required String value,
+    required double scale,
+  }) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 10 * scale, vertical: 12 * scale),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(12 * scale),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start, // Label vẫn giữ ở góc trái cho đẹp
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          // --- HÀNG TIÊU ĐỀ (Icon + Label) ---
+          // Giữ nguyên phần này ở bên trái
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 14 * scale, color: iconColor),
+              SizedBox(width: 6 * scale),
+              Flexible(
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 11 * scale,
+                    color: Colors.grey[600],
+                    fontWeight: FontWeight.w600,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+
+          SizedBox(height: 8 * scale),
+
+          // --- HÀNG GIÁ TRỊ (Căn Giữa) ---
+          // ✨ THAY ĐỔI TẠI ĐÂY: Dùng Center để đưa số ra giữa ô
+          Center(
+            child: Text(
+              value,
+              style: TextStyle(
+                fontSize: 15 * scale,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center, // Đảm bảo text căn giữa nếu bị xuống dòng
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+// 2. Nút NFC phong cách Tech/Chip
+  Widget _buildTechNfcButton({
+    required bool isRecorded,
+    required VoidCallback onTap,
+    required double scale,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8 * scale),
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 10 * scale, vertical: 6 * scale),
+        decoration: BoxDecoration(
+          color: isRecorded ? Colors.blue.shade50 : Colors.green.shade50,
+          borderRadius: BorderRadius.circular(8 * scale),
+          border: Border.all(
+            color: isRecorded ? Colors.blue.shade200 : Colors.green.shade200,
+            width: 1,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              isRecorded ? Icons.nfc_rounded : Icons.add_link_rounded,
+              size: 14 * scale,
+              color: isRecorded ? Colors.blue.shade700 : Colors.green.shade700,
+            ),
+            SizedBox(width: 4 * scale),
+            Text(
+              isRecorded ? 'Ghi lại' : 'Ghi thẻ',
+              style: TextStyle(
+                fontSize: 11 * scale,
+                fontWeight: FontWeight.bold,
+                color: isRecorded ? Colors.blue.shade700 : Colors.green.shade700,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+// 3. Status Chip (Giữ nguyên logic đẹp từ trước)
+  Widget _buildBeautifulStatusChip(int statusId, double scale) {
+    String text;
+    Color color;
+    IconData icon;
+
+    if (statusId == 1) { // Sống/Tốt
+      text = "Đang phát triển";
+      color = Colors.green;
+      icon = Icons.check_circle_rounded;
+    } else if (statusId == 2) { // Ngủ đông
+      text = "Ngủ đông";
+      color = Colors.blue;
+      icon = Icons.ac_unit_rounded;
+    } else if (statusId == 3) { // Chết
+      text = "Đã chết";
+      color = Colors.red;
+      icon = Icons.cancel_rounded;
+    } else {
+      text = "Chưa cập nhật";
+      color = Colors.grey;
+      icon = Icons.help_outline_rounded;
+    }
+
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 8 * scale, vertical: 4 * scale),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(6 * scale),
+        border: Border.all(color: color.withOpacity(0.2)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 12 * scale, color: color),
+          SizedBox(width: 4 * scale),
+          Text(
+            text,
+            style: TextStyle(
+              fontSize: 11 * scale,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+  // Hàm phụ trợ để mở dialog xem ảnh full màn hình
+  void _showFullScreenImage(BuildContext context, String imageUrl) {
+    showDialog(
+      context: context,
+      barrierDismissible: true, // Bấm ra ngoài để đóng
+      barrierColor: Colors.black.withOpacity(0.9), // Nền tối đi
+      builder: (BuildContext context) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: EdgeInsets.zero,
+          child: Stack(
+            alignment: Alignment.topRight,
+            children: [
+              // --- PHẦN THAY ĐỔI CHÍNH Ở ĐÂY ---
+              InteractiveViewer(
+                panEnabled: true, // Cho phép kéo
+                minScale: 0.5,
+                maxScale: 4.0,
+                child: Container(
+                  // Thêm Container màu đen để đảm bảo nền luôn tối
+                  // kể cả khi ảnh đang load hoặc bị lỗi
+                  color: Colors.black,
+                  width: double.infinity,
+                  height: double.infinity,
+                  child: Center(
+                    child: CachedNetworkImage(
+                      imageUrl: imageUrl,
+                      fit: BoxFit.contain,
+                      progressIndicatorBuilder: (context, url, downloadProgress) {
+                        return Center(
+                          child: CircularProgressIndicator(
+                            value: downloadProgress.progress, // Hiển thị tiến trình nếu muốn
+                            color: Colors.white, // Màu trắng cho nổi trên nền đen
+                            strokeWidth: 3, // Độ dày vừa phải
+                          ),
+                        );
+                      },
+
+                      // 2. HIỂN THỊ KHI LỖI
+                      errorWidget: (context, url, error) => const Column(
+                        mainAxisAlignment: MainAxisAlignment.center, // Căn giữa theo chiều dọc
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.broken_image, color: Colors.white54, size: 60),
+                          SizedBox(height: 12),
+                          Text(
+                            "Không thể tải ảnh",
+                            style: TextStyle(color: Colors.white70, fontSize: 16),
+                          )
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              // ------------------------------------
+              SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.5),
+                      shape: BoxShape.circle,
+                    ),
+                    child: IconButton(
+                      icon: const Icon(Icons.close, color: Colors.white, size: 30),
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                      },
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
   Widget _buildMonthlyDiarySummary(
       List<CaySamNhatKy?> currentMonthEntries,
       CaySamNhatKy? latestEntry,
@@ -484,423 +826,404 @@ class _State extends State<PlantDetailScreen> {
       ) {
     final now = DateTime.now();
 
-    return Card(
-      child: Padding(
-        padding: EdgeInsets.all(AppDimensions.fontSizeExtraSmall),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.calendar_today, color: Colors.blue[600], size: 20),
-                SizedBox(width: 8),
-                Text(
-                  'Nhật ký tháng ${now.month}/${now.year}',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-            SizedBox(height: 8),
+    double screenWidth = MediaQuery.of(context).size.width;
+    double scale = (screenWidth / 375.0).clamp(0.85, 1.15);
 
+// 2. LOGIC TÌNH TRẠNG
+    String statusValue = latestEntry?.tinhTrang.toString() ?? "-1";
+    final statusOption = OptionLoSamTinhTrang.firstWhere(
+          (opt) => opt.value == statusValue,
+      orElse: () => OptionModel(value: "-1", text: "Không rõ"),
+    );
+
+    return Container(
+      // MAIN CARD: CÓ VIỀN VÀ BÓNG ĐỔ
+      margin: EdgeInsets.symmetric(vertical: 10 * scale, horizontal: 4 * scale),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16 * scale),
+        border: Border.all(color: Colors.grey.shade300, width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.06),
+            offset: Offset(0, 4),
+            blurRadius: 12,
+            spreadRadius: 0,
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: EdgeInsets.all(16 * scale),
+        child: Column(
+          children: [
+            // === 1. HEADER (LỊCH + NÚT LỊCH SỬ Ở GÓC PHẢI) ===
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.start, // Căn đỉnh để không bị lệch nếu text dài
               children: [
+                // Cụm Tiêu đề bên Trái
                 Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    OutlinedButton.icon(
-                      onPressed: _handleDiaryListClick,
-                      icon: const Icon(
-                        Icons.list_alt_rounded,
-                        size: 14,
-                        color: Colors.blue,
+                    Container(
+                      padding: EdgeInsets.all(8 * scale),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.shade50,
+                        borderRadius: BorderRadius.circular(8 * scale),
+                        border: Border.all(color: Colors.blue.shade100),
                       ),
-                      label: const Text(
-                        'Lịch sử nhật ký',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: Colors.blue,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      style: OutlinedButton.styleFrom(
-                        side: BorderSide(color: Colors.blue.shade300, width: 1),
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                        minimumSize: Size.zero,
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        backgroundColor: Colors.blue.shade50.withOpacity(0.2),
-                      ).copyWith(
-                        overlayColor: WidgetStateProperty.all(Colors.blue.shade100.withOpacity(0.3)),
-                      ),
+                      child: Icon(Icons.calendar_month_rounded, color: Colors.blue[700], size: 20 * scale),
                     ),
-                    SizedBox(width: AppDimensions.sp6),
-                    Row(
+                    SizedBox(width: 10 * scale),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        if (user?.htTaiKhoan.htPhanQuyenTaiKhoans.any(
-                              (pq) => pq.maVaiTro != "nft_invester" && pq.maVaiTro == "nft_admin",
-                        ) ??
-                            false) ...[
-                          if (latestEntry?.hinhAnhChiTiet != null)
-                            ElevatedButton(
-                              onPressed: plant != null
-                                  ? () => _handleUpdateDiaryClick(plant, context)
-                                  : null, // ✅ chỉ gọi khi plant khác null
-                              style: ElevatedButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                minimumSize: Size.zero,
-                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                backgroundColor: Colors.blue.shade600,
-                                foregroundColor: Colors.white,
-                              ),
-                              child: const Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(Icons.edit, size: 12),
-                                  SizedBox(width: 4),
-                                  Text('Cập nhật', style: TextStyle(fontSize: 11)),
-                                ],
-                              ),
-                            ),
-
-                          const SizedBox(width:AppDimensions.sp6),
-
-                          ElevatedButton(
-                            onPressed: plant != null
-                                ? () => _handleAddDiaryClick(plant, context)
-                                : null, // ✅ an toàn hơn
-                            style: ElevatedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                              minimumSize: Size.zero,
-                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                              backgroundColor: Colors.green.shade600,
-                              foregroundColor: Colors.white,
-                            ),
-                            child: const Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(Icons.add, size: 12),
-                                SizedBox(width: 4),
-                                Text('Thêm mới', style: TextStyle(fontSize: 11)),
-                              ],
-                            ),
+                        Text(
+                          "THÁNG ${now.month}/${now.year}",
+                          style: TextStyle(
+                            fontSize: 14 * scale,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.blueGrey[800],
                           ),
-                        ],
+                        ),
+                        SizedBox(height: 4 * scale),
+                        Text(
+                          latestEntry != null ? "Cập nhật: $lastUpdate" : "--/--/----",
+                          style: TextStyle(fontSize: 11 * scale, color: Colors.grey[500]),
+                        ),
                       ],
-                    )
+                    ),
                   ],
+                ),
+
+                // Nút Lịch sử (ĐÃ VỀ CHỖ CŨ)
+                _buildOutlinedButton(
+                  label: "Lịch sử",
+                  icon: Icons.history_rounded,
+                  color: Colors.blue[700]!,
+                  borderColor: Colors.blue.shade200,
+                  onTap: _handleDiaryListClick,
+                  scale: scale,
                 ),
               ],
             ),
-            SizedBox(height: 16),
 
-            if (latestEntry != null) ...[
-              // Latest Entry Summary
-              Container(
-                padding: EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.grey[50],
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        children: [
-                          Text(
-                            'Lần cập nhật cuối',
-                            style: TextStyle(
-                              fontSize: 10,
-                              color: Colors.grey[600],
-                            ),
-                          ),
-                          SizedBox(height: 2),
-                          Text(
-                            lastUpdate,
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Expanded(
-                      child: Column(
-                        children: [
-                          Text(
-                            'Điểm sức khỏe',
-                            style: TextStyle(
-                              fontSize: 10,
-                              color: Colors.grey[600],
-                            ),
-                          ),
-                          SizedBox(height: 2),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Container(
-                                width: 8,
-                                height: 8,
-                                decoration: BoxDecoration(
-                                  color: _getHealthColor(latestEntry.diemSucKhoe),
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                              SizedBox(width: 4),
-                              Text(
-                                '${latestEntry.diemSucKhoe}/5',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                    Expanded(
-                      child: Column(
-                        children: [
-                          Text(
-                            'Số lá',
-                            style: TextStyle(
-                              fontSize: 10,
-                              color: Colors.grey[600],
-                            ),
-                          ),
-                          SizedBox(height: 2),
-                          Text(
-                            '${latestEntry.soLa} lá',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
+            // === 2. LOGIC HIỂN THỊ EMPTY STATE ===
+            // Icon thông báo nằm trên nút Admin
+            if (latestEntry == null) ...[
+              SizedBox(height: 24 * scale),
+              Icon(Icons.feed_outlined, size: 48 * scale, color: Colors.grey[300]),
+              SizedBox(height: 8 * scale),
+              Text(
+                "Chưa có nhật ký nào trong tháng",
+                style: TextStyle(color: Colors.grey[400], fontSize: 13 * scale),
               ),
+              SizedBox(height: 24 * scale),
+            ] else ...[
+              SizedBox(height: 16 * scale),
+            ],
 
-              // Monthly Average
-              if (totalEntries > 1) ...[
-                SizedBox(height: 12),
-                Container(
-                  padding: EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.blue[50],
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    'Điểm sức khỏe trung bình tháng: ${avgHealth.toStringAsFixed(1)}/5',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.blue[900],
-                    ),
-                  ),
-                ),
-              ],
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+            // === 3. ADMIN ACTION BUTTONS (CHỈ CÒN CẬP NHẬT & THÊM MỚI) ===
+            if (user?.htTaiKhoan.htPhanQuyenTaiKhoans.any(
+                  (pq) => pq.maVaiTro != "nft_invester" && pq.maVaiTro == "nft_admin",
+            ) ?? false) ...[
+              Row(
                 children: [
-                  Wrap(
-                    spacing: 8,
-                    children: [
-                      if (latestEntry.tinhTrang == "song")
-                        Container(
-                          padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: Colors.green[100],
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            'Còn sống',
-                            style: TextStyle(
-                              fontSize: 10,
-                              color: Colors.green[800],
-                            ),
-                          ),
-                        ),
-                      if (latestEntry.tinhTrang == "ngudong")
-                        Container(
-                          padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: Colors.blue[100],
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            'Ngủ đông',
-                            style: TextStyle(
-                              fontSize: 10,
-                              color: Colors.blue[800],
-                            ),
-                          ),
-                        ),
-                      if (latestEntry.tinhTrang == "chet")
-                        Container(
-                          padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: Colors.red[100],
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            'Đã chết',
-                            style: TextStyle(
-                              fontSize: 10,
-                              color: Colors.red[800],
-                            ),
-                          ),
-                        ),
-                    ],
+                  // Nút Cập nhật (Viền Cam)
+                  if (latestEntry?.hinhAnhChiTiet != null) ...[
+                    Expanded(
+                      child: _buildTonalButton(
+                        label: "Cập nhật",
+                        icon: Icons.edit_rounded,
+                        color: Colors.orange.shade800,
+                        bgColor: Colors.orange.shade50,
+                        borderColor: Colors.orange.shade200,
+                        onTap: plant != null ? () => _handleUpdateDiaryClick(plant, context) : null,
+                        scale: scale,
+                      ),
+                    ),
+                    SizedBox(width: 10 * scale),
+                  ],
+
+                  // Nút Thêm mới (Viền Xanh Lá - Solid)
+                  Expanded(
+                    child: _buildSolidButton(
+                      label: "Thêm mới",
+                      icon: Icons.add_rounded,
+                      color: Colors.white,
+                      bgColor: Colors.green.shade600,
+                      borderColor: Colors.green.shade800,
+                      onTap: plant != null ? () => _handleAddDiaryClick(plant, context) : null,
+                      scale: scale,
+                    ),
                   ),
                 ],
               ),
+              SizedBox(height: 16 * scale), // Khoảng cách dưới nút
+            ],
 
-              // Detail Image
-              if (latestEntry.hinhAnhChiTiet != null) ...[
-                SizedBox(height: 12),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+            // === 4. NỘI DUNG CHI TIẾT (STATS & ẢNH) ===
+            if (latestEntry != null) ...[
+              // KHỐI THÔNG TIN (STATS BOX)
+              Container(
+                padding: EdgeInsets.symmetric(vertical: 16 * scale, horizontal: 4 * scale),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade50,
+                  borderRadius: BorderRadius.circular(12 * scale),
+                  border: Border.all(color: Colors.grey.shade300),
+                ),
+                child: Row(
                   children: [
-                    Text(
-                      'Ảnh nhật ký gần nhất:',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
+                    _buildStatItem("Sức khỏe", "${latestEntry.diemSucKhoe}/5", Colors.redAccent, scale),
+                    Container(height: 30 * scale, width: 1, color: Colors.grey.shade300),
+                    _buildStatItem("Số lá", "${latestEntry.soLa}", Colors.green, scale),
+                    Container(height: 30 * scale, width: 1, color: Colors.grey.shade300),
+                    Expanded(
+                      child: Column(
+                        children: [
+                          Text("Tình trạng", style: TextStyle(fontSize: 11 * scale, color: Colors.grey[500])),
+                          SizedBox(height: 4 * scale),
+                          _buildStatusTag(statusOption.text, latestEntry.tinhTrang, scale),
+                        ],
                       ),
                     ),
-                    SizedBox(height: 8),
-                    // ✅ WIDGET Row ĐÃ ĐƯỢC CẬP NHẬT HOÀN CHỈNH
-                    Row(
-                      children: [
-                        // ===================================
-                        // ẢNH TỔNG QUAN
-                        // ===================================
-                        if (latestEntry.hinhAnhTongQuan != null && latestEntry.hinhAnhTongQuan!.isNotEmpty)
-                          Expanded(
-                            child: GestureDetector(
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => FullScreenImageViewer(
-                                      imageUrl: latestEntry.hinhAnhTongQuan!, // Dùng URL làm tag duy nhất
-                                    ),
-                                  ),
-                                );
-                              },
-                              child: AspectRatio(
-                                aspectRatio: 8 / 5, // Giữ tỷ lệ ảnh
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    color: Colors.grey[300],
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: ClipRRect(
-                                    borderRadius: BorderRadius.circular(8),
-                                    // Bọc Image bằng Hero
-                                    child: Hero(
-                                      tag: latestEntry.hinhAnhTongQuan!,
-                                      child: Image.network(
-                                        latestEntry.hinhAnhTongQuan!,
-                                        fit: BoxFit.cover,
-                                        errorBuilder: (context, error, stackTrace) {
-                                          return const Icon(Icons.image, size: 32);
-                                        },
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
+                  ],
+                ),
+              ),
 
-                        const SizedBox(width: 8),
+              // HÌNH ẢNH
+              if (latestEntry.hinhAnhChiTiet != null) ...[
+                SizedBox(height: 16 * scale),
+                Row(
+                  children: [
+                    Icon(Icons.image_outlined, size: 16 * scale, color: Colors.grey[800]),
+                    SizedBox(width: 6 * scale),
+                    Text(
+                      'Hình ảnh mới nhất',
+                      style: TextStyle(fontSize: 12 * scale, fontWeight: FontWeight.bold, color: Colors.grey[800]),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 8 * scale),
+                Row(
+                  children: [
+                    if (latestEntry.hinhAnhTongQuan != null && latestEntry.hinhAnhTongQuan!.isNotEmpty)
+                      Expanded(child: _buildBorderedImageWithShimmer(context, latestEntry.hinhAnhTongQuan!, "Hình ảnh tổng quan", scale)),
 
-                        // ===================================
-                        // ẢNH CHI TIẾT
-                        // ===================================
-                        if (latestEntry.hinhAnhChiTiet != null && latestEntry.hinhAnhChiTiet!.isNotEmpty)
-                          Expanded(
-                            child: GestureDetector(
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => FullScreenImageViewer(
-                                      imageUrl: latestEntry.hinhAnhChiTiet!,
-                                    ),
-                                  ),
-                                );
-                              },
-                              child: AspectRatio(
-                                aspectRatio: 8 / 5,
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    color: Colors.grey[300],
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: ClipRRect(
-                                    borderRadius: BorderRadius.circular(8),
-                                    // Bọc Image bằng Hero
-                                    child: Hero(
-                                      tag: latestEntry.hinhAnhChiTiet!,
-                                      child: Image.network(
-                                        latestEntry.hinhAnhChiTiet!,
-                                        fit: BoxFit.cover,
-                                        errorBuilder: (context, error, stackTrace) {
-                                          return const Icon(Icons.image, size: 32);
-                                        },
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                      ],
-                    )
+                    if (latestEntry.hinhAnhTongQuan != null && latestEntry.hinhAnhChiTiet != null)
+                      SizedBox(width: 10 * scale),
+
+                    if (latestEntry.hinhAnhChiTiet != null && latestEntry.hinhAnhChiTiet!.isNotEmpty)
+                      Expanded(child: _buildBorderedImageWithShimmer(context, latestEntry.hinhAnhChiTiet!, "Hình ảnh chi tiết", scale)),
                   ],
                 ),
               ],
-            ] else ...[
-              // No diary entries this month
-              Center(
-                child: Container(
-                  padding: EdgeInsets.all(24),
-                  child: Column(
-                    children: [
-                      Icon(
-                        Icons.calendar_today,
-                        size: 48,
-                        color: Colors.grey[400],
-                      ),
-                      SizedBox(height: 8),
-                      Text(
-                        'Chưa có nhật ký nào trong tháng này',
-                        style: TextStyle(
-                          color: Colors.grey[600],
-                          fontSize: 14,
-                        ),
-                      ),
-                    ],
-                  ),
+            ]
+          ],
+        ),
+      ),
+    );
+  }
+  Widget _buildOutlinedButton({
+    required String label,
+    required IconData icon,
+    required Color color,
+    required Color borderColor,
+    required VoidCallback onTap,
+    required double scale,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(10 * scale), // Bo góc mềm hơn (8 -> 10)
+        child: Container(
+          padding: EdgeInsets.symmetric(horizontal: 12 * scale, vertical: 7 * scale),
+          decoration: BoxDecoration(
+            // 1. Nền không để trắng tinh mà pha chút màu nhẹ (5%)
+            color: color.withOpacity(0.04),
+            borderRadius: BorderRadius.circular(10 * scale),
+            // 2. Viền dày hơn xíu để rõ nét
+            border: Border.all(color: borderColor, width: 1.2),
+            // 3. ĐỔ BÓNG (KEY CHANGE): Tạo chiều sâu, hết phẳng
+            boxShadow: [
+              BoxShadow(
+                color: color.withOpacity(0.15), // Bóng màu xanh nhạt
+                offset: Offset(0, 3), // Bóng đổ xuống dưới
+                blurRadius: 6, // Độ mờ của bóng
+                spreadRadius: 0,
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Icon có thể thêm bóng nhẹ nếu thích cầu kỳ, ở đây giữ nguyên cho sạch
+              Icon(icon, size: 15 * scale, color: color),
+              SizedBox(width: 5 * scale),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 11 * scale,
+                  fontWeight: FontWeight.w700, // Chữ đậm hơn chút
+                  color: color,
+                  letterSpacing: 0.3, // Giãn chữ nhẹ cho sang
                 ),
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+
+// 2. Nút Tonal (Cập nhật)
+  Widget _buildTonalButton({
+    required String label,
+    required IconData icon,
+    required Color color,
+    required Color bgColor,
+    required Color borderColor,
+    required VoidCallback? onTap,
+    required double scale,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(10 * scale),
+      child: Container(
+        padding: EdgeInsets.symmetric(vertical: 10 * scale),
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(10 * scale),
+          border: Border.all(color: borderColor, width: 1),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 16 * scale, color: color),
+            SizedBox(width: 4 * scale),
+            Text(label, style: TextStyle(fontSize: 12 * scale, fontWeight: FontWeight.bold, color: color)),
           ],
         ),
       ),
     );
   }
 
+// 3. Nút Solid (Thêm mới)
+  Widget _buildSolidButton({
+    required String label,
+    required IconData icon,
+    required Color color,
+    required Color bgColor,
+    required Color borderColor,
+    required VoidCallback? onTap,
+    required double scale,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(10 * scale),
+      child: Container(
+        padding: EdgeInsets.symmetric(vertical: 10 * scale),
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(10 * scale),
+          border: Border.all(color: borderColor, width: 1),
+          boxShadow: [
+            BoxShadow(color: bgColor.withOpacity(0.3), offset: Offset(0, 3), blurRadius: 5),
+          ],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 16 * scale, color: color),
+            SizedBox(width: 4 * scale),
+            Text(label, style: TextStyle(fontSize: 12 * scale, fontWeight: FontWeight.bold, color: color)),
+          ],
+        ),
+      ),
+    );
+  }
+
+// 4. Widget Ảnh + Shimmer
+  Widget _buildBorderedImageWithShimmer(BuildContext context, String url, String label, double scale) {
+    return Column(
+      children: [
+        GestureDetector(
+          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => FullScreenImageViewer(imageUrl: url))),
+          child: AspectRatio(
+            aspectRatio: 1.0,
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(10 * scale),
+                border: Border.all(color: Colors.grey.shade300, width: 1),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(9 * scale),
+                child: CachedNetworkImage(
+                  imageUrl: url,
+                  fit: BoxFit.cover,
+                  placeholder: (context, url) => Shimmer.fromColors(
+                    baseColor: Colors.grey[300]!,
+                    highlightColor: Colors.grey[100]!,
+                    child: Container(color: Colors.white),
+                  ),
+                  errorWidget: (context, url, error) => Icon(Icons.broken_image, color: Colors.grey[300]),
+                ),
+              ),
+            ),
+          ),
+        ),
+        SizedBox(height: 4 * scale),
+        Text(label, style: TextStyle(fontSize: 10 * scale, fontWeight: FontWeight.w600, color: Colors.grey[600])),
+      ],
+    );
+  }
+
+// 5. Stat Item
+  Widget _buildStatItem(String label, String value, Color color, double scale) {
+    return Expanded(
+      child: Column(
+        children: [
+          Text(label, style: TextStyle(fontSize: 11 * scale, color: Colors.grey[500])),
+          SizedBox(height: 4 * scale),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.circle, size: 8 * scale, color: color),
+              SizedBox(width: 4 * scale),
+              Text(value, style: TextStyle(fontSize: 15 * scale, fontWeight: FontWeight.w800, color: Colors.black87)),
+            ],
+          )
+        ],
+      ),
+    );
+  }
+
+// 6. Status Tag
+  Widget _buildStatusTag(String text, int statusId, double scale) {
+    Color color;
+    if (statusId == 1 || text.toLowerCase().contains("sống") || text.toLowerCase().contains("tốt")) {
+      color = Colors.green;
+    } else if (statusId == 2 || text.toLowerCase().contains("ngủ")) {
+      color = Colors.blue;
+    } else {
+      color = Colors.red;
+    }
+
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 10 * scale, vertical: 3 * scale),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12 * scale),
+        border: Border.all(color: color.withOpacity(0.5)),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(fontSize: 11 * scale, color: color, fontWeight: FontWeight.bold),
+        maxLines: 1, overflow: TextOverflow.ellipsis,
+      ),
+    );
+  }
   Widget _buildEnvironmentSection() {
     return Card(
       child: Padding(
@@ -1363,7 +1686,17 @@ class _State extends State<PlantDetailScreen> {
         return Colors.grey.shade600;
     }
   }
-
+  Widget buildShimmerLoading() {
+    return Shimmer.fromColors(
+      baseColor: Colors.grey[300]!,      // Màu nền xám
+      highlightColor: Colors.grey[100]!, // Màu sáng lướt qua
+      child: Container(
+        color: Colors.white, // Cần một container có màu để shimmer hoạt động
+        width: double.infinity,
+        height: double.infinity,
+      ),
+    );
+  }
   Widget _buildInfoRow({
     required IconData icon,
     required String label,

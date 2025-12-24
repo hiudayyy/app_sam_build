@@ -1,14 +1,17 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:nftsam/api/api_caysam.dart';
 import 'package:nftsam/api/api_caytrong.dart';
 import 'package:nftsam/api/api_option.dart';
+import 'package:nftsam/models/message_enum.dart';
 import 'package:nftsam/models/vuontrong/losamcamera_model.dart';
 import 'package:nftsam/screens/plant_detail_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:shimmer/shimmer.dart';
 import '../api/api.dart';
 import '../core/constants/app_colors.dart';
 import '../models/caysamuser_model.dart';
@@ -21,6 +24,7 @@ import '../models/vuontrong/caysam_model.dart';
 import '../models/vuontrong/losam_model.dart';
 import '../models/vuontrong/losamchitiet_model.dart';
 import '../models/vuontrong/vuontrong_model.dart';
+import 'package:file_picker/file_picker.dart';
 
 import '../utils/app_dimensions.dart';
 import '../widgets/camera.dart';
@@ -70,6 +74,8 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
   OptionModel? _selectedtuoicay;
   OptionModel? _selectedTinhTrang;
   OptionModel? _selectedDiemSucKhoe;
+  String? _selectedFileName;
+  String? _selectedFilePath;
 
   @override
   void initState() {
@@ -457,168 +463,134 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
       ),
     );
   }
-  /*Widget _buildOverallStats() {
-    return Row(
-      children: [
-        Expanded(
-          child: _buildStatCard(
-            title: 'Tổng số cây',
-            value: selectedZone?.dienTich.toString() ?? "",
-            color: Colors.green[600]!,
-          ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: _buildStatCard(
-            title: 'Có nhà đầu tư',
-            value: plantStats.plantsWithInvestors.toString(),
-            color: Colors.blue[600]!,
-          ),
-        ),
-      ],
-    );
-  }*/
-
-  // ✅ HÀM _buildAgeGroupStats ĐÃ ĐƯỢỢC CẬP NHẬT
   Widget _buildAgeGroupStats(LoSamModel? lsmod) {
-    return Card(
-      elevation: 4,
-      shadowColor: Colors.black.withOpacity(0.08),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        // ✨ GIẢM PADDING ĐỂ GỌN HƠN
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        child: Column(
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Phân bố theo tuổi',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-                IconButton(
-                  onPressed: () {
-                    if (_futureLoSam != null) {
-                      _futureLoSam!.then((loSam) {
-                        if (loSam != null) {
-                          buildLoSamChiTiets();
-                        }
-                      });
-                    }
-                  },
-                  icon: const Icon(Icons.refresh_rounded, color: Colors.blue, size: 22),
-                  tooltip: "Làm mới",
-                  visualDensity: VisualDensity.compact,
-                ),
-              ],
-            ),
-            const Divider(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: _buildAgeGroupItem("assets/images/icon1t.png", '3 (Năm)',
-                      lsmod?.loSamChiTiets.sl(1), Colors.green),
-                ),
-                Expanded(
-                  child: _buildAgeGroupItem("assets/images/icon2xp.png", '6-7 (Năm)',
-                      lsmod?.loSamChiTiets.sl(2), Colors.teal),
-                ),
-                Expanded(
-                  child: _buildAgeGroupItem("assets/images/icon3t.png", '8-9 (Năm)',
-                      lsmod?.loSamChiTiets.sl(3), Colors.blue),
-                ),
-                Expanded(
-                  child: _buildAgeGroupItem("assets/images/icon4t.png", '>10 (Năm)',
-                      lsmod?.loSamChiTiets.sl(4), Colors.purple),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+    // Lấy chiều rộng màn hình
+    double screenWidth = MediaQuery.of(context).size.width;
 
-  Widget _buildAgeGroupItem(String iconPath, String label, int? count, Color color) {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        CircleAvatar(
-          radius: 20,
-          backgroundColor: color.withOpacity(0.1),
-          child: ImageIcon(
-            AssetImage(iconPath),
-            size: 20,
-            color: color,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          count?.toString() ?? '0',
-          style: const TextStyle(
-            fontSize: 18, // Nhỏ hơn
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          label,
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            // ✨ GIẢM KÍCH THƯỚC: Font chữ nhãn nhỏ hơn
-            fontSize: 11,
-            color: Colors.grey.shade600,
-          ),
-        ),
-      ],
-    );
-  }
+    // Scale factor: Giữ nguyên logic responsive
+    double scale = (screenWidth / 375).clamp(0.85, 1.3);
 
-
-  Widget _buildStatCard({
-    required String title,
-    required String value,
-    required Color color,
-  }) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      margin: EdgeInsets.symmetric(vertical: 4 * scale), // Margin bên ngoài cực nhỏ
+      padding: EdgeInsets.symmetric(horizontal: 12 * scale, vertical: 10 * scale), // Padding bên trong thắt chặt
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(12 * scale), // Bo góc nhỏ hơn (12)
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
+            color: Colors.grey.withOpacity(0.06), // Bóng mờ hơn để trông nhẹ nhàng
+            blurRadius: 6 * scale,
+            offset: Offset(0, 2 * scale),
           ),
         ],
       ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
-              color: color,
-            ),
+          // --- HEADER ---
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Phân bố theo tuổi',
+                style: TextStyle(
+                    fontSize: 13 * scale, // Font tiêu đề nhỏ (13)
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87
+                ),
+              ),
+              // Nút Refresh siêu nhỏ
+              SizedBox(
+                height: 24 * scale, // Giảm từ 30 xuống 24
+                width: 24 * scale,
+                child: IconButton(
+                  onPressed: () {
+                    if (_futureLoSam != null) {
+                      _futureLoSam!.then((loSam) {
+                        if (loSam != null) buildLoSamChiTiets();
+                      });
+                    }
+                  },
+                  icon: Icon(Icons.refresh_rounded, size: 16 * scale, color: Colors.blue),
+                  padding: EdgeInsets.zero,
+                  style: IconButton.styleFrom(
+                    backgroundColor: Colors.blue.withOpacity(0.1),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap, // Giúp nút nhận cảm ứng tốt dù nhỏ
+                  ),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 4),
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.grey[600],
-            ),
-            textAlign: TextAlign.center,
+
+          SizedBox(height: 8 * scale), // Khoảng cách Header - Body giảm xuống 8
+
+          // --- BODY ---
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildModernStatItem(
+                  "assets/images/icon1t.png", '3 năm', lsmod?.loSamChiTiets.sl(1), Colors.green, scale),
+              _buildModernStatItem(
+                  "assets/images/icon2xp.png", '6-7 năm', lsmod?.loSamChiTiets.sl(2), Colors.teal, scale),
+              _buildModernStatItem(
+                  "assets/images/icon3t.png", '8-9 năm', lsmod?.loSamChiTiets.sl(3), Colors.blue, scale),
+              _buildModernStatItem(
+                  "assets/images/icon4t.png", '>10 năm', lsmod?.loSamChiTiets.sl(4), Colors.purple, scale),
+            ],
           ),
         ],
       ),
     );
   }
+
+  Widget _buildModernStatItem(String iconPath, String label, dynamic count, Color color, double scale) {
+    String displayCount = (count == null) ? '0' : count.toString();
+
+    return Expanded(
+      child: Column(
+        children: [
+          // 1. Icon Container: Size 34 (Rất gọn)
+          Container(
+            height: 34 * scale,
+            width: 34 * scale,
+            padding: EdgeInsets.all(7 * scale), // Padding bên trong icon cũng giảm
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.4), // Độ đậm màu nền (bạn có thể chỉnh 0.4 hoặc 0.5 tùy mắt)
+              shape: BoxShape.circle,
+            ),
+            child: Image.asset(iconPath, fit: BoxFit.contain),
+          ),
+
+          SizedBox(height: 4 * scale), // Khoảng cách cực gần
+
+          // 2. Con số
+          Text(
+            displayCount,
+            style: TextStyle(
+              fontSize: 14 * scale, // Font số giảm xuống 14
+              fontWeight: FontWeight.w800, // Vẫn rất đậm
+              color: color,
+              height: 1.1,
+            ),
+          ),
+
+          // 3. Label
+          Text(
+            label,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 10 * scale, // Font chữ text giảm xuống 10
+              fontWeight: FontWeight.w500,
+              color: Colors.grey[600],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
 
   Widget _buildCurrentLevelContent() {
     switch (currentLevel) {
@@ -724,12 +696,13 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
                       'Quản lý Trang trại',
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.bold,
+                        fontSize: MediaQuery.of(context).size.width * 0.05,
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       'Hiện có ${farmsWithPlantsData?.length ?? 0} trang trại',
-                      style: TextStyle(color: Colors.grey[600]),
+                      style: TextStyle(color: Colors.grey[600],fontSize: MediaQuery.of(context).size.width * 0.03),
                     ),
                   ],
                 ),
@@ -737,12 +710,12 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
               if(user!.htTaiKhoan.htPhanQuyenTaiKhoans.any((pq) =>pq.maVaiTro != "nft_invester" && pq.maVaiTro == "nft_admin"))
                 ElevatedButton.icon(
                   onPressed: () => _showAddfarmDialog(),
-                  icon: const Icon(Icons.add, size: 18),
-                  label: const Text('Thêm vườn'),
+                  icon:  Icon(Icons.add,size: MediaQuery.of(context).size.width * 0.035),
+                  label: Text('Thêm vườn',style: TextStyle(fontSize: MediaQuery.of(context).size.width * 0.035),),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.green,
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                    padding: EdgeInsets.symmetric(horizontal: MediaQuery.of(context).size.width * 0.02, vertical: 0),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -814,12 +787,13 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
                           'Quản lý Lô Sâm',
                           style: Theme.of(context).textTheme.titleLarge?.copyWith(
                             fontWeight: FontWeight.bold,
+                            fontSize: MediaQuery.of(context).size.width * 0.05,
                           ),
                         ),
                         const SizedBox(height: 4),
                         Text(
                           'Các lô trong ${selectedFarm!.tenVuon}',
-                          style: TextStyle(color: Colors.grey[600]),
+                          style: TextStyle(color: Colors.grey[600],fontSize: MediaQuery.of(context).size.width * 0.03),
                         ),
                       ],
                     ),
@@ -828,14 +802,14 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
                   pq.maVaiTro != "nft_invester" && pq.maVaiTro == "nft_admin"))
                     ElevatedButton.icon(
                       onPressed: () => _showAddLoSamDialog(),
-                      icon: const Icon(Icons.add, size: 18),
-                      label: const Text('Thêm lô'),
+                      icon: Icon(Icons.add,size: MediaQuery.of(context).size.width * 0.035),
+                      label: Text('Thêm lô',style: TextStyle(fontSize: MediaQuery.of(context).size.width * 0.035)),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.green,
                         foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                        padding: EdgeInsets.symmetric(horizontal: MediaQuery.of(context).size.width * 0.02, vertical: 0),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(10),
                         ),
                       ),
                     ),
@@ -1048,20 +1022,14 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
               return SingleChildScrollView(
                 child: Column(
                   children: [
-                    _buildAgeGroupStats(loSam),
-                    const SizedBox(height: 16),
-                    Text(
-                      "${loSam?.tenLo ?? 'Chưa có'}",
-                      style: const TextStyle(
-                          fontWeight: FontWeight.w600, fontSize: 16),
-                    ),
-                    const SizedBox(height: 16),
                     _buildLegend(loSam,filteredPlants),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 8),
                     if (isMultiSelectMode) ...[
                       _buildMultiSelectControls(filteredPlants),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 8),
                     ],
+                    _buildAgeGroupStats(loSam),
+                    const SizedBox(height: 8),
                     _buildPlantGrid(filteredPlants, allPlantPositions),
                   ],
                 ),
@@ -1072,13 +1040,14 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
           return SingleChildScrollView(
             child: Column(
               children: [
-                _buildAgeGroupStats(loSam),
                 _buildLegend(loSam,[]),
-                const SizedBox(height: 16),
+                const SizedBox(height: 8),
                 if (isMultiSelectMode) ...[
                   _buildMultiSelectControls(areaPlants),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 8),
                 ],
+                _buildAgeGroupStats(loSam),
+                const SizedBox(height: 8),
                 _buildPlantGrid(areaPlants, allPlantPositions),
               ],
             ),
@@ -1112,7 +1081,7 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header (giữ nguyên)
+            // --- Header (Giữ nguyên) ---
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -1139,7 +1108,7 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
             ),
             const Divider(height: 24),
 
-            // Bộ lọc
+            // --- Bộ lọc (Giữ nguyên) ---
             const Text(
               'LỌC NHANH CÁC CÂY CHƯA CÓ NHẬT KÝ',
               style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey),
@@ -1152,10 +1121,7 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
               hint: const Text('1. Lọc theo tuổi cây'),
               decoration: InputDecoration(
                 prefixIcon: const Icon(Icons.filter_1_rounded),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
-                ),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
                 filled: true,
                 fillColor: Colors.grey.shade100,
                 contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -1174,84 +1140,79 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<OptionModel>(
-              key: ValueKey('tinh_trang_${_selectedTinhTrang}'),
-              value: _selectedTinhTrang,
-              hint: const Text('2. Lọc theo tình trạng'),
-              decoration: InputDecoration(
-                prefixIcon: const Icon(Icons.filter_2_rounded),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
+                key: ValueKey('tinh_trang_${_selectedTinhTrang}'),
+                value: _selectedTinhTrang,
+                hint: const Text('2. Lọc theo tình trạng'),
+                decoration: InputDecoration(
+                  prefixIcon: const Icon(Icons.filter_2_rounded),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                  filled: true,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  suffixIcon: _selectedTinhTrang != null
+                      ? IconButton(
+                    icon: const Icon(Icons.clear, size: 20),
+                    onPressed: () {
+                      setState(() {
+                        _selectedTinhTrang = null;
+                        _selectedDiemSucKhoe = null;
+                      });
+                      _applyFiltersAndSelectCells(areaPlants);
+                    },
+                  )
+                      : null,
                 ),
-                filled: true,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                suffixIcon: _selectedTinhTrang != null
-                    ? IconButton(
-                  icon: const Icon(Icons.clear, size: 20),
-                  onPressed: () {
-                    setState(() {
-                      _selectedTinhTrang = null;
-                      _selectedDiemSucKhoe = null;
-                    });
-                    _applyFiltersAndSelectCells(areaPlants);
-                  },
-                )
-                    : null,
-              ),
-              items: OptionLoSamTinhTrang.map((opt) {
-                return DropdownMenuItem<OptionModel>(value: opt, child: Text(opt.text));
-              }).toList(),
-              onChanged: (OptionModel? newValue) {
-                setState(() { _selectedTinhTrang = newValue; });
-                _applyFiltersAndSelectCells(areaPlants);
-              }
+                items: OptionLoSamTinhTrang.map((opt) {
+                  return DropdownMenuItem<OptionModel>(value: opt, child: Text(opt.text));
+                }).toList(),
+                onChanged: (OptionModel? newValue) {
+                  setState(() { _selectedTinhTrang = newValue; });
+                  _applyFiltersAndSelectCells(areaPlants);
+                }
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<OptionModel>(
-              // ✨ SỬA LỖI: Thêm một chuỗi định danh duy nhất vào key
-              key: ValueKey('suc_khoe_${_selectedDiemSucKhoe}'),
-              value: _selectedDiemSucKhoe,
-              hint: const Text('3. Lọc theo sức khỏe'),
-              decoration: InputDecoration(
-                prefixIcon: const Icon(Icons.filter_3_rounded),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
+                key: ValueKey('suc_khoe_${_selectedDiemSucKhoe}'),
+                value: _selectedDiemSucKhoe,
+                hint: const Text('3. Lọc theo sức khỏe'),
+                decoration: InputDecoration(
+                  prefixIcon: const Icon(Icons.filter_3_rounded),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                  filled: true,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  suffixIcon: _selectedDiemSucKhoe != null
+                      ? IconButton(
+                    icon: const Icon(Icons.clear, size: 20),
+                    onPressed: () {
+                      setState(() { _selectedDiemSucKhoe = null; });
+                      _applyFiltersAndSelectCells(areaPlants);
+                    },
+                  )
+                      : null,
                 ),
-                filled: true,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                suffixIcon: _selectedDiemSucKhoe != null
-                    ? IconButton(
-                  icon: const Icon(Icons.clear, size: 20),
-                  onPressed: () {
-                    setState(() { _selectedDiemSucKhoe = null; });
-                    _applyFiltersAndSelectCells(areaPlants);
-                  },
-                )
-                    : null,
-              ),
-              items: OptionLoSamDiemSucKhoe.reversed.map((opt) {
-                return DropdownMenuItem<OptionModel>(value: opt, child: Text(opt.text));
-              }).toList(),
-              onChanged: (OptionModel? newValue) {
-                setState(() { _selectedDiemSucKhoe = newValue; });
-                _applyFiltersAndSelectCells(areaPlants);
-              }
+                items: OptionLoSamDiemSucKhoe.reversed.map((opt) {
+                  return DropdownMenuItem<OptionModel>(value: opt, child: Text(opt.text));
+                }).toList(),
+                onChanged: (OptionModel? newValue) {
+                  setState(() { _selectedDiemSucKhoe = newValue; });
+                  _applyFiltersAndSelectCells(areaPlants);
+                }
             ),
             const SizedBox(height: 12),
+
+            // --- Hàng nút Bỏ chọn / Thêm nhật ký (Giữ nguyên) ---
             Row(
               children: [
                 Expanded(
-                  flex: 2, // Chiếm 2 phần
+                  flex: 2,
                   child: ElevatedButton.icon(
                     icon: const Icon(Icons.clear_all_rounded),
                     label: const Text('Bỏ chọn'),
                     onPressed: _clearSelection,
                     style: ElevatedButton.styleFrom(
-                      elevation: 0, // Nút phẳng
+                      elevation: 0,
                       backgroundColor: Colors.grey.shade200,
                       foregroundColor: Colors.grey.shade800,
-                      padding: const EdgeInsets.symmetric(vertical: 16), // Cùng padding dọc
+                      padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
                   ),
@@ -1268,7 +1229,7 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.green.shade600,
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 16), // Cùng padding dọc
+                      padding: const EdgeInsets.symmetric(vertical: 16),
                       textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       elevation: 4,
@@ -1301,12 +1262,103 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
                 ],
               ),
             ],
+            const SizedBox(height: 12),
+            _selectedFileName == null
+                ? SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: _pickPdfFile, // Gọi hàm chọn file
+                icon: const Icon(Icons.picture_as_pdf, color: Colors.redAccent),
+                label: const Text(
+                  'Tải file PDF',
+                  style: TextStyle(color: Colors.black87),
+                ),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  side: BorderSide(color: Colors.grey.shade300),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                  backgroundColor: Colors.white,
+                ),
+              ),
+            )
+                : Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.red.shade50,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.red.shade200),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.picture_as_pdf, color: Colors.redAccent),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          "File đã chọn:",
+                          style: TextStyle(fontSize: 10, color: Colors.grey),
+                        ),
+                        Text(
+                          _selectedFileName!,
+                          style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Colors.grey),
+                    onPressed: _clearSelectedFile, // Nút xóa để chọn lại
+                  )
+                ],
+              ),
+            ),
           ],
         ),
       ),
     );
   }
+  Future<void> _pickPdfFile() async {
+    try {
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['pdf'], // Chỉ cho phép chọn PDF
+      );
 
+      if (result != null) {
+        PlatformFile file = result.files.first;
+
+        setState(() {
+          _selectedFileName = file.name;
+          _selectedFilePath = file.path;
+        });
+
+        print("Đã chọn file: ${file.name}");
+        print("Đường dẫn: ${file.path}");
+
+        // TODO: Gọi API upload file ở đây nếu cần
+      } else {
+        // Người dùng hủy chọn
+        print("Hủy chọn file");
+      }
+    } catch (e) {
+      print("Lỗi chọn file: $e");
+    }
+  }
+
+// 3. Hàm xóa file đã chọn (nếu muốn chọn lại)
+  void _clearSelectedFile() {
+    setState(() {
+      _selectedFileName = null;
+      _selectedFilePath = null;
+    });
+  }
   // Widget _buildAreaInfo() {
   //   return Container(
   //     width: double.infinity,
@@ -1410,6 +1462,8 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
       }
       return false;
     });
+    final String? imageUrl = losam?.hinhAnh;
+    final bool hasImage = imageUrl != null && imageUrl.isNotEmpty;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -1439,16 +1493,50 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
             height: 200,
             decoration: BoxDecoration(
               color: Colors.grey.shade200,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.grey.shade300),
+              borderRadius: BorderRadius.circular(8), // Giữ nguyên bo góc
+              border: Border.all(color: Colors.grey.shade300), // Giữ nguyên viền
             ),
-            clipBehavior: Clip.hardEdge, // để bo góc ảnh theo borderRadius
-            child: Image.network(
-              losam?.hinhAnh ?? "",
-              fit: BoxFit.cover, // có thể đổi: contain, fill, cover
-              errorBuilder: (context, error, stackTrace) {
-                return const Center(child: Text("Không tải được ảnh"));
-              },
+            // Clip.hardEdge cực kỳ quan trọng để cắt Shimmer/Ảnh theo góc bo của Container
+            clipBehavior: Clip.hardEdge,
+            child: hasImage
+                ? CachedNetworkImage(
+              imageUrl: imageUrl!,
+              fit: BoxFit.cover,
+              width: double.infinity,
+              height: double.infinity,
+
+              // === HIỆU ỨNG SHIMMER KHI ĐANG TẢI ===
+              placeholder: (context, url) => Shimmer.fromColors(
+                baseColor: Colors.grey.shade300, // Màu nền xám đậm hơn chút
+                highlightColor: Colors.grey.shade100, // Màu vệt sáng lướt qua
+                child: Container(
+                  color: Colors.white, // Cần container màu trắng để hiệu ứng hiện lên
+                  width: double.infinity,
+                  height: double.infinity,
+                ),
+              ),
+
+              // === HIỂN THỊ KHI LỖI TẢI ẢNH ===
+              errorWidget: (context, url, error) => const Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.broken_image_outlined, color: Colors.grey),
+                    SizedBox(height: 4),
+                    Text("Lỗi tải ảnh", style: TextStyle(color: Colors.grey)),
+                  ],
+                ),
+              ),
+            )
+                : const Center(
+              // === HIỂN THỊ KHI DỮ LIỆU RỖNG ===
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.image_not_supported_outlined, color: Colors.grey),
+                  Text("Chưa có ảnh"),
+                ],
+              ),
             ),
           ),
           const SizedBox(height: 8),
@@ -1667,305 +1755,311 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
 
   Widget _buildPlantGrid(
       List<CaySamModel>? areaPlants, Set<String?> allPlantPositions) {
+
+    // KHÔNG tính toán kích thước ở đây nữa
+    // Ta sẽ tính toán bên trong LayoutBuilder
+
     return Container(
-      padding: EdgeInsets.all(AppDimensions.fontSizeExtraSmall),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
           ),
         ],
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Bản đồ Cây trồng - ${selectedZone!.tenLo}',
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          // Scroll ngang toàn bộ grid
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: SizedBox(
-              width: MediaQuery.of(context).size.width * 0.85,
-              child: Column(
+          // --- HEADER (Giữ nguyên) ---
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
                 children: [
-                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                        color: Colors.green[50],
+                        borderRadius: BorderRadius.circular(6)),
+                    child: Icon(Icons.grid_view_rounded,
+                        size: 18, color: Colors.green[700]),
+                  ),
+                  const SizedBox(width: 10),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('SƠ ĐỒ LUỐNG',
+                          style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.grey[500],
+                              letterSpacing: 1)),
+                      Text(selectedZone?.tenLo ?? 'Chưa chọn',
+                          style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.black87)),
+                    ],
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
 
-                  // Grid Rows
-                  ...gridRows.map((row) => Padding(
-                        padding: const EdgeInsets.only(bottom: 4),
-                        child: Row(
-                          children: [
-                            ...gridColumns.expand((col) {
-                              final position = '$col$row';
-                              final plant = areaPlants?.firstWhere(
+          // --- MAP CONTAINER (SỬ DỤNG LAYOUT BUILDER) ---
+          Container(
+            // Padding bên trong khung xám (quan trọng để tính toán)
+            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
+            decoration: BoxDecoration(
+              color: Colors.grey.withOpacity(0.02),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.grey.shade300),
+            ),
+            // Dùng LayoutBuilder để lấy chiều rộng THỰC TẾ
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                // 1. LẤY CHIỀU RỘNG THỰC CỦA KHUNG XÁM (Đã trừ padding 8px hai bên ở trên)
+                double availableWidth = constraints.maxWidth;
+
+                // 2. CẤU HÌNH KHOẢNG CÁCH CỐ ĐỊNH
+                // Lưu ý: Càng nhiều cột thì gap phải càng bé
+                const double gapSize = 3.0;      // Khoảng cách giữa các ô thường (rất nhỏ)
+                const double walkwaySize = 12.0; // Lối đi sau cột C (vừa đủ nhìn)
+                int totalCols = gridColumns.length; // Ví dụ: 6 cột
+                double totalSpacingWidth = ((totalCols - 2) * gapSize) + walkwaySize;
+
+                // Chiều rộng mỗi ô = (Tổng rộng - Tổng khoảng cách) / Số cột
+                double cellSize = (availableWidth - totalSpacingWidth) / totalCols;
+
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // --- 1. HEADER CỘT (A, B, C...) ---
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: Row(
+                        // MainAxisSize.min quan trọng để không bị giãn
+                        mainAxisSize: MainAxisSize.max,
+                        children: gridColumns.asMap().entries.map((entry) {
+                          int index = entry.key;
+                          String col = entry.value;
+
+                          // Widget hiển thị chữ A, B, C
+                          Widget headerCell = SizedBox(
+                            width: cellSize,
+                            child: Center(
+                              child: FittedBox( // Tự thu nhỏ font nếu ô quá bé
+                                fit: BoxFit.scaleDown,
+                                child: Text(col,
+                                    style: TextStyle(
+                                        fontWeight: FontWeight.w900,
+                                        color: Colors.blueGrey[400],
+                                        fontSize: 12)), // Font nhỏ lại chút
+                              ),
+                            ),
+                          );
+
+                          // Logic render khoảng cách (Header phải khớp Body)
+                          if (col == 'C') {
+                            return Row(children: [headerCell, SizedBox(width: walkwaySize)]);
+                          } else if (index == gridColumns.length - 1) {
+                            return headerCell; // Cột cuối không có gap
+                          } else {
+                            return Row(children: [headerCell, SizedBox(width: gapSize)]);
+                          }
+                        }).toList(),
+                      ),
+                    ),
+
+                    // --- 2. CÁC HÀNG CÂY ---
+                    ...gridRows.map((row) => Padding(
+                      padding: const EdgeInsets.only(bottom: 6), // Giảm padding dòng
+                      child: Row(
+                        mainAxisSize: MainAxisSize.max,
+                        children: gridColumns.asMap().entries.expand((entry) {
+                          int index = entry.key;
+                          String col = entry.value;
+                          final position = '$col$row';
+
+                          // --- LOGIC DATA CÂY (GIỮ NGUYÊN) ---
+                          final plant = areaPlants?.firstWhere(
                                 (p) => p.viTriTrongLo == position,
-                                orElse: () => CaySamModel(
-                                    loSam: '',
-                                    caySamId: '',
-                                    loSamId: 0,
-                                    viTriTrongLo: '',
-                                    tuoiCayId: 0,
-                                    caySamNhatKys: []),
-                              );
+                            orElse: () => CaySamModel(
+                                loSam: '', caySamId: '', loSamId: 0,
+                                viTriTrongLo: '', tuoiCayId: 0, caySamNhatKys: []),
+                          );
+                          final hasPlant = plant?.caySamId.isNotEmpty ?? false;
+                          final isSelected = plant?.caySamId == selectedPlant;
+                          final isCellSelected = selectedEmptyCells.contains(position);
+                          final ageIcon = _getPlantAgeIconPath(plant?.tuoiCayId ?? 0);
+                          final diemSK = (plant?.caySamNhatKys.isNotEmpty ?? false)
+                              ? plant!.caySamNhatKys.first?.diemSucKhoe : 0;
+                          final diemTT = (plant?.caySamNhatKys.isNotEmpty ?? false)
+                              ? plant!.caySamNhatKys.first?.tinhTrang : 0;
+                          Color statusColor = getTrangThaiColor(diemTT ?? 0);
 
-                              final hasPlant =
-                                  plant?.caySamId.isNotEmpty ?? false;
-                              final hasInvestor = plant?.loSamId != null;
-                              final isSelected =
-                                  plant?.caySamId == selectedPlant;
-                              final isCellSelected =
-                                  selectedEmptyCells.contains(position);
+                          // Màu sắc
+                          Color cellBgColor;
+                          Color borderColor;
+                          if (!hasPlant) {
+                            cellBgColor = Colors.grey.shade200;
+                            borderColor = Colors.white;
+                          } else {
+                            if (isMultiSelectMode && isCellSelected) {
+                              cellBgColor = Colors.green[600]!;
+                              borderColor = Colors.green[800]!;
+                            } else {
+                              cellBgColor = statusColor.withOpacity(0.2);
+                              borderColor = statusColor.withOpacity(0.6);
+                            }
+                          }
 
-                              // Tuổi cây
-                              // Chờ trạng thái cây
-                              final age = hasPlant
-                                  ? _calculatePlantAge(plant?.tuoiCayId ?? 0)
-                                  : 0;
-                              final ageIcon = _getPlantAgeIconPath(plant?.tuoiCayId ?? 0);
-                              final ageColor =
-                                  _getPlantAgeIconColor(plant?.tuoiCayId ?? 0);
-                              final now = DateTime.now();
-                              final diemSK = (plant?.caySamNhatKys.isNotEmpty ?? false)
-                                  ? plant!.caySamNhatKys.first?.diemSucKhoe
-                                  : 0;
-                              final diemTT = (plant?.caySamNhatKys.isNotEmpty ?? false)
-                                  ? plant!.caySamNhatKys.first?.tinhTrang
-                                  : 0;
-
-                              final cell = Expanded(
-                                child: AspectRatio(
-                                  aspectRatio: 1,
-                                  child: GestureDetector(
-                                    onTap: () {
-                                      HapticFeedback.lightImpact();
-
-                                      // Multi-select mode
-                                      if (isMultiSelectMode) {
-                                        if (hasPlant) {
-                                          if (plant!.caySamNhatKys.isNotEmpty) {
-                                            final ngayGhi = DateTime.parse(plant
-                                                    .caySamNhatKys
-                                                    .first
-                                                    ?.ngayGhi ??
-                                                ""); // parse về DateTime
-                                            final isTrongThang =
-                                                ngayGhi.month == now.month &&
-                                                    ngayGhi.year == now.year;
-                                            if (isTrongThang) {
-                                              ScaffoldMessenger.of(context)
-                                                  .showSnackBar(
-                                                SnackBar(
-                                                  content: Text(
-                                                      'Cây ở vị trí ${plant.viTriTrongLo} đã có nhật ký'),
-                                                  backgroundColor: Colors.red,
-                                                ),
-                                              );
-                                            } else {
-                                              _handleEmptyCellToggle(position);
-                                            }
-                                          }
-                                        }
-                                        return;
-                                      }
-                                      // Normal mode
-                                      if (!isMultiSelectMode) {
-                                        if (hasPlant) {
-                                          final selected =
-                                              areaPlants?.firstWhere(
-                                            (p) =>
-                                                p.caySamId == plant?.caySamId,
-                                            orElse: () => CaySamModel(
-                                              caySamId: '',
-                                              loSamId: 0,
-                                              viTriTrongLo: '',
-                                              tuoiCayId: 0,
-                                              caySamNhatKys: [],
-                                            ),
-                                          );
-
-                                          if (selected != null &&
-                                              selected.caySamId.isNotEmpty) {
-                                            Navigator.push(
-                                              context,
-                                              MaterialPageRoute(
-                                                builder: (_) =>
-                                                    PlantDetailScreen(
-                                                  plant: selected,
-                                                  onBack: () {
-                                                    setState(() {
-                                                      _reloadData();
-                                                    });
-                                                    Navigator.pop(context);
-                                                  },
-                                                ),
-                                              ),
-                                            );
-                                          }
-                                        } else {
-                                          if(user!.htTaiKhoan.htPhanQuyenTaiKhoans.any((pq) =>
-                                          pq.maVaiTro != "nft_invester" && pq.maVaiTro == "nft_admin")){
-                                            _showAddPlantDialog(position);
-                                          }
-                                        }
-                                      }
-                                    },
-                                    child: Container(
-                                      margin: const EdgeInsets.symmetric(
-                                          horizontal: 2),
-                                      decoration: BoxDecoration(
-                                        color: (!hasPlant)
-                                            ? Colors.grey[100]
-                                            : (isMultiSelectMode
-                                                ? (isCellSelected
-                                                    ? Colors.green[400]
-                                                    : Colors.grey[200])
-                                                : getTrangThaiColor(diemTT ?? 0)),
-                                        borderRadius: BorderRadius.circular(4),
-                                        border: Border.all(
-                                          color: isSelected
-                                              ? Colors.blue
-                                              : hasPlant
-                                                  ? Colors.transparent
-                                                  : Colors.grey[100]!,
-                                          width: isSelected ? 2 : 1,
-                                        ),
-                                      ),
-                                      child: Stack(
-                                        children: [
-                                          Center(
-                                            child: hasPlant
-                                                ? Column(
-                                                    mainAxisAlignment:
-                                                        MainAxisAlignment
-                                                            .center,
-                                                    children: [
-                                                      // Icon(ageIcon,
-                                                      //     color: ageColor,
-                                                      //     size: MediaQuery.of(
-                                                      //                 context)
-                                                      //             .size
-                                                      //             .width *
-                                                      //         0.05),
-                                          ImageIcon(
-                                          AssetImage(ageIcon),
-                                      size: 32,
-                                      color: getDiemSKColor(diemSK ?? 0), // có thể đổi màu
-                                    ),
-                                                      const SizedBox(height: 2),
-                                                      Text(
-                                                        position,
-                                                        style: TextStyle(
-                                                          color: (isMultiSelectMode
-                                                              ? (isCellSelected
-                                                                  ? Colors.white
-                                                                  : Colors.grey[
-                                                                      600])
-                                                              : Colors.black),
-                                                          fontSize: 8,
-                                                          fontWeight:
-                                                              FontWeight.bold,
-                                                        ),
-                                                      ),
-                                                    ],
-                                                  )
-                                                : Text(
-                                                    position,
-                                                    style: TextStyle(
-                                                      color: Colors.grey[400],
-                                                      fontSize: 8,
-                                                      fontWeight:
-                                                          FontWeight.w500,
-                                                    ),
-                                                  ),
+                          // --- WIDGET Ô CÂY ---
+                          final cell = GestureDetector(
+                            onTap: () {
+                              // ... (LOGIC ONTAP GIỮ NGUYÊN CỦA BẠN) ...
+                              // Copy logic onTap cũ vào đây
+                              HapticFeedback.selectionClick();
+                              if (isMultiSelectMode) {
+                                if (hasPlant && plant!.caySamNhatKys.isNotEmpty) {
+                                  final ngayGhi = DateTime.parse(plant.caySamNhatKys.first?.ngayGhi ?? "");
+                                  final now = DateTime.now();
+                                  if (ngayGhi.month == now.month && ngayGhi.year == now.year) {
+                                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Đã có nhật ký tháng này'), backgroundColor: Colors.orange));
+                                  } else {
+                                    _handleEmptyCellToggle(position);
+                                  }
+                                }
+                                return;
+                              }
+                              if (!isMultiSelectMode) {
+                                if (hasPlant) {
+                                  final selected = areaPlants?.firstWhere((p) => p.caySamId == plant?.caySamId, orElse: () => CaySamModel(caySamId: '', loSamId: 0, viTriTrongLo: '', tuoiCayId: 0, caySamNhatKys: []));
+                                  if (selected != null && selected.caySamId.isNotEmpty) {
+                                    Navigator.push(context, MaterialPageRoute(builder: (_) => PlantDetailScreen(plant: selected, onBack: () { setState(() { _reloadData(); }); Navigator.pop(context); })));
+                                  }
+                                } else {
+                                  if(user!.htTaiKhoan.htPhanQuyenTaiKhoans.any((pq) => pq.maVaiTro != "nft_invester" && pq.maVaiTro == "nft_admin")) _showAddPlantDialog(position);
+                                }
+                              }
+                            },
+                            child: Container(
+                              width: cellSize,  // Dùng size đã tính
+                              height: cellSize, // Vuông
+                              decoration: BoxDecoration(
+                                color: cellBgColor,
+                                borderRadius: BorderRadius.circular(6), // Bo góc nhỏ
+                                border: isSelected
+                                    ? Border.all(color: Colors.blueAccent, width: 2)
+                                    : Border.all(color: borderColor, width: 1),
+                              ),
+                              child: Stack(
+                                children: [
+                                  Center(
+                                    child: hasPlant
+                                        ? Column(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        // Icon lá
+                                        Flexible( // Để tránh lỗi overflow dọc
+                                          child: ImageIcon(
+                                            AssetImage(ageIcon),
+                                            size: cellSize * 0.6, // Tỷ lệ theo ô
+                                            color: getDiemSKColor(diemSK ?? 0),
                                           ),
-                                          if (plant?.caySamNhatKys != null &&
-                                              plant!.caySamNhatKys.isNotEmpty)
-                                            () {
-                                              final ngayGhiStr = plant
-                                                  .caySamNhatKys.first?.ngayGhi;
-                                              if (ngayGhiStr == null ||
-                                                  ngayGhiStr.isEmpty)
-                                                return const SizedBox();
-
-                                              // parse string -> DateTime
-                                              final ngayGhi =
-                                                  DateTime.tryParse(ngayGhiStr);
-                                              if (ngayGhi == null)
-                                                return const SizedBox();
-
-                                              // so sánh tháng & năm
-                                              if (ngayGhi.month ==
-                                                      DateTime.now().month &&
-                                                  ngayGhi.year ==
-                                                      DateTime.now().year) {
-                                                return Positioned(
-                                                  bottom: 2,
-                                                  right: 2,
-                                                  child: Container(
-                                                    width: 12,
-                                                    height: 12,
-                                                    decoration: BoxDecoration(
-                                                      color: Colors
-                                                          .orange.shade500,
-                                                      shape: BoxShape.circle,
-                                                      border: Border.all(
-                                                          color: Colors.white,
-                                                          width: 1),
-                                                    ),
-                                                    child: const Icon(
-                                                      Icons.menu_book,
-                                                      size: 8,
-                                                      color: Colors.white,
-                                                    ),
-                                                  ),
-                                                );
-                                              }
-
-                                              return const SizedBox();
-                                            }(),
-                                          // if (hasPlant && hasInvestor)
-                                          //   Positioned(
-                                          //     top: 2,
-                                          //     right: 2,
-                                          //     child: Container(
-                                          //       width: 8,
-                                          //       height: 8,
-                                          //       decoration: BoxDecoration(
-                                          //         color: Colors.blue[500],
-                                          //         shape: BoxShape.circle,
-                                          //         border: Border.all(color: Colors.white, width: 1),
-                                          //       ),
-                                          //     ),
-                                          //   ),
-                                        ],
+                                        ),
+                                        // Tên vị trí (A1)
+                                        FittedBox( // Tự thu nhỏ chữ
+                                          fit: BoxFit.scaleDown,
+                                          child: Text(
+                                            position,
+                                            style: const TextStyle(
+                                              color: Colors.black87,
+                                              fontSize: 8, // Font bé
+                                              fontWeight: FontWeight.w800,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    )
+                                        : FittedBox(
+                                      fit: BoxFit.scaleDown,
+                                      child: Text(
+                                        position,
+                                        style: const TextStyle(
+                                          color: Colors.black54,
+                                          fontSize: 9,
+                                          fontWeight: FontWeight.w600,
+                                        ),
                                       ),
                                     ),
                                   ),
-                                ),
-                              );
+                                  // ... Badge Nhật ký & Checkmark (Giữ nguyên logic cũ) ...
+                                  if (plant?.caySamNhatKys != null && plant!.caySamNhatKys.isNotEmpty)
+                                        () {
+                                      final ngayGhiStr = plant.caySamNhatKys.first?.ngayGhi;
+                                      if (ngayGhiStr != null) {
+                                        final ngayGhi = DateTime.tryParse(ngayGhiStr);
+                                        final now = DateTime.now();
+                                        if (ngayGhi != null && ngayGhi.month == now.month && ngayGhi.year == now.year) {
+                                          return Positioned(
+                                            top: 1, right: 1,
+                                            child: Container(
+                                              padding: const EdgeInsets.all(1),
+                                              decoration: BoxDecoration(
+                                                color: Colors.orange[800],
+                                                shape: BoxShape.circle,
+                                                border: Border.all(color: Colors.white, width: 1),
+                                              ),
+                                              child: const Icon(Icons.edit, size: 6, color: Colors.white),
+                                            ),
+                                          );
+                                        }
+                                      }
+                                      return const SizedBox();
+                                    }(),
 
-                              // 👉 Nếu col == 'C' thì thêm đường đi (SizedBox)
-                              if (col == 'C') {
-                                return [cell, const SizedBox(width: 16)];
-                              } else {
-                                return [cell];
-                              }
-                            }),
-                          ],
-                        ),
-                      )),
-                ],
-              ),
+                                  if (isMultiSelectMode && isCellSelected)
+                                    Center(child: Icon(Icons.check_circle, color: Colors.white, size: 16)),
+                                ],
+                              ),
+                            ),
+                          );
+
+                          // --- RENDER KHOẢNG CÁCH (LOGIC MỚI) ---
+                          if (col == 'C') {
+                            // Lối đi
+                            return [
+                              cell,
+                              SizedBox(
+                                width: walkwaySize,
+                                child: Center(
+                                  child: Container(
+                                    width: walkwaySize, height: 3,
+                                    decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(1.5)),
+                                  ),
+                                ),
+                              )
+                            ];
+                          } else if (index == gridColumns.length - 1) {
+                            // Cột cuối cùng -> KHÔNG CÓ GAP
+                            return [cell];
+                          } else {
+                            // Gap thường
+                            return [cell, SizedBox(width: gapSize)];
+                          }
+                        }).toList(),
+                      ),
+                    )),
+                  ],
+                );
+              },
             ),
           ),
         ],
@@ -1989,7 +2083,6 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
     if (plant == null || plant.caySamId.isEmpty) {
       return const SizedBox();
     }
-
     final age = _calculatePlantAge(plant.tuoiCayId ?? 0);
     final ageGroup = _getPlantAgeGroup(age);
 
@@ -2266,17 +2359,18 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
   void _handleFarmSubmit(VuonTrongModel model) async {
     final response = await API().addVuonTrong( model: model);
     if (response != null) {
-      if (response.message == "OK") {
+      if (response.messCode == MessCode.IsOK) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Vườn đã được tạo thành công!'),
             backgroundColor: Colors.green,
           ),
         );
-        Navigator.of(context).pop();
         setState(() {
-          _reloadData();
+          _initializeData();
         });
+        Navigator.of(context).pop();
+
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -2316,7 +2410,7 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
     );
 
     if (response != null) {
-      if (response.message == "OK") {
+      if (response.messCode == MessCode.IsOK) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Lô sâm đã được tạo thành công!'),
@@ -2351,7 +2445,7 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
 
     final response = await API().editVuonTrong(model: model);
     if (response != null) {
-      if (response.message == "") {
+      if (response.messCode == MessCode.IsOK) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Chỉnh sửa thành công!'),
@@ -2533,7 +2627,7 @@ Color getDiemSKColor(int trangThaiId) {
 Color getTrangThaiColor(int status) {
   switch (status) {
     case 1:
-      return AppColors.PRIMARY['lighter']!; // 🌿 Sống
+      return Colors.green[200]!; // 🌿 Sống
     case 2:
       return Colors.blue[200]!; // ❄️ Ngủ đông
     case 3:

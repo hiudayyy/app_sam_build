@@ -16,7 +16,6 @@ import '../services/signalr_service.dart';
 
 class AuthProvider extends ChangeNotifier {
   final api = API();
- // User? _user;
   UserModel? _usermodel;
   Kttoken? _kttoken;
   bool _isLoading = true;
@@ -25,7 +24,6 @@ class AuthProvider extends ChangeNotifier {
   AuthProvider() {
     _checkStoredUser();
   }
-  //User? get user => _user;
   UserModel? get user => _usermodel;
   bool get isAuthenticated => _usermodel != null;
   bool get isLoading => _isLoading;
@@ -37,7 +35,6 @@ class AuthProvider extends ChangeNotifier {
     try {
       _usermodel = updatedTokenData.htTaiKhoan;
       final prefs = await SharedPreferences.getInstance();
-      // Lưu ý: Phải encode cả object Kttoken (chứa cả token và user info)
       await prefs.setString('ginseng_user', jsonEncode(updatedTokenData.toJson()));
       notifyListeners();
     } catch (e) {
@@ -67,7 +64,7 @@ class AuthProvider extends ChangeNotifier {
       notifyListeners();
       final user = await api.login(credentials);
       if(user == null){
-        _error = user?.message;
+        _error = "Lỗi API";
         _usermodel = null;
       }else if(user.messCode == MessCode.IsOK){
         _usermodel = user.oneItem?.htTaiKhoan;
@@ -89,32 +86,96 @@ class AuthProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
+  // Future<void> resetTokenAu(Kttoken credentials) async {
+  //   try {
+  //     _isLoading = true;
+  //     _error = null;
+  //     notifyListeners();
+  //     final user = await api.resetToken(credentials);
+  //     if(user == null){
+  //       _error = user?.message;
+  //       _usermodel = null;
+  //     }else if(user.messCode == MessCode.IsOK){
+  //       _usermodel = user.oneItem?.htTaiKhoan;
+  //     }else{
+  //       _error = user.message;
+  //       _usermodel = null;
+  //     }
+  //   } catch (e) {
+  //     if (e is SocketException) {
+  //       _error = e.message;
+  //     } else if (e is ClientException) {
+  //       _error = e.message;
+  //     } else {
+  //       _error = "Lỗi không xác định!";
+  //     }
+  //     _usermodel = null;
+  //   } finally {
+  //     _isLoading = false;
+  //     notifyListeners();
+  //   }
+  // }
+  Future<void> resetTokenAu(Kttoken credentials) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners(); // Báo UI hiện loading ngay lập tức
 
-  Future<void> logout() async {
     try {
-      String _userKey = 'ginseng_user';
+      final response = await api.resetToken(credentials);
+
+      // 1. Xử lý trường hợp Response bị null (lỗi kết nối hoặc parse lỗi)
+      if (response == null) {
+        _error = "Không nhận được phản hồi từ hệ thống.";
+        _usermodel = null;
+        return; // Dừng hàm tại đây, nhảy xuống finally
+      }
+
+      // 2. Kiểm tra MessCode
+      if (response.messCode == MessCode.IsOK) {
+        _usermodel = response.oneItem?.htTaiKhoan;
+
+      } else {
+        _error = response.message ?? "Có lỗi xảy ra nhưng không có thông báo.";
+        _usermodel = null;
+      }
+
+    } catch (e) {
+      // 4. Phân loại lỗi Exception
+      if (e is SocketException) {
+        _error = "Lỗi kết nối mạng. Vui lòng kiểm tra lại đường truyền.";
+      } else if (e is ClientException) {
+        _error = "Lỗi kết nối máy chủ: ${e.message}";
+      } else {
+        _error = "Lỗi không xác định: $e";
+      }
+      _usermodel = null;
+    } finally {
+      // 5. Luôn tắt loading
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+  Future<void> logout() async {
+    _error = null;
+    try {
+      const String _userKey = 'ginseng_user';
       final prefs = await SharedPreferences.getInstance();
-
-      // Lấy chuỗi JSON đã lưu
       String? userJson = prefs.getString(_userKey);
-      if (userJson == null) return null; // chưa login lần nào
-
-      // Parse lại thành UserModel
+      if (userJson == null) {
+        return;
+      }
       final Map<String, dynamic> json = jsonDecode(userJson);
       final user = Kttoken.fromJson(json);
-      if(user.authenticateToken == ""){
-        _error = "Có lỗi xảy ra!";
-        return null;
+      if (user.authenticateToken == "") {
+        return;
       }
       await api.Logout(user);
+    } catch (e) {
+      _error = e.toString();
+    } finally {
       SignalRService().disconnect();
       await AuthService.logout();
       _usermodel = null;
-    //  _user = null;
-      _error = null;
-      notifyListeners();
-    } catch (e) {
-      _error = e.toString();
       notifyListeners();
     }
   }
@@ -135,12 +196,7 @@ class AuthProvider extends ChangeNotifier {
 
     }
   }
-  // bool hasPermission(Permission permission) {
-  //   return AuthService.hasPermission(_user, permission);
-  // }
-
   bool hasRole(UserRole role) {
-    //return AuthService.hasRole(_user, role);
     return AuthService.hasRolemodel(_kttoken, role);
   }
 

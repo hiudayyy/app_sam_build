@@ -6,8 +6,6 @@ import '../models/nhat_ky.dart';
 import '../models/user.dart';
 import '../widgets/protected_route.dart';
 import 'batch_diary_update_screen.dart';
-import '../providers/auth_provider.dart';
-import 'package:provider/provider.dart';
 
 class DiaryManagementScreen extends StatefulWidget {
   @override

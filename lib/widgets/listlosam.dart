@@ -45,7 +45,7 @@ class _DanhSachLoSamPageState extends State<DanhSachLoSamPage> {
     setState(() => _isLoading = true);
 
     final res = await API().listLoSam(status: "1",skip: _skip, top: _pageSize);
-    final newItems = res ?? [];
+    final newItems = (res ?? []).where((item) => item.trangThai == 1).toList();
 
     setState(() {
       _items.addAll(newItems);

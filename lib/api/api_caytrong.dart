@@ -104,8 +104,6 @@ extension APIExtension on API {
         // 🔹 Xử lý kết quả
         if (response.statusCode == 200) {
           final responseJson = jsonDecode(response.body);
-
-          // parse thẳng như listVuonTrong
           final data = ApiResponse<VuonTrongModel>.fromJson(
             responseJson,
                 (json) => VuonTrongModel.fromJson(json),

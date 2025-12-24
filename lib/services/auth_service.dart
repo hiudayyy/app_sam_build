@@ -4,6 +4,7 @@ import 'package:nftsam/models/user_model.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../api/api.dart';
 import '../models/kttoken.dart';
+import '../models/message_enum.dart';
 import '../models/user.dart';
 
 class AuthService {
@@ -16,45 +17,94 @@ class AuthService {
   }
 
   // Get stored user
+  // static Future<UserModel?> getStoredUser() async {
+  //   final api = API();
+  //   try {
+  //     final prefs = await SharedPreferences.getInstance();
+  //
+  //     // Lấy chuỗi JSON đã lưu
+  //     String? userJson = prefs.getString(_userKey);
+  //     if (userJson == null) return null; // chưa login lần nào
+  //
+  //     // Parse lại thành UserModel
+  //     final Map<String, dynamic> json = jsonDecode(userJson);
+  //     final user = Kttoken.fromJson(json);
+  //     if(user.authenticateToken == ""){
+  //       return null;
+  //     }
+  //     // Kiểm tra expiredAuthenticateToken
+  //     final expiredStr = user.expiredAuthenticateToken;
+  //     if (expiredStr.isNotEmpty) {
+  //       final expired = parseCustomDate(expiredStr);
+  //
+  //       if (expired != null) {
+  //         if (DateTime.now().isBefore(expired)) {
+  //           // Token còn hạn
+  //           return user.htTaiKhoan;
+  //         } else {
+  //           final newData = await api.resetToken(user); // Gọi hàm API bạn đã sửa
+  //
+  //           if (newData != null && newData.messCode == MessCode.IsOK) {
+  //             // Refresh thành công -> Trả về User MỚI
+  //             return newData.oneItem?.htTaiKhoan;
+  //           } else {
+  //             await prefs.remove(_userKey);
+  //             await logout();
+  //             return null;
+  //           }
+  //
+  //         }
+  //       }
+  //     }
+  //     return user.htTaiKhoan;
+  //   } catch (e) {
+  //     // Clear corrupted data
+  //     await logout();
+  //     return null;
+  //   }
+  // }
+
+  // Check role
   static Future<UserModel?> getStoredUser() async {
     final api = API();
     try {
       final prefs = await SharedPreferences.getInstance();
-
-      // Lấy chuỗi JSON đã lưu
       String? userJson = prefs.getString(_userKey);
-      if (userJson == null) return null; // chưa login lần nào
-
-      // Parse lại thành UserModel
+      if (userJson == null) return null;
       final Map<String, dynamic> json = jsonDecode(userJson);
-      final user = Kttoken.fromJson(json);
-      if(user.authenticateToken == ""){
+      final userWrapper = Kttoken.fromJson(json);
+      if (userWrapper.authenticateToken == "") {
+        await prefs.remove(_userKey);
         return null;
       }
-      // Kiểm tra expiredAuthenticateToken
-      final expiredStr = user.expiredAuthenticateToken;
+      final expiredStr = userWrapper.expiredAuthenticateToken;
       if (expiredStr.isNotEmpty) {
         final expired = parseCustomDate(expiredStr);
-
         if (expired != null) {
-          if (DateTime.now().isBefore(expired)) {
-            // Token còn hạn
-            return user.htTaiKhoan;
-          } else {
-            // Token hết hạn -> xoá user khỏi prefs
-            api.resetToken(user);
+          if (DateTime.now().isAfter(expired)) {
+            print("Token hết hạn, đang làm mới...");
+            final newData = await api.resetToken(userWrapper);
+            if (newData != null && newData.messCode == MessCode.IsOK) {
+              String newUserJson = jsonEncode(newData);
+              await prefs.setString(_userKey, newUserJson);
+              print("Làm mới token thành công và đã lưu.");
+              return newData.oneItem?.htTaiKhoan;
+            } else {
+              print("Làm mới token thất bại -> Logout.");
+              await prefs.remove(_userKey);
+              return null;
+            }
           }
         }
       }
-      return user.htTaiKhoan;
+      return userWrapper.htTaiKhoan;
     } catch (e) {
-      // Clear corrupted data
-      await logout();
+      print("Lỗi khi lấy user stored: $e");
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_userKey);
       return null;
     }
   }
-
-  // Check role
   static bool hasRole(User? user, UserRole role) {
     return user?.role == role;
   }

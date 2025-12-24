@@ -18,7 +18,9 @@ class FullScreenImageViewer extends StatelessWidget {
                 tag: imageUrl,
                 child: Image.network(
                   imageUrl,
-                  fit: BoxFit.contain,
+                  fit: BoxFit.fill,
+                  width: double.infinity,
+                  height: double.infinity,
                   errorBuilder: (context, error, stackTrace) {
                     return Container(
                       color: Colors.grey[900],

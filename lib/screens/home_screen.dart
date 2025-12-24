@@ -3,6 +3,7 @@ import 'dart:convert'; // Bổ sung
 import 'dart:io';
 
 import 'package:app_links/app_links.dart';
+import 'package:flutter_nfc_kit/flutter_nfc_kit.dart';
 import 'package:nftsam/api/api_caysam.dart';
 import 'package:nftsam/models/vuontrong/caysam_model.dart';
 import 'package:nftsam/models/vuontrong/losam_model.dart';
@@ -17,6 +18,7 @@ import '../main.dart'; // Bổ sung (để lấy navigatorKey)
 import '../models/user_model.dart';
 import '../services/nfc_service.dart';
 import '../services/signalr_service.dart';
+import '../widgets/lazyIndexedStack.dart';
 import 'add_plant_screen.dart';
 import 'dashboard_screen.dart';
 import 'diary_management_screen.dart';
@@ -129,28 +131,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     });
   }
 
-  void _handleBatchDiaryUpdate() {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => BatchDiaryUpdateScreen(
-          onCancel: () => Navigator.of(context).pop(),
-          onSubmit: (data) {
-            print('Batch diary update: $data');
-            Navigator.of(context).pop();
-            // Here would integrate with backend to update multiple plants
-          },
-        ),
-      ),
-    );
-  }
-
   @override
   void initState() {
     super.initState();
     _currentTab = widget.tabcurrent == 2 ? NavTab.plants : NavTab.dashboard;
     WidgetsBinding.instance.addObserver(this);
-    NfcService.startNfcSession(context);
-    _initDeepLinkListener();
+    // NfcService.startNfcSession(context);
+     _initDeepLinkListener();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
         if (mounted) {
@@ -248,43 +235,39 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     }
   }
 
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
-      NfcService.startNfcSession(context);
-    } else if (state == AppLifecycleState.paused) {
-      NfcService.stopNfcSession();
-    }
-  }
+  // @override
+  // void didChangeAppLifecycleState(AppLifecycleState state) {
+  //   if (state == AppLifecycleState.resumed) {
+  //     NfcService.startNfcSession(context);
+  //   } else if (state == AppLifecycleState.paused) {
+  //     NfcService.stopNfcSession();
+  //   }
+  // }
 
   // Gọi hàm này trong initState()
+  Uri? _lastProcessedUri;
+
   Future<void> _initDeepLinkListener() async {
+    // --- 1. Xử lý COLD START (App đang tắt -> Mở App) ---
     try {
       final Uri? initialUri = await _appLinks.getInitialLink();
       if (initialUri != null) {
-        print('🚀 [Cold Start] App mở từ NFC/Link: $initialUri');
-        if (!mounted) return;
-        NfcService.processDeepLinkUri(initialUri, context);
+        print('🚀 Deep Link (Cold Start): $initialUri');
+
+        // [QUAN TRỌNG] Lưu lại link này là "đã xử lý"
+        _lastProcessedUri = initialUri;
+
+        if (mounted) {
+          NfcService.processDeepLinkUri(initialUri, context);
+        }
       }
     } catch (e) {
-      print('Lỗi getInitialLink: $e');
+      print('⚠️ Lỗi lấy Initial Link: $e');
     }
-
-    // ---------------------------------------------------------
-    // PHẦN 2: Xử lý App ĐANG CHẠY (Foreground / Background) - Code của bạn
-    // ---------------------------------------------------------
-    _linkSubscription = _appLinks.uriLinkStream.listen((Uri? uri) {
-      if (!mounted) return;
-      if (uri != null) {
-        print('✅ [Stream] Nhận link khi đang trong app: $uri');
-        NfcService.processDeepLinkUri(uri, context);
-      }
-    }, onError: (Object err) {
-      if (!mounted) return;
-      print('Lỗi Deep Link Stream: $err');
-    });
   }
-
+  Future<void> _startManualNfcScan(BuildContext context) async {
+    NfcService.startNfcSession(context);
+  }
   @override
   void dispose() {
     // QUAN TRỌNG: Hủy đăng ký observer
@@ -414,13 +397,53 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               ],
             ),
             actions: [
+              // --- NÚT QUÉT NFC MỚI THÊM VÀO ---
+              Container(
+                margin: const EdgeInsets.symmetric(vertical: 8), // Căn chỉnh cho đẹp
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade100, // Nền nhẹ cho nút
+                  shape: BoxShape.circle,
+                ),
+                child: IconButton(
+                  tooltip: "Quét thẻ NFC",
+                  icon: Icon(
+                    Icons.nfc_outlined, // Hoặc Icons.sensors
+                    color: Colors.green.shade700, // Màu xanh theo tông thương hiệu
+                    size: 24,
+                  ),
+                  onPressed: () {
+                    // Gọi hàm quét thủ công tại đây
+                    _startManualNfcScan(context);
+                  },
+                ),
+              ),
+
+              SizedBox(width: 8), // Khoảng cách giữa nút NFC và Avatar
+
               Padding(
                 padding: EdgeInsets.only(right: 8),
                 child: UserProfile(),
               ),
             ],
           ),
-          body: _getScreenForTab(_currentTab),
+          //body: _getScreenForTab(_currentTab),
+          body: LazyIndexedStack( // <--- Đổi thành widget này
+            index: _currentTab.index,
+            children: [
+              // Tab 1: Dashboard (Vẫn giữ AutomaticKeepAliveClientMixin bên trong nó nhé)
+              ProtectedRoute(
+                requiredPermission: Permission.viewDashboard,
+                fallback: AccessDenied(feature: 'Tổng quan'),
+                child: DashboardScreen(plants: MockData.mockPlants),
+              ),
+
+              // Tab 2: Plants
+              PlantManagementViewScreen(key: plantScreenKey),
+
+              // Tab 3...
+              // Tab 4...
+            ],
+          ),
 
           // CRITICAL: Only show bottom navigation if user has available tabs
           // This mirrors React logic exactly
