@@ -132,6 +132,7 @@ class _DiaryListScreenState extends State<DiaryListScreen> {
     }
   }
 
+
   @override
   Widget build(BuildContext context) {
     double screenWidth = MediaQuery.of(context).size.width;
@@ -150,7 +151,7 @@ class _DiaryListScreenState extends State<DiaryListScreen> {
               bottom: 20 * scale,
             ),
             decoration: BoxDecoration(
-                gradient: LinearGradient(
+                gradient: const LinearGradient(
                   colors: [Color(0xFF2E7D32), Color(0xFF66BB6A)],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
@@ -160,7 +161,7 @@ class _DiaryListScreenState extends State<DiaryListScreen> {
                   bottomRight: Radius.circular(24 * scale),
                 ),
                 boxShadow: [
-                  BoxShadow(color: Colors.green.withOpacity(0.3), blurRadius: 10, offset: Offset(0, 4))
+                  BoxShadow(color: Colors.green.withOpacity(0.3), blurRadius: 10, offset: const Offset(0, 4))
                 ]
             ),
             child: Column(
@@ -171,7 +172,7 @@ class _DiaryListScreenState extends State<DiaryListScreen> {
                       icon: Icon(Icons.arrow_back, color: Colors.white, size: 24 * scale),
                       onPressed: widget.onBack,
                       padding: EdgeInsets.zero,
-                      constraints: BoxConstraints(),
+                      constraints: const BoxConstraints(),
                     ),
                     SizedBox(width: 12 * scale),
                     Expanded(
@@ -218,7 +219,7 @@ class _DiaryListScreenState extends State<DiaryListScreen> {
                       children: [
                         Text(widget.plant.maCaySam ?? "N/A",
                             style: TextStyle(color: Colors.white, fontSize: 16 * scale, fontWeight: FontWeight.w800)),
-                        Text("Mã định danh", style: TextStyle(color: Colors.white70, fontSize: 12 * scale)),
+                        const Text("Mã định danh", style: TextStyle(color: Colors.white70, fontSize: 12)),
                       ],
                     ),
                   ],
@@ -232,7 +233,7 @@ class _DiaryListScreenState extends State<DiaryListScreen> {
             child: FutureBuilder<List<CaySamNhatKy>>(
               future: _diaryFuture,
               builder: (context, snapshot) {
-                if (snapshot.hasError) return Center(child: Text("Lỗi tải dữ liệu"));
+                if (snapshot.hasError) return const Center(child: Text("Lỗi tải dữ liệu"));
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
                 }
@@ -259,7 +260,7 @@ class _DiaryListScreenState extends State<DiaryListScreen> {
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(16 * scale),
                           boxShadow: [
-                            BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 15, offset: Offset(0, 5))
+                            BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 15, offset: const Offset(0, 5))
                           ],
                         ),
                         child: Row(
@@ -284,7 +285,7 @@ class _DiaryListScreenState extends State<DiaryListScreen> {
                         _buildEmptyState(scale)
                       else
                         ListView.builder(
-                          physics: NeverScrollableScrollPhysics(),
+                          physics: const NeverScrollableScrollPhysics(),
                           shrinkWrap: true,
                           padding: EdgeInsets.zero,
                           itemCount: diaryEntries.length,
@@ -293,8 +294,11 @@ class _DiaryListScreenState extends State<DiaryListScreen> {
                             final healthInfo = healthColors[entry.diemSucKhoe] ?? healthColors[5]!;
                             final bool isLast = index == diaryEntries.length - 1;
 
-                            // [MỚI] Gọi hàm xử lý dữ liệu sensor cho mỗi item
-                            final envInfo = _processSensorData(entry.caySamNhatKy_SensorReadings);
+                            // --- [FIX AN TOÀN] Lấy sensor đầu tiên ---
+                            final sensorList = entry.caySamNhatKy_SensorReadings;
+                            final firstSensor = (sensorList != null && sensorList.isNotEmpty)
+                                ? sensorList.first
+                                : null;
 
                             return IntrinsicHeight(
                               child: Row(
@@ -324,7 +328,7 @@ class _DiaryListScreenState extends State<DiaryListScreen> {
                                   ),
 
                                   // 2. Cột Timeline
-                                  Container(
+                                  SizedBox(
                                     width: 30 * scale,
                                     child: Column(
                                       children: [
@@ -342,7 +346,7 @@ class _DiaryListScreenState extends State<DiaryListScreen> {
                                           Expanded(
                                             child: Container(
                                               width: 2,
-                                              margin: EdgeInsets.symmetric(vertical: 4),
+                                              margin: const EdgeInsets.symmetric(vertical: 4),
                                               color: Colors.grey.shade300,
                                             ),
                                           )
@@ -358,7 +362,7 @@ class _DiaryListScreenState extends State<DiaryListScreen> {
                                         color: Colors.white,
                                         borderRadius: BorderRadius.circular(12 * scale),
                                         boxShadow: [
-                                          BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 6, offset: Offset(0, 3))
+                                          BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 6, offset: const Offset(0, 3))
                                         ],
                                       ),
                                       child: ClipRRect(
@@ -414,10 +418,12 @@ class _DiaryListScreenState extends State<DiaryListScreen> {
                                                         ],
                                                       ),
 
-                                                      // --- [MỚI] PHẦN HIỂN THỊ SENSOR ---
-                                                      // Chỉ hiển thị nếu có ít nhất 1 thông số có dữ liệu
-                                                      if (envInfo.temp != "N/A" || envInfo.humidity != "N/A" || envInfo.soil != "N/A")
-                                                        _buildSensorInfo(envInfo, scale),
+                                                      // --- [MỚI - ĐÃ SỬA LỖI] PHẦN HIỂN THỊ SENSOR ---
+                                                      if (firstSensor != null &&
+                                                          ((firstSensor.nhietDo ?? 0) != 0 ||
+                                                              (firstSensor.doAmKK ?? 0) != 0 ||
+                                                              (firstSensor.doAmDat ?? 0) != 0))
+                                                        _buildSensorInfo(firstSensor, scale),
 
                                                       SizedBox(height: 8 * scale),
                                                       Divider(height: 1, color: Colors.grey.shade200),
@@ -490,22 +496,32 @@ class _DiaryListScreenState extends State<DiaryListScreen> {
   }
 
   // --- WIDGET CON: HIỂN THỊ THÔNG SỐ SENSOR ---
-  Widget _buildSensorInfo(SensorDisplayInfo info, double scale) {
+  Widget _buildSensorInfo(caySamNhatKy_SensorReading? info, double scale) {
+    if (info == null) return SizedBox();
+
+    // Helper function để lấy giá trị text an toàn
+    String getValue(dynamic val, String unit) {
+      if (val == null) return "0$unit";
+      // Ép sang num rồi sang double để an toàn cho cả int và double
+      return "${(val as num).toDouble().toStringAsFixed(1)}$unit"; // Lấy 1 số thập phân
+      // Nếu muốn số nguyên thì dùng: return "${(val as num).round()}$unit";
+    }
+
     return Container(
       margin: EdgeInsets.only(top: 8 * scale, bottom: 4 * scale),
       padding: EdgeInsets.symmetric(horizontal: 8 * scale, vertical: 8 * scale),
       decoration: BoxDecoration(
-        color: Colors.blueGrey.withOpacity(0.05), // Nền nhạt
+        color: Colors.blueGrey.withOpacity(0.05),
         borderRadius: BorderRadius.circular(8 * scale),
         border: Border.all(color: Colors.blueGrey.withOpacity(0.1)),
       ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround, // Chia đều không gian
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _buildMiniSensorItem(Icons.thermostat_rounded, "${info.temp}°C", info.tempColor, scale),
-          _buildMiniSensorItem(Icons.water_drop_rounded, "${info.humidity}%", info.humColor, scale),
-          _buildMiniSensorItem(Icons.grass_rounded, "${info.soil}%", info.soilColor, scale),
-          _buildMiniSensorItem(Icons.opacity_rounded, "${info.dew}°C", info.dewColor, scale),
+          _buildMiniSensorItem(Icons.thermostat_rounded, getValue(info.nhietDo, "°C"), Colors.orange, scale),
+          _buildMiniSensorItem(Icons.water_drop_rounded, getValue(info.doAmKK, "%"), Colors.blue, scale),
+          _buildMiniSensorItem(Icons.grass_rounded, getValue(info.doAmDat, "%"), Colors.brown, scale),
+          _buildMiniSensorItem(Icons.opacity_rounded, getValue(info.diemSuong, "°C"), Colors.cyan, scale),
         ],
       ),
     );

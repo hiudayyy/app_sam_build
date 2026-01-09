@@ -172,95 +172,11 @@ class _State extends State<PlantDetailScreen> {
     'soilMoisture': {'value': 'N/A', 'status': 'Chưa rõ', 'min': 100, 'max': 200},
     'dewPoint': {'value': 'N/A', 'status': 'Chưa rõ', 'min': 15, 'max': 25},
   };
-  void _checkAndUpdateStatus({
-    required Map<String, dynamic>? statusEntry,
-    required double value,
-    required String highStatus,
-    required String lowStatus,
-  }) {
-    if (statusEntry == null) return;
-    final double min = (statusEntry['min'] as num).toDouble();
-    final double max = (statusEntry['max'] as num).toDouble();
-    statusEntry['value'] = value.toStringAsFixed(1);
-    if (value > max) {
-      statusEntry['status'] = highStatus;
-    } else if (value < min) {
-      statusEntry['status'] = lowStatus;
-    } else {
-      statusEntry['status'] = 'tốt';
-    }
-  }
-  void updateEnvironmentData(List<caySamNhatKy_SensorReading>? sensors) {
-    setState(() {
-      environmentStatus = {
-        'temperature': {'value': 'N/A', 'status': 'tốt', 'min': 0, 'max': 50},
-        'humidity': {'value': 'N/A', 'status': 'tốt', 'min': 50, 'max': 80},
-        'soilMoisture': {'value': 'N/A', 'status': 'tốt', 'min': 80, 'max': 90},
-        'dewPoint': {'value': 'N/A', 'status': 'tốt', 'min': 0, 'max': 50},
-      };
-      if (sensors != null) {
-        for (var sensor in sensors) {
-          try {
-            if(sensor.jsonValue != ""){
-              final Map<String, dynamic> data = jsonDecode(sensor.jsonValue);
-              if (data.containsKey('A1')) {
-                final double rawValue = (data['A1'] as num).toDouble();
-                // print(rawValue);
-                // print(sensor.maxValueSS);
-                // print(sensor.minValueSS);
-                // final double percentageValue = (sensor.maxValueSS - rawValue) * 100 / (sensor.maxValueSS - sensor.minValueSS);
-                final double percentageValue = rawValue;
-                _checkAndUpdateStatus(
-                  statusEntry: environmentStatus['soilMoisture'],
-                  value: percentageValue,
-                  highStatus: 'thừa ẩm',
-                  lowStatus: 'khô',
-                );
-              }
 
-              if (data.containsKey('Temperature')) {
-                final double temp = (data['Temperature'] as num).toDouble();
-                _checkAndUpdateStatus(
-                  statusEntry: environmentStatus['temperature'],
-                  value: temp,
-                  highStatus: 'nóng',
-                  lowStatus: 'lạnh',
-                );
-              }
-              if (data.containsKey('Humidity')) {
-                final double humidity = (data['Humidity'] as num).toDouble();
-                _checkAndUpdateStatus(
-                  statusEntry: environmentStatus['humidity'],
-                  value: humidity,
-                  highStatus: 'ẩm',
-                  lowStatus: 'khô',
-                );
-              }
-
-              if (data.containsKey('DewPoint')) {
-                final double dewPoint = (data['DewPoint'] as num).toDouble();
-
-                _checkAndUpdateStatus(
-                  statusEntry: environmentStatus['dewPoint'],
-                  value: dewPoint,
-                  highStatus: 'cao',
-                  lowStatus: 'thấp',
-                );
-              }
-            }
-
-          } catch (e) {
-            print('Lỗi phân tích JSON cho sensor ');
-          }
-        }
-      }
-    });
-  }
   @override
   Widget build(BuildContext context) {
     final currentMonthEntries = getCurrentMonthDiaryEntries();
     final latestEntry = getLatestDiaryEntry(currentMonthEntries);
-    updateEnvironmentData(latestEntry?.caySamNhatKy_SensorReadings);
 
     // Calculate monthly statistics
     final totalEntries = currentMonthEntries.length;
@@ -932,11 +848,16 @@ class _State extends State<PlantDetailScreen> {
     double screenWidth = MediaQuery.of(context).size.width;
     double scale = (screenWidth / 375.0).clamp(0.85, 1.15);
 
-    // --- PARSE DỮ LIỆU MÔI TRƯỜNG ---
-    double temp = double.tryParse(environmentStatus['temperature']?['value']?.toString() ?? "0") ?? 0.0;
-    double dewPoint = double.tryParse(environmentStatus['dewPoint']?['value']?.toString() ?? "0") ?? 0.0;
-    double humidity = double.tryParse(environmentStatus['humidity']?['value']?.toString() ?? "0") ?? 0.0;
-    double soilMoisture = double.tryParse(environmentStatus['soilMoisture']?['value']?.toString() ?? "0") ?? 0.0;
+    // --- PARSE DỮ LIỆU MÔI TRƯỜNG AN TOÀN ---
+    // Kiểm tra xem danh sách có dữ liệu không, nếu không có thì mặc định là 0
+    final bool hasSensors = latestEntry?.caySamNhatKy_SensorReadings != null &&
+        latestEntry!.caySamNhatKy_SensorReadings!.isNotEmpty;
+
+    // Sử dụng giá trị từ phần tử đầu tiên nếu có, ngược lại gán bằng 0
+    double temp = hasSensors ? (latestEntry.caySamNhatKy_SensorReadings!.first.nhietDo ?? 0.0) : 0.0;
+    double dewPoint = hasSensors ? (latestEntry.caySamNhatKy_SensorReadings!.first.diemSuong ?? 0.0) : 0;
+    double humidity = hasSensors ? (latestEntry.caySamNhatKy_SensorReadings!.first.doAmKK ?? 0) : 0;
+    double soilMoisture = hasSensors ? (latestEntry.caySamNhatKy_SensorReadings!.first.doAmDat ?? 0) : 0;
 
     // --- LOGIC TÌNH TRẠNG CÂY ---
     String statusValue = latestEntry?.tinhTrang.toString() ?? "-1";
@@ -963,7 +884,7 @@ class _State extends State<PlantDetailScreen> {
         padding: EdgeInsets.all(16 * scale),
         child: Column(
           children: [
-            // === 1. HEADER: THỜI GIAN & NÚT LỊCH SỬ ===
+            // === 1. HEADER (Giữ nguyên) ===
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1012,6 +933,7 @@ class _State extends State<PlantDetailScreen> {
               ],
             ),
 
+            // === 2. NÚT ADMIN ACTION ===
             if (user?.htTaiKhoan.htPhanQuyenTaiKhoans.any(
                   (pq) => pq.maVaiTro != "nft_invester" && pq.maVaiTro == "nft_admin",
             ) ?? false) ...[
@@ -1046,9 +968,12 @@ class _State extends State<PlantDetailScreen> {
                 ],
               ),
             ],
+
             SizedBox(height: 16 * scale),
+
+            // === 3. CHỈ SỐ MÔI TRƯỜNG ===
             Container(
-              padding: EdgeInsets.symmetric(horizontal: 12 * scale, vertical: 10 * scale), // Giảm padding dọc của Container
+              padding: EdgeInsets.symmetric(horizontal: 12 * scale, vertical: 10 * scale),
               decoration: BoxDecoration(
                 color: Colors.blueGrey.shade50.withOpacity(0.5),
                 borderRadius: BorderRadius.circular(12 * scale),
@@ -1071,31 +996,27 @@ class _State extends State<PlantDetailScreen> {
                       ),
                     ],
                   ),
-                  SizedBox(height: 8 * scale), // Giảm khoảng cách từ tiêu đề xuống grid
+                  SizedBox(height: 8 * scale),
                   GridView.count(
                     padding: EdgeInsets.zero,
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
                     crossAxisCount: 2,
-                    // Tăng tỉ lệ này để thu hẹp chiều cao mỗi hàng (Càng lớn hàng càng khít)
                     childAspectRatio: 3.2,
-                    mainAxisSpacing: 4 * scale, // Giảm tối đa khoảng cách giữa hàng trên và hàng dưới
+                    mainAxisSpacing: 4 * scale,
                     crossAxisSpacing: 8 * scale,
                     children: [
-                      _buildEnvItem(Icons.thermostat_rounded, "Nhiệt độ", "${temp.toStringAsFixed(1)}°C", Colors.orange, scale),
-                      _buildEnvItem(Icons.water_drop_rounded, "Độ ẩm khí", "${humidity.toStringAsFixed(0)}%", Colors.blue, scale),
-                      _buildEnvItem(Icons.opacity_rounded, "Điểm sương", "${dewPoint.toStringAsFixed(1)}°C", Colors.cyan, scale),
-                      _buildEnvItem(Icons.grass_rounded, "Độ ẩm đất", "${soilMoisture.toStringAsFixed(0)}%", Colors.brown, scale),
+                      _buildEnvItem(Icons.thermostat_rounded, "Nhiệt độ", "${temp % 1 == 0 ? temp.toInt() : temp}°C", Colors.orange, scale),
+                      _buildEnvItem(Icons.water_drop_rounded, "Độ ẩm khí", "${humidity % 1 == 0 ? humidity.toInt() : humidity}%", Colors.blue, scale),
+                      _buildEnvItem(Icons.opacity_rounded, "Điểm sương","${dewPoint % 1 == 0 ? dewPoint.toInt() : dewPoint}°C", Colors.cyan, scale),
+                      _buildEnvItem(Icons.grass_rounded, "Độ ẩm đất", "${soilMoisture % 1 == 0 ? soilMoisture.toInt() : soilMoisture}%", Colors.brown, scale),
                     ],
                   ),
                 ],
               ),
             ),
 
-            // === 3. NÚT ĐIỀU KHIỂN (CẬP NHẬT / THÊM MỚI) ===
-
-
-            // === 4. CHỈ SỐ CỦA CÂY (KHI CÓ DỮ LIỆU) ===
+            // === 4. CHỈ SỐ SINH TRƯỞNG CỦA CÂY ===
             if (latestEntry != null) ...[
               SizedBox(height: 16 * scale),
               Container(

@@ -149,32 +149,50 @@ class caySamNhatKy_SensorReading {
   int id;
   int idNhatKy;
   String caySamNhatKy;
-  int idSensor;
-  String jsonValue;
+  double doAmDat;
+  double nhietDo;
+  double doAmKK;
+  double diemSuong;
   String thoiGian;
 
 
 
   caySamNhatKy_SensorReading({
-    required this.id,
-    required this.idNhatKy,
-    required this.caySamNhatKy,
-    required this.idSensor,
-    required this.jsonValue,
-    required this.thoiGian
+     this.id = 0,
+     this.idNhatKy = 0,
+     this.caySamNhatKy = "",
+     this.doAmDat = 0.0,
+     this.nhietDo = 0.0,
+     this.doAmKK = 0.0,
+     this.diemSuong = 0.0,
+     this.thoiGian = ""
   });
+
 
   factory caySamNhatKy_SensorReading.fromJson(Map<String, dynamic> json) {
     return caySamNhatKy_SensorReading(
       id: json['id'] ?? 0,
       idNhatKy: json['idNhatKy'] ?? 0,
       caySamNhatKy: json['caySamNhatKy'] ?? '',
-      idSensor: json['idSensor'] ?? 0,
-      jsonValue: json['jsonValue'] ?? '',
+      doAmDat: (json['doAmDat'] as num?)?.toDouble() ?? 0.0,
+      nhietDo: (json['nhietDo'] as num?)?.toDouble() ?? 0.0,
+      doAmKK: (json['doAmKK'] as num?)?.toDouble() ?? 0.0,
+      diemSuong: (json['diemSuong'] as num?)?.toDouble() ?? 0.0,
       thoiGian: json['thoiGian'] ?? '',
     );
   }
-
+  factory caySamNhatKy_SensorReading.defaultValues() {
+    return caySamNhatKy_SensorReading(
+      doAmDat: 0,
+      nhietDo: 0,
+      doAmKK: 0,
+      diemSuong: 0,
+      id: 0,
+      idNhatKy: 0,
+      caySamNhatKy: '',
+      thoiGian: '',
+    );
+  }
   // Map<String, dynamic> toJson() {
   //   return {
   //     'sensorId': sensorId,
