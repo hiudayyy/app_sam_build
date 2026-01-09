@@ -1,3 +1,5 @@
+import 'cay_sam.dart';
+
 class CaySamNhatKy {
   final int id;
   final String? caySamId;
@@ -10,6 +12,7 @@ class CaySamNhatKy {
   final int diemSucKhoe;
   final int tinhTrang; // giữ nguyên int
   final String? ghiChu;
+  final List<caySamNhatKy_SensorReading>? caySamNhatKy_SensorReadings;
 
   CaySamNhatKy({
     required this.id,
@@ -23,6 +26,7 @@ class CaySamNhatKy {
     required this.diemSucKhoe,
     required this.tinhTrang,
     this.ghiChu,
+    this.caySamNhatKy_SensorReadings
   });
 
   factory CaySamNhatKy.fromJson(Map<String, dynamic> json) {
@@ -38,6 +42,10 @@ class CaySamNhatKy {
       diemSucKhoe: json['diemSucKhoe'] as int,
       tinhTrang: json['tinhTrang'] as int,
       ghiChu: json['ghiChu'] as String?,
+      caySamNhatKy_SensorReadings: (json['caySamNhatKy_SensorReadings'] as List<dynamic>? ?? [])
+          .where((e) => e != null)
+          .map((e) => caySamNhatKy_SensorReading.fromJson(e as Map<String, dynamic>))
+          .toList(),
     );
   }
 

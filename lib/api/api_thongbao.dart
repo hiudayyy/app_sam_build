@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/kttoken.dart';
 import '../models/response_model.dart';
 import '../models/thongbao_model.dart';
+import '../services/auth_service.dart';
 import 'api.dart';
 
 extension APIExtension on API {
@@ -14,6 +15,7 @@ extension APIExtension on API {
     int? top,
     List<String>? orderBy,
     List<String>? searchBy,
+    bool isRetry = false
   }) async {
     String linkURL = "${host}api/ThongBao/ListThongBao";
 
@@ -57,7 +59,19 @@ extension APIExtension on API {
               (json) => ThongBaoModel.fromJson(json),
         );
         return data;
-      } else {
+      }else if (response.statusCode == 401) {
+        if (!isRetry) {
+          var newUser = await await AuthService.getStoredUser();
+          if (newUser != null) {
+            return await listThongBao(isRetry: true);
+          } else {
+            return null;
+          }
+        } else {
+          return null;
+        }
+      }
+      else {
         print("Lỗi API listThongBao: ${response.statusCode} - ${response.body}");
         return null;
       }
@@ -95,9 +109,9 @@ extension APIExtension on API {
       };
       final response = await http.get(uri, headers: headers);
       if (response.statusCode == 200) {
-        print('Đã cập nhật trạng thái xem cho thông báo ID: $id');
         return true;
-      } else {
+      }
+      else {
         print("Lỗi API seenThongBao: ${response.statusCode} - ${response.body}");
         return false;
       }
@@ -108,7 +122,7 @@ extension APIExtension on API {
     }
   }
 
-  Future<ApiResponse<ThongBaoModel>?> seenThongBaoAll() async {
+  Future<ApiResponse<ThongBaoModel>?> seenThongBaoAll({bool isRetry = false}) async {
     String linkURL = "${host}api/ThongBao/SeenThongBaoAll";
 
     final uri = Uri.parse(linkURL);
@@ -143,7 +157,19 @@ extension APIExtension on API {
               (json) => ThongBaoModel.fromJson(json),
         );
         return data;
-      } else {
+      }else if (response.statusCode == 401) {
+        if (!isRetry) {
+          var newUser = await await AuthService.getStoredUser();
+          if (newUser != null) {
+            return await seenThongBaoAll(isRetry: true);
+          } else {
+            return null;
+          }
+        } else {
+          return null;
+        }
+      }
+      else {
         print("Lỗi API Sennalltb: ${response.statusCode} - ${response.body}");
         return null;
       }

@@ -3,6 +3,7 @@ import 'dart:convert'; // Bổ sung
 import 'dart:io';
 
 import 'package:app_links/app_links.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_nfc_kit/flutter_nfc_kit.dart';
 import 'package:nftsam/api/api_caysam.dart';
 import 'package:nftsam/models/vuontrong/caysam_model.dart';
@@ -124,7 +125,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     });
   }
 
-  void _handleAddPlantSubmit(Map<String, dynamic> plantData, List<File?> image) {
+  void _handleAddPlantSubmit(Map<String, dynamic> plantData, List<File?> image,String? caysamid) {
     print('New plant added: $plantData');
     setState(() {
       _showAddPlantForm = false;
@@ -335,6 +336,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
         // Get available tabs based on user permissions
         final maVaiTros = authProvider.user?.htPhanQuyenTaiKhoans ?? [];
+        final double scale = MediaQuery.of(context).size.width / 375.0;
 
         final availableTabs = maVaiTros
             .map((v) => RoleUtils.toUserRole(v.maVaiTro)) // convert id → UserRole
@@ -397,31 +399,48 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               ],
             ),
             actions: [
-              // --- NÚT QUÉT NFC MỚI THÊM VÀO ---
               Container(
-                margin: const EdgeInsets.symmetric(vertical: 8), // Căn chỉnh cho đẹp
+                width: 34 * scale,
+                height: 34 * scale,
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade100, // Nền nhẹ cho nút
+                  color: Colors.white,
                   shape: BoxShape.circle,
-                ),
-                child: IconButton(
-                  tooltip: "Quét thẻ NFC",
-                  icon: Icon(
-                    Icons.nfc_outlined, // Hoặc Icons.sensors
-                    color: Colors.green.shade700, // Màu xanh theo tông thương hiệu
-                    size: 24,
+                  border: Border.all(
+                    color: Colors.green.shade200,
+                    width: 1.2 * scale,
                   ),
-                  onPressed: () {
-                    // Gọi hàm quét thủ công tại đây
-                    _startManualNfcScan(context);
-                  },
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.green.withOpacity(0.15),
+                      blurRadius: 6 * scale,
+                      offset: Offset(0, 3 * scale),
+                    ),
+                  ],
+                ),
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    customBorder: const CircleBorder(),
+                    onTap: () {
+                      // Hiệu ứng rung nhẹ khi chạm (tăng cảm giác thao tác)
+                      HapticFeedback.lightImpact();
+                      _startManualNfcScan(context);
+                    },
+                    // Màu phản hồi khi nhấn (Ripple effect)
+                    splashColor: Colors.green.withOpacity(0.2),
+                    child: Icon(
+                      Icons.nfc, // Icon sóng hiện đại, gọn gàng
+                      color: Colors.green.shade700,
+                      size: 20 * scale, // Icon cũng lớn dần theo màn hình
+                    ),
+                  ),
                 ),
               ),
 
-              SizedBox(width: 8), // Khoảng cách giữa nút NFC và Avatar
+              SizedBox(width: 2),
 
               Padding(
-                padding: EdgeInsets.only(right: 8),
+                padding: EdgeInsets.only(right: 4),
                 child: UserProfile(),
               ),
             ],

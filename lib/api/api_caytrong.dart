@@ -9,6 +9,7 @@ import '../models/response_model.dart';
 import '../models/user_model.dart';
 import '../models/vuontrong/losam_model.dart';
 import '../models/vuontrong/vuontrong_model.dart';
+import '../services/auth_service.dart';
 import '../services/local_service.dart';
 import 'api.dart';
 
@@ -17,7 +18,7 @@ extension APIExtension on API {
     Future<List<VuonTrongModel>?> listVuonTrong({
       int? status, // 1: Sử dụng, 2: Tạm ngưng, 3: Không sử dụng
       int? take,
-      int? skip,
+      int? skip,bool isRetry = false
     }) async {
       String linkURL = "${host}api/VuonTrong/ListVuonTrong";
       final uri = Uri.parse(linkURL).replace(queryParameters: {
@@ -58,7 +59,19 @@ extension APIExtension on API {
           );
           print(data.items?.first.tenVuon);
           return data.items;
-        } else {
+        }else if (response.statusCode == 401) {
+          if (!isRetry) {
+            var newUser = await await AuthService.getStoredUser();
+            if (newUser != null) {
+              return await listVuonTrong(isRetry: true);
+            } else {
+              return null;
+            }
+          } else {
+            return null;
+          }
+        }
+        else {
           print("Lỗi API vt: ${response.statusCode} - ${response.body}");
           return null;
         }

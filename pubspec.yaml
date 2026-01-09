@@ -2,7 +2,7 @@ name: nftsam
 description: "A new Flutter project."
 publish_to: 'none'
 
-version: 1.0.0+1
+version: 1.0.0+3
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -51,6 +51,9 @@ dependencies:
   cached_network_image: ^3.3.0
   video_player: ^2.7.0
   shimmer: ^3.0.0
+  #URl
+#  url_launcher: ^6.3.2
+  flutter_cached_pdfview: ^0.4.2
 
   # Sensors & IoT
   sensors_plus: ^6.1.2   # nâng từ 4.0.x lên bản mới

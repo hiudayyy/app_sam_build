@@ -183,14 +183,15 @@ class NfcService {
         if (Platform.isAndroid) {
           // Android: Cần 2s để phần cứng reset sau khi mở Deep Link
           await Future.delayed(const Duration(seconds: 2));
-        } else {
-          // iOS: Chỉ cần delay cực ngắn (0.5s) để UI App load xong hoàn toàn
-          // giúp bảng quét NFC hiện lên mượt mà hơn, không bị giật.
-          await Future.delayed(const Duration(milliseconds: 500));
         }
-        try {
-          await FlutterNfcKit.finish();
-        } catch (_) {}
+        // } else {
+        //   // iOS: Chỉ cần delay cực ngắn (0.5s) để UI App load xong hoàn toàn
+        //   // giúp bảng quét NFC hiện lên mượt mà hơn, không bị giật.
+        //   await Future.delayed(const Duration(milliseconds: 500));
+        // }
+        // try {
+        //   await FlutterNfcKit.finish();
+        // } catch (_) {}
 
         // Bắt đầu quét mới
         var tag = await FlutterNfcKit.poll(

@@ -145,3 +145,44 @@ extension TrangThaiCayExtension on TrangThaiCay {
     }
   }
 }
+class caySamNhatKy_SensorReading {
+  int id;
+  int idNhatKy;
+  String caySamNhatKy;
+  int idSensor;
+  String jsonValue;
+  String thoiGian;
+
+
+
+  caySamNhatKy_SensorReading({
+    required this.id,
+    required this.idNhatKy,
+    required this.caySamNhatKy,
+    required this.idSensor,
+    required this.jsonValue,
+    required this.thoiGian
+  });
+
+  factory caySamNhatKy_SensorReading.fromJson(Map<String, dynamic> json) {
+    return caySamNhatKy_SensorReading(
+      id: json['id'] ?? 0,
+      idNhatKy: json['idNhatKy'] ?? 0,
+      caySamNhatKy: json['caySamNhatKy'] ?? '',
+      idSensor: json['idSensor'] ?? 0,
+      jsonValue: json['jsonValue'] ?? '',
+      thoiGian: json['thoiGian'] ?? '',
+    );
+  }
+
+  // Map<String, dynamic> toJson() {
+  //   return {
+  //     'sensorId': sensorId,
+  //     'sensorCode': sensorCode,
+  //     'jValue': jValue,
+  //     'unit': unit,
+  //     'minValueSS': minValueSS,
+  //     'maxValueSS':maxValueSS
+  //   };
+  // }
+}

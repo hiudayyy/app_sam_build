@@ -1,18 +1,9 @@
 import 'dart:convert';
-import 'dart:io';
-import 'package:nftsam/models/nhat_ky.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/camera.dart';
 import '../models/kttoken.dart';
-import '../models/login_model.dart';
-import '../models/response_model.dart';
-import '../models/user_model.dart';
-import '../models/vuontrong/caysam_model.dart';
-import '../models/vuontrong/losam_model.dart';
 import '../models/vuontrong/losamcamera_model.dart';
-import '../models/vuontrong/vuontrong_model.dart';
-import '../services/local_service.dart';
 import 'api.dart';
 
 extension APIExtension on API {
@@ -56,7 +47,7 @@ extension APIExtension on API {
         "trangThai": camera.trangThai,
         "action":camera.action
       });
-      print(body);
+      // print(body);
       final response = await http.post(uri, headers: headers, body: body);
 
       if (response.statusCode == 200) {
@@ -110,7 +101,7 @@ extension APIExtension on API {
         "trangThai": camera.trangThai,
         "action":camera.action
       });
-      print(body);
+      // print(body);
       final response = await http.post(uri, headers: headers, body: body);
 
       if (response.statusCode == 200) {

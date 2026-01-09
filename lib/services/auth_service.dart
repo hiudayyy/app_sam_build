@@ -72,34 +72,36 @@ class AuthService {
       String? userJson = prefs.getString(_userKey);
       if (userJson == null) return null;
       final Map<String, dynamic> json = jsonDecode(userJson);
-      final userWrapper = Kttoken.fromJson(json);
-      if (userWrapper.authenticateToken == "") {
+      final userWrapper = Kttoken.fromJson(json); // Đọc Kttoken từ cache
+      if (userWrapper.authenticateToken.isEmpty) {
         await prefs.remove(_userKey);
         return null;
       }
       final expiredStr = userWrapper.expiredAuthenticateToken;
       if (expiredStr.isNotEmpty) {
-        final expired = parseCustomDate(expiredStr);
-        if (expired != null) {
-          if (DateTime.now().isAfter(expired)) {
-            print("Token hết hạn, đang làm mới...");
-            final newData = await api.resetToken(userWrapper);
-            if (newData != null && newData.messCode == MessCode.IsOK) {
-              String newUserJson = jsonEncode(newData);
+        final expired = parseCustomDate(expiredStr); // Hàm date của bạn
+        if (expired != null && DateTime.now().isAfter(expired)) {
+          print("Token hết hạn, đang gọi API reset...");
+          final newData = await api.resetToken(userWrapper);
+          if (newData != null && newData.messCode == MessCode.IsOK) {
+            final Kttoken? newKttoken = newData.oneItem;
+            if (newKttoken != null) {
+              String newUserJson = jsonEncode(newKttoken.toJson());
               await prefs.setString(_userKey, newUserJson);
-              print("Làm mới token thành công và đã lưu.");
-              return newData.oneItem?.htTaiKhoan;
-            } else {
-              print("Làm mới token thất bại -> Logout.");
-              await prefs.remove(_userKey);
-              return null;
+              print("Làm mới token thành công.");
+              return newKttoken.htTaiKhoan;
             }
           }
+          print("Làm mới token thất bại -> Logout.");
+          await prefs.remove(_userKey);
+          return null;
         }
       }
       return userWrapper.htTaiKhoan;
+
     } catch (e) {
       print("Lỗi khi lấy user stored: $e");
+      // Nếu lỗi format JSON hoặc lỗi khác thì xóa luôn cho sạch
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(_userKey);
       return null;

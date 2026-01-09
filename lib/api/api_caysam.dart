@@ -9,8 +9,10 @@ import '../models/message_enum.dart';
 import '../models/response_model.dart';
 import '../models/user_model.dart';
 import '../models/vuontrong/caysam_model.dart';
+import '../models/vuontrong/caysamdinhkem_model.dart';
 import '../models/vuontrong/losam_model.dart';
 import '../models/vuontrong/vuontrong_model.dart';
+import '../services/auth_service.dart';
 import '../services/local_service.dart';
 import 'api.dart';
 
@@ -188,7 +190,7 @@ extension APIExtension on API {
       return null;
     }
   }
-  Future<List<CaySamNhatKy>> getNhatKysbyid(String id) async {
+  Future<List<CaySamNhatKy>> getNhatKysbyid(String id,{bool isRetry = false}) async {
     String linkURL = "${host}api/CaySam/GetNhatKyByCaySamId/$id";
     final uri = Uri.parse(linkURL);
 
@@ -213,18 +215,27 @@ extension APIExtension on API {
           ),
         ).funcsTagActive ?? "",
       };
-
       final response = await http.get(uri, headers: headers);
       if (response.statusCode == 200) {
         Map<String, dynamic> responseJson = jsonDecode(response.body);
-
         final data = ApiResponse<CaySamNhatKy>.fromJson(
           responseJson,
               (json) => CaySamNhatKy.fromJson(json),
         );
-
         return data.items ?? []; // ✅ trả về list
-      } else {
+      }else if (response.statusCode == 401) {
+        if (!isRetry) {
+          var newUser = await await AuthService.getStoredUser();
+          if (newUser != null) {
+            return await getNhatKysbyid(id,isRetry: true);
+          } else {
+            return [];
+          }
+        } else {
+          return [];
+        }
+      }
+      else {
         print("Lỗi API nk: ${response.statusCode} - ${response.body}");
         return [];
       }
@@ -407,6 +418,7 @@ extension APIExtension on API {
     int? top,
     List<String>? orderBy,
     List<String>? searchBy,
+    bool isRetry = false
   }) async {
     String linkURL = "${host}api/CaySam/ListCaySam";
     final uri = Uri.parse(linkURL).replace(queryParameters: {
@@ -449,7 +461,19 @@ extension APIExtension on API {
               (json) => CaySamModel.fromJson(json),
         );
         return data;
-      } else {
+      }else if (response.statusCode == 401) {
+        if (!isRetry) {
+          var newUser = await await AuthService.getStoredUser();
+          if (newUser != null) {
+            return await listCaySam(isRetry: true);
+          } else {
+            return null;
+          }
+        } else {
+          return null;
+        }
+      }
+      else {
         print("Lỗi API cs: ${response.statusCode} - ${response.body}");
         return null;
       }
@@ -458,7 +482,7 @@ extension APIExtension on API {
       return null;
     }
   }
-  Future<CaySamModel?> getCaySamById(String? id) async {
+  Future<CaySamModel?> getCaySamById(String? id,{bool isRetry = false}) async {
     // ✅ THAY ĐỔI: Cập nhật endpoint API với ID được truyền vào
     String linkURL = "${host}api/CaySam/GetCaySamById/$id";
     final uri = Uri.parse(linkURL);
@@ -494,14 +518,31 @@ extension APIExtension on API {
       final response = await http.get(uri, headers: headers);
 
       if (response.statusCode == 200) {
+
         Map<String, dynamic> responseJson = jsonDecode(response.body);
         final data = ApiResponse<CaySamModel>.fromJson(
           responseJson,
               (json) => CaySamModel.fromJson(json),
         );
+        if(data.messCode == MessCode.IsOK){
+          return data.oneItem;
+        }else{
+          return null;
+        }
 
-        return data.oneItem;
-      } else {
+      }else if (response.statusCode == 401) {
+        if (!isRetry) {
+          var newUser = await await AuthService.getStoredUser();
+          if (newUser != null) {
+            return await getCaySamById(id,isRetry: true);
+          } else {
+            return null;
+          }
+        } else {
+          return null;
+        }
+      }
+      else {
         // Giữ nguyên logic xử lý lỗi
         print(
             "Lỗi API getCaySamById: ${response.statusCode} - ${response.body}");
@@ -589,6 +630,63 @@ extension APIExtension on API {
       );
     } else {
       print("❌ Lỗi: ${response.statusCode} - $respStr");
+      return null;
+    }
+  }
+  Future<ApiResponse<CaySamDinhKem>?> addDinhKemFileCaySam({
+    required Map<String, dynamic> data,
+    required File? file,
+  }) async {
+    final url = Uri.parse("${host}api/CaySam/AddDinhKemFileCaySam");
+    final prefs = await SharedPreferences.getInstance();
+    final userJson = prefs.getString("ginseng_user");
+
+    Kttoken? user;
+    if (userJson != null) {
+      user = Kttoken.fromJson(jsonDecode(userJson));
+    }
+
+    var request = http.MultipartRequest("POST", url);
+
+    // 1. Headers
+    request.headers.addAll({
+      ...headerSvkt1,
+      "AuthenticateToken": user?.authenticateToken ?? "",
+      "FuncsTagActive": user?.funcsTagActives.firstWhere(
+            (x) => x.tenController.toLowerCase() == "caysam",
+        orElse: () => FuncTagActive(
+          tenController: "",
+          tenActions: "",
+          funcsTagActive: "",
+        ),
+      ).funcsTagActive ?? "",
+    });
+    request.fields['modelJson'] = jsonEncode(data);
+    if (file != null) {
+      request.files.add(
+        await http.MultipartFile.fromPath(
+          'file',
+          file.path,
+          filename: file.path.split('/').last,
+        ),
+      );
+    }
+
+    try {
+      final response = await request.send();
+      final respStr = await response.stream.bytesToString();
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final jsonRes = jsonDecode(respStr);
+        return ApiResponse<CaySamDinhKem>.fromJson(
+          jsonRes,
+              (json) => CaySamDinhKem.fromJson(json),
+        );
+      } else {
+        print("❌ Lỗi Server: ${response.statusCode} - $respStr");
+        return null;
+      }
+    } catch (e) {
+      print("❌ Lỗi kết nối: $e");
       return null;
     }
   }

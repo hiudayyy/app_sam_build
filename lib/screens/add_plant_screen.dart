@@ -14,7 +14,7 @@ import '../api/api.dart';
 import '../models/option_model.dart';
 
 class AddPlantScreen extends StatefulWidget {
-  final Function(Map<String, dynamic>, List<File?>) onSubmit;
+  final Function(Map<String, dynamic>, List<File?>,String? caysamid) onSubmit;
   final VoidCallback onCancel;
   final String? gridPosition;
   final int? losamId;
@@ -411,6 +411,7 @@ class _AddPlantScreenState extends State<AddPlantScreen> {
       widget.onSubmit(
         plantData,
         [_selectedImageTQ, _selectedImageCT],
+          null,
       );
     }
   }
@@ -435,6 +436,7 @@ class _AddPlantScreenState extends State<AddPlantScreen> {
       widget.onSubmit(
         plantData,
         [_selectedImageTQ, _selectedImageCT],
+          widget.caysam?.caySamId.toString()
       );
     }
   }
@@ -455,6 +457,7 @@ class _AddPlantScreenState extends State<AddPlantScreen> {
       widget.onSubmit(
         plantData,
         [_selectedImageTQ, _selectedImageCT],
+          widget.caysam?.caySamId.toString()
       );
     }
   }
@@ -852,12 +855,12 @@ class _AddPlantScreenState extends State<AddPlantScreen> {
                         icon: const Icon(Icons.save),
                         label: Text(() {
                           if (widget.caysam == null) {
-                            return 'Lưu cây mới';
+                            return 'Lưu';
                           }
                           if (widget.EditNhatKy == null) {
-                            return 'Cập nhật Nhật ký';
+                            return 'Lưu';
                           }
-                          return 'Thêm mới Nhật ký';
+                          return 'Lưu';
                         }()),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: () {

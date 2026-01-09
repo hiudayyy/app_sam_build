@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:nftsam/api/api_caysam.dart';
 import 'package:flutter/material.dart';
@@ -8,6 +10,31 @@ import '../models/cay_sam.dart';
 import '../models/nhat_ky.dart';
 import '../models/vuontrong/caysam_model.dart';
 import '../widgets/fullscreenimageviewer.dart';
+
+// Class chứa thông tin hiển thị sensor
+class SensorDisplayInfo {
+  final String temp;
+  final String humidity;
+  final String soil;
+  final String dew;
+
+  // Màu sắc cảnh báo
+  final Color tempColor;
+  final Color humColor;
+  final Color soilColor;
+  final Color dewColor;
+
+  SensorDisplayInfo({
+    this.temp = "N/A",
+    this.humidity = "N/A",
+    this.soil = "N/A",
+    this.dew = "N/A",
+    this.tempColor = Colors.orange,
+    this.humColor = Colors.blue,
+    this.soilColor = Colors.brown,
+    this.dewColor = Colors.cyan,
+  });
+}
 
 class DiaryListScreen extends StatefulWidget {
   final CaySamModel plant;
@@ -39,6 +66,48 @@ class _DiaryListScreenState extends State<DiaryListScreen> {
   void initState() {
     super.initState();
     _diaryFuture = API().getNhatKysbyid(widget.plant.caySamId);
+  }
+
+  // --- HÀM XỬ LÝ SENSOR (Logic không đổi) ---
+  SensorDisplayInfo _processSensorData(List<dynamic>? sensors) {
+    if (sensors == null || sensors.isEmpty) return SensorDisplayInfo();
+
+    double? temp, hum, soil, dew;
+
+    for (var sensor in sensors) {
+      try {
+        if (sensor.jsonValue != null && sensor.jsonValue != "") {
+          final Map<String, dynamic> data = jsonDecode(sensor.jsonValue);
+
+          // 1. Độ ẩm đất (A1)
+          if (data.containsKey('A1')) {
+            soil = (data['A1'] as num).toDouble();
+          }
+          // 2. Nhiệt độ
+          if (data.containsKey('Temperature')) {
+            temp = (data['Temperature'] as num).toDouble();
+          }
+          // 3. Độ ẩm không khí
+          if (data.containsKey('Humidity')) {
+            hum = (data['Humidity'] as num).toDouble();
+          }
+          // 4. Điểm sương
+          if (data.containsKey('DewPoint')) {
+            dew = (data['DewPoint'] as num).toDouble();
+          }
+        }
+      } catch (e) {
+        print('Error parsing sensor JSON: $e');
+      }
+    }
+
+    return SensorDisplayInfo(
+      temp: temp?.toStringAsFixed(1) ?? "N/A",
+      humidity: hum?.toStringAsFixed(0) ?? "N/A",
+      soil: soil?.toStringAsFixed(0) ?? "N/A",
+      dew: dew?.toStringAsFixed(1) ?? "N/A",
+      tempColor: (temp != null && temp > 35) ? Colors.red : Colors.orange,
+    );
   }
 
   String? getHealthTrend(int currentHealth, int? previousHealth) {
@@ -224,6 +293,9 @@ class _DiaryListScreenState extends State<DiaryListScreen> {
                             final healthInfo = healthColors[entry.diemSucKhoe] ?? healthColors[5]!;
                             final bool isLast = index == diaryEntries.length - 1;
 
+                            // [MỚI] Gọi hàm xử lý dữ liệu sensor cho mỗi item
+                            final envInfo = _processSensorData(entry.caySamNhatKy_SensorReadings);
+
                             return IntrinsicHeight(
                               child: Row(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -329,7 +401,7 @@ class _DiaryListScreenState extends State<DiaryListScreen> {
                                                       ),
                                                       SizedBox(height: 8 * scale),
 
-                                                      // Stats
+                                                      // Stats (Sức khỏe / Số lá)
                                                       Row(
                                                         children: [
                                                           Icon(Icons.eco, size: 14 * scale, color: Colors.green),
@@ -341,6 +413,11 @@ class _DiaryListScreenState extends State<DiaryListScreen> {
                                                           Text("${entry.diemSucKhoe}/5 điểm", style: TextStyle(fontSize: 13 * scale, fontWeight: FontWeight.w600)),
                                                         ],
                                                       ),
+
+                                                      // --- [MỚI] PHẦN HIỂN THỊ SENSOR ---
+                                                      // Chỉ hiển thị nếu có ít nhất 1 thông số có dữ liệu
+                                                      if (envInfo.temp != "N/A" || envInfo.humidity != "N/A" || envInfo.soil != "N/A")
+                                                        _buildSensorInfo(envInfo, scale),
 
                                                       SizedBox(height: 8 * scale),
                                                       Divider(height: 1, color: Colors.grey.shade200),
@@ -370,7 +447,7 @@ class _DiaryListScreenState extends State<DiaryListScreen> {
                                                           ),
                                                         ),
 
-                                                      // HÌNH ẢNH (ĐÃ CẬP NHẬT: TIÊU ĐỀ Ở TRÊN)
+                                                      // HÌNH ẢNH
                                                       if (showImages && (entry.hinhAnhTongQuan != null || entry.hinhAnhChiTiet != null)) ...[
                                                         Row(
                                                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -412,6 +489,46 @@ class _DiaryListScreenState extends State<DiaryListScreen> {
     );
   }
 
+  // --- WIDGET CON: HIỂN THỊ THÔNG SỐ SENSOR ---
+  Widget _buildSensorInfo(SensorDisplayInfo info, double scale) {
+    return Container(
+      margin: EdgeInsets.only(top: 8 * scale, bottom: 4 * scale),
+      padding: EdgeInsets.symmetric(horizontal: 8 * scale, vertical: 8 * scale),
+      decoration: BoxDecoration(
+        color: Colors.blueGrey.withOpacity(0.05), // Nền nhạt
+        borderRadius: BorderRadius.circular(8 * scale),
+        border: Border.all(color: Colors.blueGrey.withOpacity(0.1)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround, // Chia đều không gian
+        children: [
+          _buildMiniSensorItem(Icons.thermostat_rounded, "${info.temp}°C", info.tempColor, scale),
+          _buildMiniSensorItem(Icons.water_drop_rounded, "${info.humidity}%", info.humColor, scale),
+          _buildMiniSensorItem(Icons.grass_rounded, "${info.soil}%", info.soilColor, scale),
+          _buildMiniSensorItem(Icons.opacity_rounded, "${info.dew}°C", info.dewColor, scale),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMiniSensorItem(IconData icon, String value, Color color, double scale) {
+    return Column(
+      children: [
+        Icon(icon, size: 16 * scale, color: color),
+        SizedBox(height: 2 * scale),
+        Text(
+            value,
+            style: TextStyle(
+                fontSize: 10 * scale,
+                fontWeight: FontWeight.w700,
+                color: Colors.blueGrey.shade700
+            )
+        )
+      ],
+    );
+  }
+  // -----------------------------------------------------------
+
   Widget _buildSummaryItem(IconData icon, String value, String label, Color color, double scale) {
     return Expanded(
       child: Column(
@@ -425,17 +542,15 @@ class _DiaryListScreenState extends State<DiaryListScreen> {
     );
   }
 
-  // Widget ảnh ĐÃ SỬA: Label nằm trên Image
   Widget _buildThumbImage(BuildContext context, String url, String label, double scale) {
     return Expanded(
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start, // Căn trái text
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 1. Dòng chữ tiêu đề Ở TRÊN
           Padding(
             padding: EdgeInsets.only(left: 2 * scale, bottom: 6 * scale),
             child: Text(
-              label, // "Hình ảnh tổng quan"
+              label,
               style: TextStyle(
                   fontSize: 11 * scale,
                   color: Colors.grey[600],
@@ -443,8 +558,6 @@ class _DiaryListScreenState extends State<DiaryListScreen> {
               ),
             ),
           ),
-
-          // 2. Hình ảnh Ở DƯỚI
           GestureDetector(
             onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => FullScreenImageViewer(imageUrl: url))),
             child: Hero(

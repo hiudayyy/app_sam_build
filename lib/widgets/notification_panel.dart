@@ -256,202 +256,245 @@ class _NotificationPanelState extends State<NotificationPanel>
     if (diff.inDays < 7) return '${diff.inDays} ngày trước';
     return DateFormat('dd/MM/yyyy').format(timestamp);
   }
-  @override
-  // ( ... bên trong class _NotificationPanelState ... )
 
   @override
   Widget build(BuildContext context) {
-    // <<< THAY ĐỔI: Tính toán 'hasUnread' ở đây
-    // Thêm điều kiện !_isInitialLoading để nút không hiển thị
-    // khi danh sách chưa tải xong
-    final bool hasUnread =
-        !_isInitialLoading && _notifications.any((n) => !n.seen);
-
+    final double screenWidth = MediaQuery.of(context).size.width;
+    final double scale = screenWidth / 375.0;
+    final bool hasUnread = !_isInitialLoading && _notifications.any((n) => !n.seen);
     return Scaffold(
-      backgroundColor: Colors.grey.shade100,
-
-      // <<< THÊM MỚI: Thêm AppBar để chứa nút bấm
+      backgroundColor: const Color(0xFFF1F5F9),
       appBar: AppBar(
-        title: const Text(
-          'Thông báo',
-          style: TextStyle(
-            color: Colors.black87, // Màu chữ cho tiêu đề
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        backgroundColor: Colors.white, // Nền trắng cho sạch
-        elevation: 1, // Một chút bóng mờ
-        // Dòng này sẽ tự thêm nút "Back" nếu trang này được push
-        // từ một trang khác.
-        // Bạn có thể không cần nếu đây là trang gốc trong Tab
-        automaticallyImplyLeading: true,
-        iconTheme: IconThemeData(color: Colors.black54), // Màu icon back
-
-        actions: [
-          // <<< THÊM MỚI: Nút "Đọc tất cả"
-          // Chỉ hiển thị khi có thông báo chưa đọc
-          if (hasUnread)
-            Padding(
-              // Đệm 1 chút bên phải
-              padding: const EdgeInsets.only(right: 8.0),
-              child: TextButton(
-                onPressed: _markAllAsRead,
-                child: Text(
-                  'Đọc tất cả', // Rút gọn cho vừa AppBar
-                  style: TextStyle(
-                    color: Theme.of(context).primaryColor, // Màu xanh chủ đạo
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                  ),
-                ),
-                // Thêm hiệu ứng gợn sóng cho đẹp
-                style: TextButton.styleFrom(
-                  overlayColor: Theme.of(context).primaryColor.withOpacity(0.1),
+        backgroundColor: Colors.white,
+        elevation: 0,
+        automaticallyImplyLeading: false,
+        toolbarHeight: 56 * scale,
+        titleSpacing: 0,
+        title: Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16 * scale), // Padding ngang theo scale
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Thông báo',
+                style: TextStyle(
+                  color: const Color(0xFF0F172A),
+                  fontSize: 20 * scale, // Font tiêu đề theo scale
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.5,
                 ),
               ),
-            ),
-        ],
+              if (hasUnread)
+                InkWell(
+                  onTap: _markAllAsRead,
+                  borderRadius: BorderRadius.circular(8 * scale),
+                  child: Container(
+                    padding: EdgeInsets.symmetric(horizontal: 10 * scale, vertical: 6 * scale),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.shade50,
+                      borderRadius: BorderRadius.circular(8 * scale),
+                    ),
+                    child: Text(
+                      'Đọc tất cả',
+                      style: TextStyle(
+                        color: Colors.blue.shade700,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 11 * scale,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
       ),
-
-      // Body vẫn gọi hàm _buildBody như cũ
-      body: _buildBody(),
+      body: _buildBody(scale),
     );
   }
-
-  // ( ... bên trong class _NotificationPanelState ... )
-
-  // <<< CẬP NHẬT: Thay thế toàn bộ hàm _buildBody
-  // ( ... bên trong class _NotificationPanelState ... )
-
-  Widget _buildBody() {
+  Widget _buildBody(double scale) {
     if (_isInitialLoading) {
       return const Center(child: CircularProgressIndicator());
     }
     if (_apiError != null) {
       return Center(
         child: Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: EdgeInsets.all(16.0 * scale),
           child: Text(_apiError!,
               textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.red)),
+              style: TextStyle(color: Colors.red, fontSize: 14 * scale)),
         ),
       );
     }
     if (_notifications.isEmpty) {
-      return _buildEmptyState();
+      return _buildEmptyState(scale);
     }
 
-    // <<< XÓA BỎ: Toàn bộ phần Column, if(hasUnread), Padding
-    // và Expanded đã bị xóa.
-    // Trả về ListView.builder trực tiếp.
     return ListView.builder(
       controller: _scrollController,
-      padding: const EdgeInsets.all(16), // Padding cho toàn bộ danh sách
+      padding: EdgeInsets.all(16 * scale),
       itemCount: _notifications.length + (_hasMore ? 1 : 0),
       itemBuilder: (context, index) {
         if (index == _notifications.length) {
-          return const Padding(
-            padding: EdgeInsets.all(16.0),
-            child: Center(child: CircularProgressIndicator()),
+          return Padding(
+            padding: EdgeInsets.all(12.0 * scale),
+            child: const Center(child: CircularProgressIndicator()),
           );
         }
         final notification = _notifications[index];
-        return _buildNotificationListItem(notification);
+        return _buildNotificationListItem(notification, scale);
       },
     );
   }
 
-  Widget _buildNotificationListItem(ThongBaoModel notification) {
+  Widget _buildNotificationListItem(ThongBaoModel notification, double scale) {
     final visuals = _getVisualsForNotification(notification.tieuDe);
+    final isRead = notification.seen;
+    final Color backgroundColor = isRead ? Colors.white : const Color(0xFFF0F7FF);
+    final Color titleColor = isRead ? const Color(0xFF475569) : const Color(0xFF0F172A);
+    final Color bodyColor = isRead ? const Color(0xFF64748B) : const Color(0xFF334155);
 
-    return Card(
-      elevation: 4,
-      margin: const EdgeInsets.only(bottom: 12),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      shadowColor: Colors.black.withOpacity(0.08),
-      color: notification.seen ? Colors.white : Colors.blue.shade50,
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: () {
-          _markAsRead(notification.id);
-        },
-        child: Row(
-          children: [
-            if (!notification.seen)
-              Container(
-                width: 5,
-                height: 80,
-                color: Theme.of(context).primaryColor,
-              ),
-            Expanded(
-              child: ListTile(
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                leading: CircleAvatar(
-                  backgroundColor: visuals.color.withOpacity(0.1),
-                  child: Icon(visuals.icon, color: visuals.color, size: 24),
-                ),
-                title: Text(
-                  notification.tieuDe,
-                  style: TextStyle(
-                    fontWeight: notification.seen ? FontWeight.w500 : FontWeight.bold,
-                    fontSize: 15,
-                    color: Colors.black87,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                subtitle: Padding(
-                  padding: const EdgeInsets.only(top: 4.0),
-                  child: Text(
-                    notification.noiDung,
-                    style: TextStyle(
-                        color: Colors.grey.shade600,
-                        fontSize: 13
+    return Container(
+      margin: EdgeInsets.fromLTRB(0 * scale, 4 * scale, 0 * scale, 4 * scale),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(12 * scale),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            offset: const Offset(0, 2),
+            blurRadius: 4,
+          )
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12 * scale),
+          onTap: () => _markAsRead(notification.id),
+          child: Padding(
+            padding: EdgeInsets.all(12 * scale),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center, // Căn giữa theo chiều dọc
+              children: [
+                Stack(
+                  children: [
+                    Container(
+                      width: 42 * scale,
+                      height: 42 * scale,
+                      decoration: BoxDecoration(
+                        color: isRead ? Colors.grey.shade100 : visuals.color.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(10 * scale),
+                      ),
+                      child: Icon(
+                          visuals.icon,
+                          color: isRead ? Colors.grey.shade500 : visuals.color,
+                          size: 20 * scale
+                      ),
                     ),
-                    maxLines: 1, // Giảm xuống 1 dòng để gọn hơn
-                    overflow: TextOverflow.ellipsis,
+                    if (!isRead)
+                      Positioned(
+                        top: -2,
+                        right: -2,
+                        child: Container(
+                          width: 10 * scale,
+                          height: 10 * scale,
+                          decoration: BoxDecoration(
+                            color: Colors.red,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: backgroundColor, width: 2),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+
+                SizedBox(width: 12 * scale),
+
+                // === 2. NỘI DUNG ===
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Hàng 1: Tiêu đề + Thời gian
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              notification.tieuDe,
+                              style: TextStyle(
+                                color: titleColor,
+                                fontSize: 13 * scale,
+                                fontWeight: isRead ? FontWeight.w600 : FontWeight.w700,
+                                height: 1.2,
+                              ),
+                              maxLines: 1, // Chỉ hiện 1 dòng tiêu đề cho gọn
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          SizedBox(width: 4 * scale),
+                          Text(
+                            _formatTimestamp(notification.ngayKhoiTao),
+                            style: TextStyle(
+                              color: isRead ? Colors.grey.shade500 : Colors.blue.shade700,
+                              fontSize: 9 * scale,
+                              fontWeight: isRead ? FontWeight.w400 : FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      SizedBox(height: 4 * scale),
+
+                      // Hàng 2: Nội dung
+                      Text(
+                        notification.noiDung,
+                        style: TextStyle(
+                          color: bodyColor,
+                          fontSize: 12 * scale,
+                          height: 1.3,
+                          fontWeight: FontWeight.w400,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
                   ),
                 ),
-                trailing: Text(
-                  _formatTimestamp(notification.ngayKhoiTao),
-                  style: TextStyle(color: Colors.grey.shade500, fontSize: 11),
+
+                // === 3. MŨI TÊN ĐIỀU HƯỚNG (QUAN TRỌNG) ===
+                // Giúp người dùng biết đây là nút bấm được
+                // SizedBox(width: 8 * scale),
+                Icon(
+                  Icons.chevron_right_rounded,
+                  color: isRead ? Colors.grey.shade300 : Colors.blue.shade300,
+                  size: 20 * scale,
                 ),
-              ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(double scale) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
             Icons.notifications_off_outlined,
-            size: 64,
-            color: Colors.grey.shade400,
+            size: 64 * scale,
+            color: Colors.grey.shade300,
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: 16 * scale),
           Text(
-            _currentFilter == 'unread'
-                ? 'Không có thông báo mới'
-                : 'Chưa có thông báo nào',
+            'Chưa có thông báo nào',
             style: TextStyle(
-              fontSize: 16,
+              fontSize: 16 * scale,
               color: Colors.grey.shade600,
-            ),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'Tất cả thông báo của bạn sẽ xuất hiện ở đây.',
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey,
+              fontWeight: FontWeight.w500,
             ),
           ),
         ],

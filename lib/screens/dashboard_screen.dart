@@ -697,7 +697,8 @@ class _DashboardScreenState extends State<DashboardScreen>
               if (_isValidAndNotZero(environmentStatus['soilMoisture']!['value']) ||
                   _isValidAndNotZero(environmentStatus['dewPoint']!['value']) ||
                   _isValidAndNotZero(environmentStatus['humidity']!['value']) ||
-                  _isValidAndNotZero(environmentStatus['temperature']!['value']))
+                  _isValidAndNotZero(environmentStatus['temperature']!['value']) ||
+                  (deviceList?.length ?? 0) > 1)
                 Card(
                   elevation: 4,
                   shadowColor: Colors.black.withOpacity(0.5),
@@ -800,10 +801,10 @@ class _DashboardScreenState extends State<DashboardScreen>
                 ),
 
               const SizedBox(height: 24),
-              if (user?.htTaiKhoan.htPhanQuyenTaiKhoans.any((pq) =>
+              if ((user?.htTaiKhoan.htPhanQuyenTaiKhoans.any((pq) =>
               pq.maVaiTro != "nft_invester" &&
                   pq.maVaiTro == "nft_admin") ??
-                  false)
+                  false) && _loSamCanhBaoList?.length != 0)
                 Card(
                   elevation: 3,
                   shadowColor: Colors.black.withOpacity(0.5),
@@ -1082,9 +1083,11 @@ class _DashboardScreenState extends State<DashboardScreen>
             child: Text(
               value < 0
                   ? '0$unit'
+                  : (value > 100
+                  ? '100$unit'
                   : (value == 100
                   ? '${value.toStringAsFixed(0)}$unit'
-                  : '${value.toStringAsFixed(1)}$unit'),
+                  : '${value.toStringAsFixed(1)}$unit')),
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
@@ -1136,7 +1139,6 @@ class _DashboardScreenState extends State<DashboardScreen>
       final moreCount = caySams.length > positionsList.length ? ' +${caySams.length - positionsList.length}' : '';
       plantPositionsInfo = subtitle != '' ? '\nCây $positionsToShow$moreCount chưa cập nhật ký trong nhiều tháng' : 'Cây $positionsToShow$moreCount chưa cập nhật ký trong nhiều tháng';
     }
-
     return Card(
       elevation: 2,
       margin: EdgeInsets.only(bottom: isLastItem ? 0 : 12.0),
