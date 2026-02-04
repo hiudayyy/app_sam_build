@@ -811,7 +811,6 @@ class _BatchUpdateFormState extends State<BatchUpdateForm> {
 
   @override
   Widget build(BuildContext context) {
-    final plants = MockData.mockPlants.where((p) => widget.plantIds.contains(p.id)).toList();
 
     return Scaffold(
       backgroundColor: Color(0xFFF8F9FA),

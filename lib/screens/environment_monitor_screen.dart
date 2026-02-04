@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'dart:async';
 import 'dart:math' as math;
-import '../models/environment.dart';
-import '../data/environment_data.dart';
 
 class SensorReading {
   final DateTime timestamp;

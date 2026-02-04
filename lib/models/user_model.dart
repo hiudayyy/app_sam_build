@@ -1,7 +1,5 @@
 import 'package:nftsam/models/user.dart';
-import 'package:intl/intl.dart';
 
-import 'message_enum.dart';
 
 class UserModel {
   final String id;
@@ -12,6 +10,7 @@ class UserModel {
   final String sdt;
   final String email;
   final List<htPhanQuyenTaiKhoan> htPhanQuyenTaiKhoans;
+  final WalletUser? wallet;
 
   UserModel({
     required this.id,
@@ -22,6 +21,7 @@ class UserModel {
     required this.sdt,
     required this.email,
     required this.htPhanQuyenTaiKhoans,
+    this.wallet
   });
 
 
@@ -37,6 +37,7 @@ class UserModel {
       htPhanQuyenTaiKhoans: (json['htPhanQuyenTaiKhoans'] as List<dynamic>? ?? [])
           .map((e) => htPhanQuyenTaiKhoan.fromJson(e))
           .toList(),
+      wallet: json['wallet'] != null ? WalletUser.fromJson(json['wallet']) : null,
     );
   }
 
@@ -50,6 +51,7 @@ class UserModel {
       'sdt': sdt,
       'email': email,
       'htPhanQuyenTaiKhoans': htPhanQuyenTaiKhoans.map((e) => e.toJson()).toList(),
+      'wallet' : wallet
     };
   }
   Map<String, dynamic> toJsondk() {
@@ -95,7 +97,37 @@ class htPhanQuyenTaiKhoan {
     };
   }
 }
+class WalletUser {
+  final String? userId;
+  final String? diaChiVi;
+  final String? ngayCapNhat;
+  final String? htTaiKhoan;
 
+  WalletUser({
+    this.userId,
+    this.diaChiVi,
+    this.ngayCapNhat,
+    this.htTaiKhoan,
+  });
+
+  factory WalletUser.fromJson(Map<String, dynamic> json) {
+    return WalletUser(
+      userId: json['userId'] ?? '',
+      diaChiVi: json['diaChiVi'],
+      ngayCapNhat: json['ngayCapNhat'] ?? '',
+      htTaiKhoan: json['htTaiKhoan'],
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'userId': userId,
+      'diaChiVi': diaChiVi,
+      'ngayCapNhat': ngayCapNhat,
+      'htTaiKhoan':htTaiKhoan,
+    };
+  }
+}
 class RoleUtils {
   static UserRole? toUserRole(String id) {
     switch (id) {

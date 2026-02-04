@@ -701,7 +701,7 @@ class _AddPlantScreenState extends State<AddPlantScreen> {
                     labelText: 'Trọng lượng',
                     border: OutlineInputBorder(),
                     prefixIcon: Icon(Icons.monitor_weight),
-                    suffixText: '(gam)',
+                    suffixText: '(gram)',
                     // Hoặc dùng suffixStyle nếu muốn chỉnh font chữ
                   ),
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),

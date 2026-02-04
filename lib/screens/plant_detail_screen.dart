@@ -3,7 +3,6 @@ import 'dart:io';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:nftsam/api/api_caysam.dart';
-import 'package:nftsam/api/api_caytrong.dart';
 import 'package:nftsam/api/api_option.dart';
 import 'package:nftsam/models/vuontrong/caysam_model.dart';
 import 'package:flutter/material.dart';
@@ -11,7 +10,6 @@ import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shimmer/shimmer.dart';
 import '../api/api.dart';
-import '../models/cay_sam.dart';
 import '../models/kttoken.dart';
 import '../models/nhat_ky.dart';
 import '../models/moi_truong.dart';
@@ -31,7 +29,6 @@ class PlantDetailScreen extends StatefulWidget {
   final CaySamXacThuc? verification;
   final VoidCallback onBack;
 
-
   const PlantDetailScreen({
     Key? key,
     required this.plant,
@@ -42,8 +39,7 @@ class PlantDetailScreen extends StatefulWidget {
   }) : super(key: key);
 
   @override
-  State<PlantDetailScreen> createState() =>
-      _State();
+  State<PlantDetailScreen> createState() => _State();
 }
 
 class _State extends State<PlantDetailScreen> {
@@ -51,13 +47,25 @@ class _State extends State<PlantDetailScreen> {
   List<OptionModel> OptionLoSamTinhTrang = [];
   List<OptionModel> OptionLoSamDiemSucKhoe = [];
   Kttoken? user;
-  late CaySamModel plantwidget ;
+  late CaySamModel plantwidget;
   @override
   void initState() {
     super.initState();
     _initializeData();
+    _incrementViewCount(widget.plant.caySamId.toString());
   }
-  void showLoadingDialog(BuildContext context, {String message = 'Đang xử lý...'}) {
+  Future<void> _incrementViewCount(String id) async {
+    final prefs = await SharedPreferences.getInstance();
+    String? jsonString = prefs.getString('plant_view_counts');
+    Map<String, int> viewCounts = {};
+    if (jsonString != null) {
+      viewCounts = Map<String, int>.from(jsonDecode(jsonString));
+    }
+    viewCounts[id] = (viewCounts[id] ?? 0) + 1;
+    await prefs.setString('plant_view_counts', jsonEncode(viewCounts));
+  }
+  void showLoadingDialog(BuildContext context,
+      {String message = 'Đang xử lý...'}) {
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -85,11 +93,13 @@ class _State extends State<PlantDetailScreen> {
       },
     );
   }
+
   void hideLoadingDialog(BuildContext context) {
     if (Navigator.of(context).canPop()) {
       Navigator.of(context).pop();
     }
   }
+
   Future<void> ReloadDataCaySam(String caysamId) async {
     final data = await API().getCaySamById(caysamId);
     if (!mounted) return;
@@ -107,19 +117,18 @@ class _State extends State<PlantDetailScreen> {
 
     final filtered = (plantwidget.caySamNhatKys ?? [])
         .where((entry) {
-      if (entry == null || entry.ngayGhi == null) return false;
-      final entryDate = DateTime.tryParse(entry.ngayGhi!);
-      if (entryDate == null) return false;
+          if (entry == null || entry.ngayGhi == null) return false;
+          final entryDate = DateTime.tryParse(entry.ngayGhi!);
+          if (entryDate == null) return false;
 
-      return entryDate.month == currentMonth &&
-          entryDate.year == currentYear;
-    })
+          return entryDate.month == currentMonth &&
+              entryDate.year == currentYear;
+        })
         .cast<CaySamNhatKy>()
         .toList();
 
     return filtered;
   }
-
 
   // Helper to get latest diary entry
   CaySamNhatKy? getLatestDiaryEntry(List<CaySamNhatKy?> entries) {
@@ -166,10 +175,16 @@ class _State extends State<PlantDetailScreen> {
       user = Kttoken.fromJson(jsonDecode(userJson));
     }
   }
+
   Map<String, Map<String, dynamic>> environmentStatus = {
     'temperature': {'value': 'N/A', 'status': 'Chưa rõ', 'min': 10, 'max': 30},
     'humidity': {'value': 'N/A', 'status': 'Chưa rõ', 'min': 80, 'max': 95},
-    'soilMoisture': {'value': 'N/A', 'status': 'Chưa rõ', 'min': 100, 'max': 200},
+    'soilMoisture': {
+      'value': 'N/A',
+      'status': 'Chưa rõ',
+      'min': 100,
+      'max': 200
+    },
     'dewPoint': {'value': 'N/A', 'status': 'Chưa rõ', 'min': 15, 'max': 25},
   };
 
@@ -181,14 +196,19 @@ class _State extends State<PlantDetailScreen> {
     // Calculate monthly statistics
     final totalEntries = currentMonthEntries.length;
     final avgHealth = currentMonthEntries.isNotEmpty
-        ? (currentMonthEntries.fold<double>(0.0, (sum, entry) => sum + entry!.diemSucKhoe) / currentMonthEntries.length).round() / 10.0
+        ? (currentMonthEntries.fold<double>(
+                        0.0, (sum, entry) => sum + entry.diemSucKhoe) /
+                    currentMonthEntries.length)
+                .round() /
+            10.0
         : 0.0;
     final lastUpdate = latestEntry?.ngayGhi != null
         ? (DateTime.tryParse(latestEntry!.ngayGhi!) != null
-        ? DateFormat('dd/MM/yyyy').format(DateTime.parse(latestEntry.ngayGhi!))
-        : 'Chưa có')
+            ? DateFormat('dd/MM/yyyy')
+                .format(DateTime.parse(latestEntry.ngayGhi!))
+            : 'Chưa có')
         : 'Chưa có';
-
+    double screenWidth = MediaQuery.of(context).size.width;
 
     return Scaffold(
       body: Column(
@@ -196,52 +216,77 @@ class _State extends State<PlantDetailScreen> {
           // Custom Header with back button
           Container(
             padding: EdgeInsets.only(
-              top: MediaQuery.of(context).padding.top + 8,
-              left: 16,
-              right: 16,
-              bottom: 8,
+              top: MediaQuery.of(context).padding.top + 10,
+              left: 20,
+              right: 20,
+              bottom: 15,
             ),
             decoration: BoxDecoration(
-              color: Colors.white,
-              border: Border(
-                bottom: BorderSide(color: Colors.grey.shade300, width: 1),
+              color: const Color(0xFF5F8670), // Màu Xanh Rêu Khói
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF5F8670).withOpacity(0.4),
+                  offset: const Offset(0, 8),
+                  blurRadius: 15,
+                  spreadRadius: -2,
+                ),
+              ],
+              borderRadius: const BorderRadius.only(
+                bottomLeft: Radius.circular(20),
+                bottomRight: Radius.circular(20),
               ),
             ),
             child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                IconButton(
-                  icon: Icon(Icons.arrow_back),
-                  onPressed: () => Navigator.pop(context),
-                  padding: EdgeInsets.zero,
-                  constraints: BoxConstraints(),
+                InkWell(
+                  onTap: () => Navigator.pop(context),
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.white.withOpacity(0.1)),
+                    ),
+                    child: const Icon(Icons.arrow_back_ios_new,
+                        size: 20, color: Colors.white),
+                  ),
                 ),
-                SizedBox(width: 16),
+                const SizedBox(width: 16),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        /*plant.tenCay ??*/ 'Chi tiết cây',
+                        'Chi tiết cây',
                         style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
+                          fontSize: (screenWidth * 0.05).clamp(16.0, 24.0),
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                          height: 1.2,
+                          letterSpacing: 0.5,
                         ),
                       ),
-                      Text(
-                        'ID: ${plantwidget?.maCaySam}',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey[600],
-                        ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          const Icon(Icons.qr_code_2,
+                              size: 16, color: Color(0xFFE8F5E9)),
+                          const SizedBox(width: 6),
+                          Text(
+                            'ID: ${plantwidget.maCaySam ?? "N/A"}',
+                            style: TextStyle(
+                              // ID thường nhỏ hơn title chút (3.5% chiều rộng)
+                              fontSize: (screenWidth * 0.035).clamp(12.0, 16.0),
+                              color: Colors.white.withOpacity(0.85),
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
                       ),
                     ],
-                  ),
-                ),
-                Container(
-                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[200],
-                    borderRadius: BorderRadius.circular(12),
                   ),
                 ),
               ],
@@ -271,8 +316,7 @@ class _State extends State<PlantDetailScreen> {
                       avgHealth,
                       lastUpdate,
                       plantwidget,
-                      context
-                  ),
+                      context),
                   SizedBox(height: 16),
                   _buildAttachmentSection(),
                   SizedBox(height: 16),
@@ -299,67 +343,69 @@ class _State extends State<PlantDetailScreen> {
 
   Widget _buildPlantImage(CaySamNhatKy? latestEntry) {
     return Card(
-      child: Padding(
-        padding: EdgeInsets.all(16),
-        child: Container(
-          width: double.infinity,
-          height: MediaQuery.of(context).size.height / 3,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(8),
-            color: Colors.grey[300],
-          ),
-          child: Builder(
-            builder: (context) {
-              String? imageUrl = latestEntry?.hinhAnhTongQuan;
-              if (imageUrl == null && plantwidget.caySamNhatKys.isNotEmpty) {
-                imageUrl = plantwidget.caySamNhatKys.first?.hinhAnhTongQuan;
-              }
-              Widget buildPlaceholder({required IconData icon, String? message}) {
-                return Container(
-                  color: Colors.grey[200], // Màu nền nhẹ hơn
-                  alignment: Alignment.center,
-                  child: Icon(icon, color: Colors.grey[400], size: 40),
-                );
-              }
-              final bool isClickable = (imageUrl != null && imageUrl.isNotEmpty);
-
-              Widget imageWidget;
-
-              if (!isClickable) {
-                imageWidget = buildPlaceholder(icon: Icons.spa);
-              } else {
-                // Trường hợp 2: Dùng CachedNetworkImage
-                imageWidget = CachedNetworkImage(
-                  imageUrl: imageUrl,
-                  fit: BoxFit.cover,
-                  width: double.infinity,
-                  height: double.infinity,
-                  placeholder: (context, url) => buildShimmerLoading(),
-                  errorWidget: (context, url, error) => buildPlaceholder(icon: Icons.broken_image_outlined),
-                  fadeInDuration: const Duration(milliseconds: 300),
-                );
-              }
-              return ClipRRect(
-                borderRadius: BorderRadius.circular(12.0),
-                child: Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    onTap: isClickable
-                        ? () {
-                      _showFullScreenImage(context, imageUrl!);
-                    }
-                        : null,
-                    splashColor: Colors.white.withOpacity(0.3),
-                    child: imageWidget,
-                  ),
-                ),
+      child: Container(
+        width: double.infinity,
+        height: MediaQuery.of(context).size.height / 3,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(8),
+          color: Colors.grey[300],
+        ),
+        child: Builder(
+          builder: (context) {
+            String? imageUrl = latestEntry?.hinhAnhTongQuan;
+            if (imageUrl == null && plantwidget.caySamNhatKys.isNotEmpty) {
+              imageUrl = plantwidget.caySamNhatKys.first?.hinhAnhTongQuan;
+            }
+            Widget buildPlaceholder(
+                {required IconData icon, String? message}) {
+              return Container(
+                color: Colors.grey[200], // Màu nền nhẹ hơn
+                alignment: Alignment.center,
+                child: Icon(icon, color: Colors.grey[400], size: 40),
               );
-            },
-          ),
+            }
+
+            final bool isClickable =
+                (imageUrl != null && imageUrl.isNotEmpty);
+
+            Widget imageWidget;
+
+            if (!isClickable) {
+              imageWidget = buildPlaceholder(icon: Icons.spa);
+            } else {
+              // Trường hợp 2: Dùng CachedNetworkImage
+              imageWidget = CachedNetworkImage(
+                imageUrl: imageUrl,
+                fit: BoxFit.cover,
+                width: double.infinity,
+                height: double.infinity,
+                placeholder: (context, url) => buildShimmerLoading(),
+                errorWidget: (context, url, error) =>
+                    buildPlaceholder(icon: Icons.broken_image_outlined),
+                fadeInDuration: const Duration(milliseconds: 300),
+              );
+            }
+            return ClipRRect(
+              borderRadius: BorderRadius.circular(12.0),
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: isClickable
+                      ? () {
+                          _showFullScreenImage(context, imageUrl!);
+                        }
+                      : null,
+                  splashColor: Colors.white.withOpacity(0.3),
+                  child: imageWidget,
+                ),
+              ),
+            );
+          },
         ),
       ),
     );
   }
+
   void _showNfcWriterModal(BuildContext context) {
     showModalBottomSheet(
       context: context,
@@ -382,9 +428,10 @@ class _State extends State<PlantDetailScreen> {
     final bool daGhiNFC = plantwidget.isNFC ?? false;
     final bool isAdmin = user?.htTaiKhoan.htPhanQuyenTaiKhoans.any(
           (pq) => pq.maVaiTro != "nft_invester" && pq.maVaiTro == "nft_admin",
-    ) ?? false;
+        ) ??
+        false;
     String tuoiCayText = OptionLoSamLoaiTuoi.firstWhere(
-          (opt) => opt.value == plantwidget.tuoiCayId.toString(),
+      (opt) => opt.value == plantwidget.tuoiCayId.toString(),
       orElse: () => OptionModel(value: "-1", text: "Chưa rõ"),
     ).text;
 
@@ -420,7 +467,8 @@ class _State extends State<PlantDetailScreen> {
                         borderRadius: BorderRadius.circular(8 * scale),
                         border: Border.all(color: Colors.green.shade200),
                       ),
-                      child: Icon(Icons.spa_rounded, color: Colors.green.shade700, size: 20 * scale),
+                      child: Icon(Icons.spa_rounded,
+                          color: Colors.green.shade700, size: 20 * scale),
                     ),
                     SizedBox(width: 10 * scale),
                     Text(
@@ -433,7 +481,8 @@ class _State extends State<PlantDetailScreen> {
                     ),
                     if (daGhiNFC) ...[
                       SizedBox(width: 8 * scale),
-                      Icon(Icons.nfc_rounded, size: 16 * scale, color: Colors.blue[600]),
+                      Icon(Icons.nfc_rounded,
+                          size: 16 * scale, color: Colors.blue[600]),
                     ]
                   ],
                 ),
@@ -461,14 +510,21 @@ class _State extends State<PlantDetailScreen> {
                 children: [
                   Container(
                       padding: EdgeInsets.all(8 * scale),
-                      decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, border: Border.all(color: Colors.grey.shade200)),
-                      child: Icon(Icons.qr_code_2_rounded, size: 24 * scale, color: Colors.black87)
-                  ),
+                      decoration: BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.grey.shade200)),
+                      child: Icon(Icons.qr_code_2_rounded,
+                          size: 24 * scale, color: Colors.black87)),
                   SizedBox(width: 12 * scale),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text("Mã định danh", style: TextStyle(fontSize: 10 * scale, color: Colors.grey[500], fontWeight: FontWeight.w600)),
+                      Text("Mã định danh",
+                          style: TextStyle(
+                              fontSize: 10 * scale,
+                              color: Colors.grey[500],
+                              fontWeight: FontWeight.w600)),
                       SizedBox(height: 2 * scale),
                       Text(
                         plantwidget.maCaySam ?? 'N/A',
@@ -489,7 +545,8 @@ class _State extends State<PlantDetailScreen> {
 
             // === 3. GRID INFO (VỊ TRÍ - TUỔI - TRỌNG LƯỢNG) ===
             // ✨ CẬP NHẬT: Chia thành 3 cột đều nhau
-            IntrinsicHeight( // Giúp các ô có chiều cao bằng nhau
+            IntrinsicHeight(
+              // Giúp các ô có chiều cao bằng nhau
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -521,7 +578,7 @@ class _State extends State<PlantDetailScreen> {
                   Expanded(
                     child: _buildDetailBox(
                       icon: Icons.monitor_weight_rounded, // Icon cái cân
-                      iconColor: Colors.teal,             // Màu xanh ngọc
+                      iconColor: Colors.teal, // Màu xanh ngọc
                       label: "Trọng lượng",
                       // Giả sử model có trường trongLuong, thêm đơn vị 'g'
                       value: plantwidget.caySamNhatKys != null
@@ -538,19 +595,24 @@ class _State extends State<PlantDetailScreen> {
 
             // ... (Phần 4: Tình trạng giữ nguyên) ...
             Container(
-              padding: EdgeInsets.symmetric(horizontal: 12 * scale, vertical: 10 * scale),
+              padding: EdgeInsets.symmetric(
+                  horizontal: 12 * scale, vertical: 10 * scale),
               decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(12 * scale),
-                  border: Border.all(color: Colors.grey.shade200)
-              ),
+                  border: Border.all(color: Colors.grey.shade200)),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Row(
                     children: [
-                      Icon(Icons.monitor_heart_rounded, color: Colors.blue, size: 18 * scale),
+                      Icon(Icons.monitor_heart_rounded,
+                          color: Colors.blue, size: 18 * scale),
                       SizedBox(width: 8 * scale),
-                      Text("Tình trạng hiện tại", style: TextStyle(fontSize: 12 * scale, color: Colors.grey[700], fontWeight: FontWeight.w600)),
+                      Text("Tình trạng hiện tại",
+                          style: TextStyle(
+                              fontSize: 12 * scale,
+                              color: Colors.grey[700],
+                              fontWeight: FontWeight.w600)),
                     ],
                   ),
                   _buildBeautifulStatusChip(latestStatusValue, scale),
@@ -559,7 +621,8 @@ class _State extends State<PlantDetailScreen> {
             ),
 
             // ... (Phần 5: Blockchain giữ nguyên) ...
-            if (plantwidget.blockChain != null && plantwidget.blockChain!.isNotEmpty) ...[
+            if (plantwidget.blockChain != null &&
+                plantwidget.blockChain!.isNotEmpty) ...[
               SizedBox(height: 12 * scale),
               Container(
                 width: double.infinity,
@@ -574,11 +637,15 @@ class _State extends State<PlantDetailScreen> {
                   children: [
                     Row(
                       children: [
-                        Icon(Icons.link_rounded, size: 14 * scale, color: Colors.purple),
+                        Icon(Icons.link_rounded,
+                            size: 14 * scale, color: Colors.purple),
                         SizedBox(width: 6 * scale),
                         Text(
                           "Blockchain Address",
-                          style: TextStyle(fontSize: 10 * scale, fontWeight: FontWeight.w700, color: Colors.purple.shade400),
+                          style: TextStyle(
+                              fontSize: 10 * scale,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.purple.shade400),
                         ),
                       ],
                     ),
@@ -611,7 +678,8 @@ class _State extends State<PlantDetailScreen> {
     required double scale,
   }) {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 10 * scale, vertical: 12 * scale),
+      padding:
+          EdgeInsets.symmetric(horizontal: 10 * scale, vertical: 12 * scale),
       decoration: BoxDecoration(
         color: Colors.grey.shade50,
         borderRadius: BorderRadius.circular(12 * scale),
@@ -619,7 +687,8 @@ class _State extends State<PlantDetailScreen> {
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start, // Label vẫn giữ ở góc trái cho đẹp
+        crossAxisAlignment:
+            CrossAxisAlignment.start, // Label vẫn giữ ở góc trái cho đẹp
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           // --- HÀNG TIÊU ĐỀ (Icon + Label) ---
@@ -658,7 +727,8 @@ class _State extends State<PlantDetailScreen> {
               ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              textAlign: TextAlign.center, // Đảm bảo text căn giữa nếu bị xuống dòng
+              textAlign:
+                  TextAlign.center, // Đảm bảo text căn giữa nếu bị xuống dòng
             ),
           ),
         ],
@@ -676,7 +746,8 @@ class _State extends State<PlantDetailScreen> {
       onTap: onTap,
       borderRadius: BorderRadius.circular(8 * scale),
       child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 10 * scale, vertical: 6 * scale),
+        padding:
+            EdgeInsets.symmetric(horizontal: 10 * scale, vertical: 6 * scale),
         decoration: BoxDecoration(
           color: isRecorded ? Colors.blue.shade50 : Colors.green.shade50,
           borderRadius: BorderRadius.circular(8 * scale),
@@ -699,7 +770,8 @@ class _State extends State<PlantDetailScreen> {
               style: TextStyle(
                 fontSize: 11 * scale,
                 fontWeight: FontWeight.bold,
-                color: isRecorded ? Colors.blue.shade700 : Colors.green.shade700,
+                color:
+                    isRecorded ? Colors.blue.shade700 : Colors.green.shade700,
               ),
             ),
           ],
@@ -714,15 +786,18 @@ class _State extends State<PlantDetailScreen> {
     Color color;
     IconData icon;
 
-    if (statusId == 1) { // Sống/Tốt
+    if (statusId == 1) {
+      // Sống/Tốt
       text = "Đang phát triển";
       color = Colors.green;
       icon = Icons.check_circle_rounded;
-    } else if (statusId == 2) { // Ngủ đông
+    } else if (statusId == 2) {
+      // Ngủ đông
       text = "Ngủ đông";
       color = Colors.blue;
       icon = Icons.ac_unit_rounded;
-    } else if (statusId == 3) { // Chết
+    } else if (statusId == 3) {
+      // Chết
       text = "Đã chết";
       color = Colors.red;
       icon = Icons.cancel_rounded;
@@ -756,6 +831,7 @@ class _State extends State<PlantDetailScreen> {
       ),
     );
   }
+
   // Hàm phụ trợ để mở dialog xem ảnh full màn hình
   void _showFullScreenImage(BuildContext context, String imageUrl) {
     showDialog(
@@ -784,11 +860,14 @@ class _State extends State<PlantDetailScreen> {
                     child: CachedNetworkImage(
                       imageUrl: imageUrl,
                       fit: BoxFit.contain,
-                      progressIndicatorBuilder: (context, url, downloadProgress) {
+                      progressIndicatorBuilder:
+                          (context, url, downloadProgress) {
                         return Center(
                           child: CircularProgressIndicator(
-                            value: downloadProgress.progress, // Hiển thị tiến trình nếu muốn
-                            color: Colors.white, // Màu trắng cho nổi trên nền đen
+                            value: downloadProgress
+                                .progress, // Hiển thị tiến trình nếu muốn
+                            color:
+                                Colors.white, // Màu trắng cho nổi trên nền đen
                             strokeWidth: 3, // Độ dày vừa phải
                           ),
                         );
@@ -796,14 +875,17 @@ class _State extends State<PlantDetailScreen> {
 
                       // 2. HIỂN THỊ KHI LỖI
                       errorWidget: (context, url, error) => const Column(
-                        mainAxisAlignment: MainAxisAlignment.center, // Căn giữa theo chiều dọc
+                        mainAxisAlignment:
+                            MainAxisAlignment.center, // Căn giữa theo chiều dọc
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.broken_image, color: Colors.white54, size: 60),
+                          Icon(Icons.broken_image,
+                              color: Colors.white54, size: 60),
                           SizedBox(height: 12),
                           Text(
                             "Không thể tải ảnh",
-                            style: TextStyle(color: Colors.white70, fontSize: 16),
+                            style:
+                                TextStyle(color: Colors.white70, fontSize: 16),
                           )
                         ],
                       ),
@@ -821,7 +903,8 @@ class _State extends State<PlantDetailScreen> {
                       shape: BoxShape.circle,
                     ),
                     child: IconButton(
-                      icon: const Icon(Icons.close, color: Colors.white, size: 30),
+                      icon: const Icon(Icons.close,
+                          color: Colors.white, size: 30),
                       onPressed: () {
                         Navigator.of(context).pop();
                       },
@@ -835,15 +918,16 @@ class _State extends State<PlantDetailScreen> {
       },
     );
   }
+
   Widget _buildMonthlyDiarySummary(
-      List<CaySamNhatKy?> currentMonthEntries,
-      CaySamNhatKy? latestEntry,
-      int totalEntries,
-      double avgHealth,
-      String lastUpdate,
-      CaySamModel plant,
-      BuildContext context,
-      ) {
+    List<CaySamNhatKy?> currentMonthEntries,
+    CaySamNhatKy? latestEntry,
+    int totalEntries,
+    double avgHealth,
+    String lastUpdate,
+    CaySamModel plant,
+    BuildContext context,
+  ) {
     final now = DateTime.now();
     double screenWidth = MediaQuery.of(context).size.width;
     double scale = (screenWidth / 375.0).clamp(0.85, 1.15);
@@ -854,15 +938,23 @@ class _State extends State<PlantDetailScreen> {
         latestEntry!.caySamNhatKy_SensorReadings!.isNotEmpty;
 
     // Sử dụng giá trị từ phần tử đầu tiên nếu có, ngược lại gán bằng 0
-    double temp = hasSensors ? (latestEntry.caySamNhatKy_SensorReadings!.first.nhietDo ?? 0.0) : 0.0;
-    double dewPoint = hasSensors ? (latestEntry.caySamNhatKy_SensorReadings!.first.diemSuong ?? 0.0) : 0;
-    double humidity = hasSensors ? (latestEntry.caySamNhatKy_SensorReadings!.first.doAmKK ?? 0) : 0;
-    double soilMoisture = hasSensors ? (latestEntry.caySamNhatKy_SensorReadings!.first.doAmDat ?? 0) : 0;
+    double temp = hasSensors
+        ? (latestEntry.caySamNhatKy_SensorReadings!.first.nhietDo ?? 0.0)
+        : 0.0;
+    double dewPoint = hasSensors
+        ? (latestEntry.caySamNhatKy_SensorReadings!.first.diemSuong ?? 0.0)
+        : 0;
+    double humidity = hasSensors
+        ? (latestEntry.caySamNhatKy_SensorReadings!.first.doAmKK ?? 0)
+        : 0;
+    double soilMoisture = hasSensors
+        ? (latestEntry.caySamNhatKy_SensorReadings!.first.doAmDat ?? 0)
+        : 0;
 
     // --- LOGIC TÌNH TRẠNG CÂY ---
     String statusValue = latestEntry?.tinhTrang.toString() ?? "-1";
     final statusOption = OptionLoSamTinhTrang.firstWhere(
-          (opt) => opt.value == statusValue,
+      (opt) => opt.value == statusValue,
       orElse: () => OptionModel(value: "-1", text: "Không rõ"),
     );
 
@@ -899,7 +991,8 @@ class _State extends State<PlantDetailScreen> {
                         borderRadius: BorderRadius.circular(8 * scale),
                         border: Border.all(color: Colors.blue.shade100),
                       ),
-                      child: Icon(Icons.calendar_month_rounded, color: Colors.blue[700], size: 20 * scale),
+                      child: Icon(Icons.calendar_month_rounded,
+                          color: Colors.blue[700], size: 20 * scale),
                     ),
                     SizedBox(width: 10 * scale),
                     Column(
@@ -915,8 +1008,11 @@ class _State extends State<PlantDetailScreen> {
                         ),
                         SizedBox(height: 4 * scale),
                         Text(
-                          latestEntry != null ? "Cập nhật: $lastUpdate" : "--/--/----",
-                          style: TextStyle(fontSize: 11 * scale, color: Colors.grey[500]),
+                          latestEntry != null
+                              ? "Cập nhật: $lastUpdate"
+                              : "--/--/----",
+                          style: TextStyle(
+                              fontSize: 11 * scale, color: Colors.grey[500]),
                         ),
                       ],
                     ),
@@ -935,8 +1031,11 @@ class _State extends State<PlantDetailScreen> {
 
             // === 2. NÚT ADMIN ACTION ===
             if (user?.htTaiKhoan.htPhanQuyenTaiKhoans.any(
-                  (pq) => pq.maVaiTro != "nft_invester" && pq.maVaiTro == "nft_admin",
-            ) ?? false) ...[
+                  (pq) =>
+                      pq.maVaiTro != "nft_invester" &&
+                      pq.maVaiTro == "nft_admin",
+                ) ??
+                false) ...[
               SizedBox(height: 16 * scale),
               Row(
                 children: [
@@ -973,7 +1072,8 @@ class _State extends State<PlantDetailScreen> {
 
             // === 3. CHỈ SỐ MÔI TRƯỜNG ===
             Container(
-              padding: EdgeInsets.symmetric(horizontal: 12 * scale, vertical: 10 * scale),
+              padding: EdgeInsets.symmetric(
+                  horizontal: 12 * scale, vertical: 10 * scale),
               decoration: BoxDecoration(
                 color: Colors.blueGrey.shade50.withOpacity(0.5),
                 borderRadius: BorderRadius.circular(12 * scale),
@@ -984,15 +1084,15 @@ class _State extends State<PlantDetailScreen> {
                 children: [
                   Row(
                     children: [
-                      Icon(Icons.wb_cloudy_outlined, size: 16 * scale, color: Colors.blueGrey),
+                      Icon(Icons.wb_cloudy_outlined,
+                          size: 16 * scale, color: Colors.blueGrey),
                       SizedBox(width: 6 * scale),
                       Text(
                         "Chỉ số môi trường",
                         style: TextStyle(
                             fontSize: 13 * scale,
                             fontWeight: FontWeight.bold,
-                            color: Colors.blueGrey.shade700
-                        ),
+                            color: Colors.blueGrey.shade700),
                       ),
                     ],
                   ),
@@ -1006,10 +1106,30 @@ class _State extends State<PlantDetailScreen> {
                     mainAxisSpacing: 4 * scale,
                     crossAxisSpacing: 8 * scale,
                     children: [
-                      _buildEnvItem(Icons.thermostat_rounded, "Nhiệt độ", "${temp % 1 == 0 ? temp.toInt() : temp}°C", Colors.orange, scale),
-                      _buildEnvItem(Icons.water_drop_rounded, "Độ ẩm khí", "${humidity % 1 == 0 ? humidity.toInt() : humidity}%", Colors.blue, scale),
-                      _buildEnvItem(Icons.opacity_rounded, "Điểm sương","${dewPoint % 1 == 0 ? dewPoint.toInt() : dewPoint}°C", Colors.cyan, scale),
-                      _buildEnvItem(Icons.grass_rounded, "Độ ẩm đất", "${soilMoisture % 1 == 0 ? soilMoisture.toInt() : soilMoisture}%", Colors.brown, scale),
+                      _buildEnvItem(
+                          Icons.thermostat_rounded,
+                          "Nhiệt độ",
+                          "${temp % 1 == 0 ? temp.toInt() : temp}°C",
+                          Colors.orange,
+                          scale),
+                      _buildEnvItem(
+                          Icons.water_drop_rounded,
+                          "Độ ẩm khí",
+                          "${humidity % 1 == 0 ? humidity.toInt() : humidity}%",
+                          Colors.blue,
+                          scale),
+                      _buildEnvItem(
+                          Icons.opacity_rounded,
+                          "Điểm sương",
+                          "${dewPoint % 1 == 0 ? dewPoint.toInt() : dewPoint}°C",
+                          Colors.cyan,
+                          scale),
+                      _buildEnvItem(
+                          Icons.grass_rounded,
+                          "Độ ẩm đất",
+                          "${soilMoisture % 1 == 0 ? soilMoisture.toInt() : soilMoisture}%",
+                          Colors.brown,
+                          scale),
                     ],
                   ),
                 ],
@@ -1020,7 +1140,8 @@ class _State extends State<PlantDetailScreen> {
             if (latestEntry != null) ...[
               SizedBox(height: 16 * scale),
               Container(
-                padding: EdgeInsets.symmetric(vertical: 16 * scale, horizontal: 4 * scale),
+                padding: EdgeInsets.symmetric(
+                    vertical: 16 * scale, horizontal: 4 * scale),
                 decoration: BoxDecoration(
                   color: Colors.grey.shade50,
                   borderRadius: BorderRadius.circular(12 * scale),
@@ -1028,16 +1149,33 @@ class _State extends State<PlantDetailScreen> {
                 ),
                 child: Row(
                   children: [
-                    _buildStatItem("Sức khỏe", "${latestEntry.diemSucKhoe}/5", Colors.redAccent, scale),
-                    Container(height: 30 * scale, width: 1, color: Colors.grey.shade300),
-                    _buildStatItem("Số lá", "${latestEntry.soLa}", Colors.green, scale),
-                    Container(height: 30 * scale, width: 1, color: Colors.grey.shade300),
+                    _buildStatItem(
+                      "Sức khỏe",
+                      getSucKhoeText(latestEntry.diemSucKhoe),
+                      getSucKhoeColor(latestEntry.diemSucKhoe),
+                      scale,
+                    ),
+                    Container(
+                        height: 30 * scale,
+                        width: 1,
+                        color: Colors.grey.shade300),
+                    _buildStatItem(
+                        "Số lá", "${latestEntry.soLa}", Colors.green, scale),
+                    Container(
+                        height: 30 * scale,
+                        width: 1,
+                        color: Colors.grey.shade300),
                     Expanded(
                       child: Column(
                         children: [
-                          Text("Tình trạng", style: TextStyle(fontSize: 11 * scale, color: Colors.grey[500])),
+                          Text("Tình trạng",
+                              style: TextStyle(
+                                  fontSize: 12 * scale,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.blueGrey.shade600)),
                           SizedBox(height: 4 * scale),
-                          _buildStatusTag(statusOption.text, latestEntry.tinhTrang, scale),
+                          _buildStatusTag(
+                              statusOption.text, latestEntry.tinhTrang, scale),
                         ],
                       ),
                     ),
@@ -1049,33 +1187,45 @@ class _State extends State<PlantDetailScreen> {
               SizedBox(height: 16 * scale),
               Row(
                 children: [
-                  Icon(Icons.image_search_rounded, size: 16 * scale, color: Colors.grey[800]),
+                  Icon(Icons.image_search_rounded,
+                      size: 16 * scale, color: Colors.grey[800]),
                   SizedBox(width: 6 * scale),
                   Text(
                     'Hình ảnh thực tế',
-                    style: TextStyle(fontSize: 12 * scale, fontWeight: FontWeight.bold, color: Colors.grey[800]),
+                    style: TextStyle(
+                        fontSize: 12 * scale,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey[800]),
                   ),
                 ],
               ),
               SizedBox(height: 8 * scale),
               Row(
                 children: [
-                  if (latestEntry.hinhAnhTongQuan != null && latestEntry.hinhAnhTongQuan!.isNotEmpty)
-                    Expanded(child: _buildBorderedImageWithShimmer(context, latestEntry.hinhAnhTongQuan!, "Tổng quan", scale)),
-
-                  if (latestEntry.hinhAnhTongQuan != null && latestEntry.hinhAnhChiTiet != null)
+                  if (latestEntry.hinhAnhTongQuan != null &&
+                      latestEntry.hinhAnhTongQuan!.isNotEmpty)
+                    Expanded(
+                        child: _buildBorderedImageWithShimmer(context,
+                            latestEntry.hinhAnhTongQuan!, "Tổng quan", scale)),
+                  if (latestEntry.hinhAnhTongQuan != null &&
+                      latestEntry.hinhAnhChiTiet != null)
                     SizedBox(width: 10 * scale),
-
-                  if (latestEntry.hinhAnhChiTiet != null && latestEntry.hinhAnhChiTiet!.isNotEmpty)
-                    Expanded(child: _buildBorderedImageWithShimmer(context, latestEntry.hinhAnhChiTiet!, "Chi tiết", scale)),
+                  if (latestEntry.hinhAnhChiTiet != null &&
+                      latestEntry.hinhAnhChiTiet!.isNotEmpty)
+                    Expanded(
+                        child: _buildBorderedImageWithShimmer(context,
+                            latestEntry.hinhAnhChiTiet!, "Chi tiết", scale)),
                 ],
               ),
             ] else ...[
               // Empty State
               SizedBox(height: 20 * scale),
-              Icon(Icons.insert_chart_outlined_rounded, size: 40 * scale, color: Colors.grey[300]),
+              Icon(Icons.insert_chart_outlined_rounded,
+                  size: 40 * scale, color: Colors.grey[300]),
               SizedBox(height: 8 * scale),
-              Text("Chưa có nhật ký ghi nhận", style: TextStyle(color: Colors.grey[400], fontSize: 12 * scale)),
+              Text("Chưa có nhật ký ghi nhận",
+                  style:
+                      TextStyle(color: Colors.grey[400], fontSize: 12 * scale)),
             ],
           ],
         ),
@@ -1084,7 +1234,8 @@ class _State extends State<PlantDetailScreen> {
   }
 
 // --- WIDGET HỖ TRỢ HIỂN THỊ MÔI TRƯỜNG ---
-  Widget _buildEnvItem(IconData icon, String label, String value, Color color, double scale) {
+  Widget _buildEnvItem(
+      IconData icon, String label, String value, Color color, double scale) {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 6 * scale),
       child: Row(
@@ -1105,12 +1256,18 @@ class _State extends State<PlantDetailScreen> {
               children: [
                 Text(
                   label,
-                  style: TextStyle(fontSize: 9 * scale, color: Colors.grey[600], fontWeight: FontWeight.w500),
+                  style: TextStyle(
+                      fontSize: 9 * scale,
+                      color: Colors.grey[600],
+                      fontWeight: FontWeight.w500),
                   overflow: TextOverflow.ellipsis,
                 ),
                 Text(
                   value,
-                  style: TextStyle(fontSize: 12 * scale, fontWeight: FontWeight.w800, color: Colors.blueGrey[900]),
+                  style: TextStyle(
+                      fontSize: 12 * scale,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.blueGrey[900]),
                 ),
               ],
             ),
@@ -1119,6 +1276,7 @@ class _State extends State<PlantDetailScreen> {
       ),
     );
   }
+
   Widget _buildOutlinedButton({
     required String label,
     required IconData icon,
@@ -1131,9 +1289,11 @@ class _State extends State<PlantDetailScreen> {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(10 * scale), // Bo góc mềm hơn (8 -> 10)
+        borderRadius:
+            BorderRadius.circular(10 * scale), // Bo góc mềm hơn (8 -> 10)
         child: Container(
-          padding: EdgeInsets.symmetric(horizontal: 12 * scale, vertical: 7 * scale),
+          padding:
+              EdgeInsets.symmetric(horizontal: 12 * scale, vertical: 7 * scale),
           decoration: BoxDecoration(
             // 1. Nền không để trắng tinh mà pha chút màu nhẹ (5%)
             color: color.withOpacity(0.04),
@@ -1197,7 +1357,11 @@ class _State extends State<PlantDetailScreen> {
           children: [
             Icon(icon, size: 16 * scale, color: color),
             SizedBox(width: 4 * scale),
-            Text(label, style: TextStyle(fontSize: 12 * scale, fontWeight: FontWeight.bold, color: color)),
+            Text(label,
+                style: TextStyle(
+                    fontSize: 12 * scale,
+                    fontWeight: FontWeight.bold,
+                    color: color)),
           ],
         ),
       ),
@@ -1224,7 +1388,10 @@ class _State extends State<PlantDetailScreen> {
           borderRadius: BorderRadius.circular(10 * scale),
           border: Border.all(color: borderColor, width: 1),
           boxShadow: [
-            BoxShadow(color: bgColor.withOpacity(0.3), offset: Offset(0, 3), blurRadius: 5),
+            BoxShadow(
+                color: bgColor.withOpacity(0.3),
+                offset: Offset(0, 3),
+                blurRadius: 5),
           ],
         ),
         child: Row(
@@ -1232,7 +1399,11 @@ class _State extends State<PlantDetailScreen> {
           children: [
             Icon(icon, size: 16 * scale, color: color),
             SizedBox(width: 4 * scale),
-            Text(label, style: TextStyle(fontSize: 12 * scale, fontWeight: FontWeight.bold, color: color)),
+            Text(label,
+                style: TextStyle(
+                    fontSize: 12 * scale,
+                    fontWeight: FontWeight.bold,
+                    color: color)),
           ],
         ),
       ),
@@ -1240,11 +1411,15 @@ class _State extends State<PlantDetailScreen> {
   }
 
 // 4. Widget Ảnh + Shimmer
-  Widget _buildBorderedImageWithShimmer(BuildContext context, String url, String label, double scale) {
+  Widget _buildBorderedImageWithShimmer(
+      BuildContext context, String url, String label, double scale) {
     return Column(
       children: [
         GestureDetector(
-          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => FullScreenImageViewer(imageUrl: url))),
+          onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (_) => FullScreenImageViewer(imageUrl: url))),
           child: AspectRatio(
             aspectRatio: 1.0,
             child: Container(
@@ -1262,14 +1437,19 @@ class _State extends State<PlantDetailScreen> {
                     highlightColor: Colors.grey[100]!,
                     child: Container(color: Colors.white),
                   ),
-                  errorWidget: (context, url, error) => Icon(Icons.broken_image, color: Colors.grey[300]),
+                  errorWidget: (context, url, error) =>
+                      Icon(Icons.broken_image, color: Colors.grey[300]),
                 ),
               ),
             ),
           ),
         ),
         SizedBox(height: 4 * scale),
-        Text(label, style: TextStyle(fontSize: 10 * scale, fontWeight: FontWeight.w600, color: Colors.grey[600])),
+        Text(label,
+            style: TextStyle(
+                fontSize: 10 * scale,
+                fontWeight: FontWeight.w600,
+                color: Colors.grey[600])),
       ],
     );
   }
@@ -1279,14 +1459,22 @@ class _State extends State<PlantDetailScreen> {
     return Expanded(
       child: Column(
         children: [
-          Text(label, style: TextStyle(fontSize: 11 * scale, color: Colors.grey[500])),
+          Text(label,
+              style: TextStyle(
+                  fontSize: 12 * scale,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.blueGrey.shade600)),
           SizedBox(height: 4 * scale),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(Icons.circle, size: 8 * scale, color: color),
               SizedBox(width: 4 * scale),
-              Text(value, style: TextStyle(fontSize: 15 * scale, fontWeight: FontWeight.w800, color: Colors.black87)),
+              Text(value,
+                  style: TextStyle(
+                      fontSize: 14 * scale,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.black87)),
             ],
           )
         ],
@@ -1297,7 +1485,9 @@ class _State extends State<PlantDetailScreen> {
 // 6. Status Tag
   Widget _buildStatusTag(String text, int statusId, double scale) {
     Color color;
-    if (statusId == 1 || text.toLowerCase().contains("sống") || text.toLowerCase().contains("tốt")) {
+    if (statusId == 1 ||
+        text.toLowerCase().contains("sống") ||
+        text.toLowerCase().contains("tốt")) {
       color = Colors.green;
     } else if (statusId == 2 || text.toLowerCase().contains("ngủ")) {
       color = Colors.blue;
@@ -1306,7 +1496,8 @@ class _State extends State<PlantDetailScreen> {
     }
 
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 10 * scale, vertical: 3 * scale),
+      padding:
+          EdgeInsets.symmetric(horizontal: 10 * scale, vertical: 3 * scale),
       decoration: BoxDecoration(
         color: color.withOpacity(0.1),
         borderRadius: BorderRadius.circular(12 * scale),
@@ -1314,11 +1505,14 @@ class _State extends State<PlantDetailScreen> {
       ),
       child: Text(
         text,
-        style: TextStyle(fontSize: 11 * scale, color: color, fontWeight: FontWeight.bold),
-        maxLines: 1, overflow: TextOverflow.ellipsis,
+        style: TextStyle(
+            fontSize: 11 * scale, color: color, fontWeight: FontWeight.bold),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
       ),
     );
   }
+
   Widget _buildEnvironmentSection() {
     return Card(
       child: Padding(
@@ -1341,14 +1535,14 @@ class _State extends State<PlantDetailScreen> {
             ),
             SizedBox(height: 4),
             Text(
-              DateFormat('dd/MM/yyyy HH:mm').format(DateTime.parse(widget.environment!.ngayDo)),
+              DateFormat('dd/MM/yyyy HH:mm')
+                  .format(DateTime.parse(widget.environment!.ngayDo)),
               style: TextStyle(
                 fontSize: 12,
                 color: Colors.grey[600],
               ),
             ),
             SizedBox(height: 16),
-
             Row(
               children: [
                 Expanded(
@@ -1386,7 +1580,8 @@ class _State extends State<PlantDetailScreen> {
                   child: _buildEnvironmentCard(
                     icon: Icons.water,
                     label: 'Lượng mưa',
-                    value: '${widget.environment!.luongMua.toStringAsFixed(1)}mm',
+                    value:
+                        '${widget.environment!.luongMua.toStringAsFixed(1)}mm',
                     color: Colors.cyan,
                   ),
                 ),
@@ -1420,14 +1615,14 @@ class _State extends State<PlantDetailScreen> {
             ),
             SizedBox(height: 4),
             Text(
-              DateFormat('dd/MM/yyyy').format(DateTime.parse(widget.verification!.ngayKiemDinh)),
+              DateFormat('dd/MM/yyyy')
+                  .format(DateTime.parse(widget.verification!.ngayKiemDinh)),
               style: TextStyle(
                 fontSize: 12,
                 color: Colors.grey[600],
               ),
             ),
             SizedBox(height: 16),
-
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -1446,7 +1641,8 @@ class _State extends State<PlantDetailScreen> {
                     fontWeight: FontWeight.w500,
                   ),
                 ),
-                if (widget.verification!.ghiChu != null && widget.verification!.ghiChu!.isNotEmpty) ...[
+                if (widget.verification!.ghiChu != null &&
+                    widget.verification!.ghiChu!.isNotEmpty) ...[
                   SizedBox(height: 8),
                   Text(
                     'Ghi chú',
@@ -1507,46 +1703,12 @@ class _State extends State<PlantDetailScreen> {
     );
   }
 
-  // Helper methods
-  Color _getStatusColor(TrangThaiCay? status) {
-    switch (status) {
-      case TrangThaiCay.khoeMauh:
-        return Colors.green;
-      case TrangThaiCay.yeu:
-        return Colors.yellow[700] ?? Colors.yellow;
-      case TrangThaiCay.benh:
-        return Colors.orange;
-      case TrangThaiCay.chet:
-        return Colors.red;
-      default:
-        return Colors.green;
-    }
-  }
-
-
-  Color _getHealthColor(int health) {
-    switch (health) {
-      case 1:
-        return Colors.red;
-      case 2:
-        return Colors.orange;
-      case 3:
-        return Colors.yellow[700] ?? Colors.yellow;
-      case 4:
-        return Colors.blue;
-      case 5:
-        return Colors.green;
-      default:
-        return Colors.grey;
-    }
-  }
-
   void _handleDiaryListClick() {
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => DiaryListScreen(
-          plant: plantwidget,   // 👈 truyền model CaySam
+          plant: plantwidget, // 👈 truyền model CaySam
           onBack: () {
             Navigator.pop(context); // quay lại khi bấm back
           },
@@ -1554,7 +1716,6 @@ class _State extends State<PlantDetailScreen> {
       ),
     );
   }
-
 
   void _handleUpdateDiaryClick(CaySamModel plant, BuildContext context) {
     Navigator.of(context).push(
@@ -1572,6 +1733,7 @@ class _State extends State<PlantDetailScreen> {
       ),
     );
   }
+
   void _handleAddDiaryClick(CaySamModel plant, BuildContext context) {
     Navigator.of(context).push(
       MaterialPageRoute(
@@ -1589,15 +1751,15 @@ class _State extends State<PlantDetailScreen> {
       ),
     );
   }
-  void _handleAddPlantSubmit(
-      Map<String, dynamic> plantData,
-      List<File?> images,
-      String? idcaysam
-      ) async {
+
+  void _handleAddPlantSubmit(Map<String, dynamic> plantData, List<File?> images,
+      String? idcaysam) async {
     showLoadingDialog(context, message: 'Đang cập nhật nhật ký ...');
 
     try {
-      final nhatKy = plantwidget.caySamNhatKys.isNotEmpty ? plantwidget.caySamNhatKys.first : null;
+      final nhatKy = plantwidget.caySamNhatKys.isNotEmpty
+          ? plantwidget.caySamNhatKys.first
+          : null;
 
       // Biến để lưu kết quả API
       dynamic apiResponse;
@@ -1609,7 +1771,9 @@ class _State extends State<PlantDetailScreen> {
         final ngayGhi = DateTime.tryParse(nhatKy!.ngayGhi!);
         final now = DateTime.now();
 
-        if (ngayGhi != null && ngayGhi.year == now.year && ngayGhi.month == now.month) {
+        if (ngayGhi != null &&
+            ngayGhi.year == now.year &&
+            ngayGhi.month == now.month) {
           // Trường hợp: Chỉnh sửa cây sâm
           isEditing = true;
           apiResponse = await API().editCaySam(
@@ -1654,7 +1818,7 @@ class _State extends State<PlantDetailScreen> {
         );
         widget.onBack.call();
         Navigator.of(context).pop(); // Đóng màn hình hiện tại
-        if(idcaysam !=null) {
+        if (idcaysam != null) {
           setState(() {
             ReloadDataCaySam(idcaysam);
           });
@@ -1685,11 +1849,9 @@ class _State extends State<PlantDetailScreen> {
       );
     }
   }
-  void _handleAddNhatKySubmit(
-      Map<String, dynamic> plantData,
-      List<File?> images,
-      String? caysamid
-      ) async {
+
+  void _handleAddNhatKySubmit(Map<String, dynamic> plantData,
+      List<File?> images, String? caysamid) async {
     // Hiển thị dialog loading
     showLoadingDialog(context, message: 'Đang thêm nhật ký ...');
 
@@ -1717,14 +1879,16 @@ class _State extends State<PlantDetailScreen> {
         );
         widget.onBack.call();
         Navigator.of(context).pop();
-        setState(() {
-          // _futureLoSam = API().getLoSamById(selectedZone!.loSamId);
-        });
+        if (caysamid != null)
+          setState(() {
+            ReloadDataCaySam(caysamid);
+          });
       } else {
         // Lỗi từ server
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Thêm nhật ký không thành công: ${apiResponse?.message ?? "Lỗi không xác định"}'),
+            content: Text(
+                'Thêm nhật ký không thành công: ${apiResponse?.message ?? "Lỗi không xác định"}'),
             backgroundColor: Colors.red,
           ),
         );
@@ -1745,6 +1909,7 @@ class _State extends State<PlantDetailScreen> {
       );
     }
   }
+
   // HÀM HỖ TRỢ MỚI
   Widget _buildStatusChip(String? statusValue) {
     if (statusValue == null) {
@@ -1752,7 +1917,7 @@ class _State extends State<PlantDetailScreen> {
     }
 
     final statusOption = OptionLoSamTinhTrang.firstWhere(
-          (opt) => opt.value == statusValue,
+      (opt) => opt.value == statusValue,
       orElse: () => OptionModel(value: "-1", text: "Không rõ"),
     );
 
@@ -1785,10 +1950,10 @@ class _State extends State<PlantDetailScreen> {
         return Colors.grey.shade600;
     }
   }
-  Widget buildShimmerLoading() {
 
+  Widget buildShimmerLoading() {
     return Shimmer.fromColors(
-      baseColor: Colors.grey[300]!,      // Màu nền xám
+      baseColor: Colors.grey[300]!, // Màu nền xám
       highlightColor: Colors.grey[100]!, // Màu sáng lướt qua
       child: Container(
         color: Colors.white, // Cần một container có màu để shimmer hoạt động
@@ -1797,6 +1962,7 @@ class _State extends State<PlantDetailScreen> {
       ),
     );
   }
+
   Widget _buildAttachmentSection() {
     final attachments = plantwidget.caySam_DinhKems ?? [];
     double screenWidth = MediaQuery.of(context).size.width;
@@ -1835,10 +2001,11 @@ class _State extends State<PlantDetailScreen> {
                       borderRadius: BorderRadius.circular(8 * scale),
                       border: Border.all(color: Colors.blue.shade100),
                     ),
-                    child: Icon(Icons.folder_open_rounded, color: Colors.blue[700], size: 20 * scale),
+                    child: Icon(Icons.folder_open_rounded,
+                        color: Colors.blue[700], size: 20 * scale),
                   ),
                   const SizedBox(width: 12),
-                   Text(
+                  Text(
                     'Tài liệu đính kèm',
                     style: TextStyle(
                       fontSize: 14 * scale,
@@ -1856,19 +2023,22 @@ class _State extends State<PlantDetailScreen> {
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             itemCount: attachments.length,
-            separatorBuilder: (ctx, index) => const SizedBox(height: 12), // Khoảng cách giữa các item
+            separatorBuilder: (ctx, index) =>
+                const SizedBox(height: 12), // Khoảng cách giữa các item
             itemBuilder: (context, index) {
               final item = attachments[index];
 
               // Xử lý dữ liệu
               final String url = item?.dinhKemFile ?? "";
-              final String fileName = url.isNotEmpty ? url.split('/').last : "Tài liệu không tên";
+              final String fileName =
+                  url.isNotEmpty ? url.split('/').last : "Tài liệu không tên";
 
               String timeDisplay = "";
               if (item?.thoiGian != null) {
                 try {
                   final date = DateTime.parse(item!.thoiGian.toString());
-                  timeDisplay = DateFormat('dd/MM/yyyy • HH:mm').format(date); // Thêm dấu chấm ngăn cách
+                  timeDisplay = DateFormat('dd/MM/yyyy • HH:mm')
+                      .format(date); // Thêm dấu chấm ngăn cách
                 } catch (e) {
                   timeDisplay = item?.thoiGian.toString() ?? "";
                 }
@@ -1889,7 +2059,8 @@ class _State extends State<PlantDetailScreen> {
                 fileIcon = Icons.image_rounded;
                 themeColor = const Color(0xFF4D96FF); // Xanh dương hiện đại
                 fileType = "IMG";
-              } else if (fileName.toLowerCase().endsWith('.doc') || fileName.toLowerCase().endsWith('.docx')) {
+              } else if (fileName.toLowerCase().endsWith('.doc') ||
+                  fileName.toLowerCase().endsWith('.docx')) {
                 fileIcon = Icons.description_rounded;
                 themeColor = const Color(0xFF2B55CC); // Xanh Word
                 fileType = "DOC";
@@ -1956,18 +2127,21 @@ class _State extends State<PlantDetailScreen> {
                               const SizedBox(height: 4),
                               Row(
                                 children: [
-                                  Icon(Icons.access_time_rounded, size: 12, color: Colors.grey[400]),
+                                  Icon(Icons.access_time_rounded,
+                                      size: 12, color: Colors.grey[400]),
                                   const SizedBox(width: 4),
                                   Text(
                                     timeDisplay,
-                                    style: TextStyle(fontSize: 12, color: Colors.grey[500], fontWeight: FontWeight.w500),
+                                    style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.grey[500],
+                                        fontWeight: FontWeight.w500),
                                   ),
                                 ],
                               ),
                             ],
                           ),
                         ),
-
                       ],
                     ),
                   ),
@@ -2001,19 +2175,38 @@ class _State extends State<PlantDetailScreen> {
       ),
     );
   }
-  Widget _buildInfoRow({
-    required IconData icon,
-    required String label,
-    required Widget content,
-  }) {
-    return ListTile(
-      leading: Icon(icon, color: Colors.grey.shade600, size: 24),
-      title: Text(
-        label,
-        style: TextStyle(fontSize: 14, color: Colors.grey.shade700),
-      ),
-      trailing: content,
-      dense: true,
-    );
+
+  Color getSucKhoeColor(int? diem) {
+    switch (diem) {
+      case 5:
+        return Colors.green; // Rất tốt - Xanh lá đậm
+      case 4:
+        return Colors.lightGreen; // Tốt - Xanh lá nhạt
+      case 3:
+        return Colors.orange; // Trung bình - Cam
+      case 2:
+        return Colors.redAccent; // Yếu - Đỏ tươi
+      case 1:
+        return Colors.green; // Rất tốt - Xanh lá (theo logic bạn đưa ra)
+      default:
+        return Colors.grey; // Không xác định
+    }
+  }
+
+  String getSucKhoeText(int? diem) {
+    switch (diem) {
+      case 1:
+        return "Rất tốt";
+      case 2:
+        return "Yếu";
+      case 3:
+        return "Trung bình";
+      case 4:
+        return "Tốt";
+      case 5:
+        return "Rất tốt";
+      default:
+        return "N/A";
+    }
   }
 }

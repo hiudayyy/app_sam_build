@@ -10,6 +10,7 @@ class Kttoken {
   final String expiredRefreshToken;
   final String service;
   final UserModel htTaiKhoan;
+  final WalletUser? wallet;
   final List<HtMenuModel> htMenuModels;
 
   Kttoken({
@@ -22,6 +23,7 @@ class Kttoken {
     required this.expiredRefreshToken,
     required this.service,
     required this.htTaiKhoan,
+    this.wallet,
     required this.htMenuModels,
   });
 
@@ -38,6 +40,7 @@ class Kttoken {
       expiredRefreshToken: json['expiredRefreshToken'] ?? '',
       service: json['service'] ?? '',
       htTaiKhoan: UserModel.fromJson(json['htTaiKhoan'] ?? {}),
+      wallet: json['wallet'] != null ? WalletUser.fromJson(json['wallet']) : null,
       htMenuModels: (json['htMenuModels'] as List<dynamic>? ?? [])
           .map((e) => HtMenuModel.fromJson(e))
           .toList(),
@@ -55,6 +58,7 @@ class Kttoken {
       "expiredRefreshToken": expiredRefreshToken,
       "service": service,
       "htTaiKhoan": htTaiKhoan.toJson(),
+      "wallet": wallet?.toJson(),
       "htMenuModels": htMenuModels.map((e) => e.toJson()).toList(),
     };
   }

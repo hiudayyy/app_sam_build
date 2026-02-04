@@ -1,14 +1,10 @@
-import 'dart:ffi' hide Size;
 
-import 'package:nftsam/api/api_login.dart';
 import 'package:nftsam/screens/register_screen.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../api/api.dart';
 import '../models/login_model.dart';
-import '../models/user.dart';
-import '../models/user_model.dart';
 import '../providers/auth_provider.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -41,13 +37,6 @@ class _LoginScreenState extends State<LoginScreen> {
       );
       context.read<AuthProvider>().login(model);
     }
-  }
-
-  void _handleDemoLogin(String username) {
-    setState(() {
-      _usernameController.text = username;
-      _passwordController.text = '123';
-    });
   }
 
   @override
@@ -348,22 +337,6 @@ class _LoginScreenState extends State<LoginScreen> {
               ],
             ),
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDemoButton(String username, String label, bool disabled) {
-    return OutlinedButton(
-      onPressed: disabled ? null : () => _handleDemoLogin(username),
-      child: Text(
-        label,
-        style: TextStyle(fontSize: 12),
-      ),
-      style: OutlinedButton.styleFrom(
-        padding: EdgeInsets.symmetric(horizontal: 8, vertical: 12),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
         ),
       ),
     );

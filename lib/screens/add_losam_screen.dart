@@ -97,7 +97,7 @@ class _AddLoSamScreenState extends State<AddLoSamScreen> {
       ghiChu: '',
       loai: '',
       trangThai: 1,
-      vuonTrongId: widget.farmId ?? 1,
+      vuonTrongId: widget.farmId ?? 0,
     );
     await _initializeData();
     if (mounted) {
@@ -410,8 +410,8 @@ class _AddLoSamScreenState extends State<AddLoSamScreen> {
   // Phương thức xóa một sensor đã chọn
   void _removeSensor(int index) {
     setState(() {
-      final sensorToRemove = _getSelectedSensorModels()?[index];
-      sensorid.remove(sensorToRemove?.sensorId);
+      final sensorToRemove = _getSelectedSensorModels()[index];
+      sensorid.remove(sensorToRemove.sensorId);
     });
   }
 
@@ -1386,16 +1386,6 @@ class _AddLoSamScreenState extends State<AddLoSamScreen> {
     // Sử dụng StatefulBuilder để quản lý trạng thái _isObscure cục bộ
     return StatefulBuilder(
       builder: (BuildContext context, StateSetter setStateBuilder) {
-        // 1. Khởi tạo trạng thái _isObscure (chỉ chạy lần đầu)
-        bool _isObscure = true;
-
-        // Do StatefulBuilder không cho phép khởi tạo biến state bên trong,
-        // chúng ta thường phải lưu trữ _isObscure ở phạm vi cha (Widget chứa hàm này)
-        // hoặc dùng một cơ chế khác.
-
-        // ✅ Cách thực tế: Dùng ValueNotifier để giữ state bên ngoài hàm
-
-        // Khởi tạo ValueNotifier để giữ trạng thái ẩn/hiện.
         final ValueNotifier<bool> isObscureNotifier = ValueNotifier(true);
 
         return Padding(

@@ -1,12 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
-import '../models/kttoken.dart';
-import '../models/login_model.dart';
 import '../models/option_model.dart';
 import '../models/response_model.dart';
-import '../models/user_model.dart';
-import '../services/local_service.dart';
 import 'api.dart';
 
 extension APIExtension on API {

@@ -7,12 +7,14 @@ class TabConfig {
   final NavTab id;
   final String label;
   final IconData icon;
+  final IconData activeIcon;
   final List<UserRole> roles;
 
   const TabConfig({
     required this.id,
     required this.label,
     required this.icon,
+    required this.activeIcon,
     required this.roles,
   });
 }
@@ -22,7 +24,8 @@ class RoleBasedNavigation {
     TabConfig(
       id: NavTab.dashboard,
       label: 'Tổng quan',
-      icon: Icons.dashboard_outlined,
+      icon: Icons.grid_view_outlined,
+      activeIcon: Icons.grid_view_outlined,
       roles: [
         UserRole.nft_admin,
         UserRole.nft_invester,
@@ -34,7 +37,8 @@ class RoleBasedNavigation {
     TabConfig(
       id: NavTab.plants,
       label: 'Cây trồng',
-      icon: Icons.eco_outlined,
+      icon: Icons.spa_outlined,
+      activeIcon: Icons.spa_outlined,
       roles: [
         UserRole.nft_admin,
         UserRole.nft_garden,

@@ -1,18 +1,20 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:carousel_slider/carousel_slider.dart';
 import 'package:nftsam/api/api_caytrong.dart';
 import 'package:nftsam/api/api_dashboard.dart';
 import 'package:nftsam/api/api_thongbao.dart';
-import 'package:nftsam/screens/plant_management_view_screen.dart';
-import 'package:nftsam/screens/plants_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:nftsam/screens/plant_detail_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shimmer/shimmer.dart';
 
 import '../api/api.dart';
+import '../api/api_caysam.dart';
 import '../main.dart';
 import '../models/vuontrong/sensor_model.dart';
 import '../utils/app_dimensions.dart';
@@ -21,7 +23,6 @@ import '../models/dashboard/dashboard_model.dart';
 import '../models/kttoken.dart';
 import '../models/response_model.dart';
 import '../models/thongbao_model.dart';
-import '../models/user.dart';
 import '../models/vuontrong/caysam_model.dart';
 import '../models/vuontrong/losam_model.dart';
 import '../providers/auth_provider.dart';
@@ -46,12 +47,14 @@ class DashboardScreen extends StatefulWidget {
 // 1. THÊM AutomaticKeepAliveClientMixin VÀO ĐÂY
 class _DashboardScreenState extends State<DashboardScreen>
     with TickerProviderStateMixin, AutomaticKeepAliveClientMixin {
-
   DashBoardtotal? numbertotal;
   DashBoardSucKhoe? numbertotalSucKhoe;
   late TabController _tabController;
   List<ThongBaoModel>? tb;
   List<LoSamModel>? _loSamCanhBaoList;
+  List<LoSamModel>? _listLoSam;
+  List<CaySamModel>? _itemsCaySam = [];
+  int _currentIndex = 0;
 
   // Biến quản lý trạng thái load
   bool _isLoadingCanhBao = true;
@@ -63,7 +66,8 @@ class _DashboardScreenState extends State<DashboardScreen>
   ApiResponse<SensorDeviceModel>? apilistsensor;
   SensorDeviceModel? _selectedDevice;
   List<SensorDeviceModel>? deviceList = [];
-
+  bool _isLoadingBanner = true;
+  String _searchQuery = '';
   // 2. BẬT CHẾ ĐỘ GIỮ TRẠNG THÁI
   @override
   bool get wantKeepAlive => true;
@@ -72,28 +76,29 @@ class _DashboardScreenState extends State<DashboardScreen>
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    _initializeData();
+    _fetchBannerData();
     _fetchLoSamCanhBao();
-    _sensorSubscription = signalRService.sensorStream.listen(
-            (dynamic allDeviceData_dynamic) {
-          SensorDeviceModel allDeviceData;
-          try {
-            allDeviceData = allDeviceData_dynamic as SensorDeviceModel;
-          } catch (e) {
-            print("❌ Lỗi ép kiểu stream: $e");
-            return;
-          }
-          if (allDeviceData != null) {
-            final SensorDeviceModel firstDevice = allDeviceData;
-            List<int> bytes = latin1.encode(firstDevice.deviceName ?? "");
-            String correctText = utf8.decode(bytes);
-            firstDevice.deviceName = correctText;
-            _updateDeviceFromSignalR(firstDevice);
-            if (firstDevice.deviceId == _selectedDevice?.deviceId) {
-              updateEnvironmentData(_selectedDevice?.sensors);
-            }
-          }
-        }, onError: (error) {
+    _initializeData();
+    _sensorSubscription =
+        signalRService.sensorStream.listen((dynamic allDeviceData_dynamic) {
+      SensorDeviceModel allDeviceData;
+      try {
+        allDeviceData = allDeviceData_dynamic as SensorDeviceModel;
+      } catch (e) {
+        print("❌ Lỗi ép kiểu stream: $e");
+        return;
+      }
+      if (allDeviceData != null) {
+        final SensorDeviceModel firstDevice = allDeviceData;
+        List<int> bytes = latin1.encode(firstDevice.deviceName ?? "");
+        String correctText = utf8.decode(bytes);
+        firstDevice.deviceName = correctText;
+        _updateDeviceFromSignalR(firstDevice);
+        if (firstDevice.deviceId == _selectedDevice?.deviceId) {
+          updateEnvironmentData(_selectedDevice?.sensors);
+        }
+      }
+    }, onError: (error) {
       print("❌ Lỗi trên sensorStream: $error");
     });
   }
@@ -104,6 +109,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     _sensorSubscription?.cancel();
     super.dispose();
   }
+
   // --- HÀM XỬ LÝ KHI KÉO ĐỂ REFRESH ---
   Future<void> _onRefresh() async {
     await Future.wait([
@@ -111,11 +117,18 @@ class _DashboardScreenState extends State<DashboardScreen>
       _fetchLoSamCanhBao(),
     ]);
   }
+  String getNametagLosam(int? name) {
+    final result = _listLoSam?.firstWhere(
+          (item) => item.loSamId == name,
+      orElse: () => LoSamModel(loSamId: 0, vuonTrongId: 0, dienTich: 0, soHang: 0, soCot: 0, trangThai: 0, soLuongCaySams: 0),
+    );
 
+    return result?.tenLo ?? "Không xác định";
+  }
   Map<String, Map<String, dynamic>> environmentStatus = {
     'temperature': {'value': 'N/A', 'status': 'Chưa rõ', 'min': 10, 'max': 30},
     'humidity': {'value': 'N/A', 'status': 'Chưa rõ', 'min': 80, 'max': 95},
-    'soilMoisture': {'value': 'N/A', 'status': 'Chưa rõ', 'min': 100, 'max': 200},
+    'soilMoisture': {'value': 'N/A','status': 'Chưa rõ','min': 100,'max': 200},
     'dewPoint': {'value': 'N/A', 'status': 'Chưa rõ', 'min': 15, 'max': 25},
   };
 
@@ -154,35 +167,111 @@ class _DashboardScreenState extends State<DashboardScreen>
     final double? value = double.tryParse(valueString);
     return value != null && value != 0.0;
   }
+  // Thêm hàm này vào trong class _State
+  Future<void> _fetchBannerData() async {
+    if (!mounted) return;
 
-  Future<void> _initializeData() async {
-    // Chỉ set loading nếu chưa có dữ liệu để tránh nháy khi rebuild
-    if (numbertotal == null && mounted) setState(() => _isLoading = true);
+    // Chỉ set loading nếu list đang rỗng
+    if (_itemsCaySam == null || _itemsCaySam!.isEmpty) {
+      setState(() => _isLoadingBanner = true);
+    }
 
     try {
       final prefs = await SharedPreferences.getInstance();
-      final userJson = prefs.getString("ginseng_user");
-      if (userJson != null) {
-        user = Kttoken.fromJson(jsonDecode(userJson));
+      ApiResponse<CaySamModel>? res;
+      // 1. Lấy lịch sử xem (Local)
+      Map<String, int> viewCounts = {};
+      String? historyJson = prefs.getString('plant_view_counts');
+      if (historyJson != null) {
+        viewCounts = Map<String, int>.from(jsonDecode(historyJson));
+      }
+      if (user?.htTaiKhoan.htPhanQuyenTaiKhoans.any((pq) =>
+      pq.maVaiTro != "nft_invester" &&
+          pq.maVaiTro == "nft_admin") ??
+          false){
+        res = await API().listCaySam(status: "1", skip: 0,top:10);
+      }else{
+        res = await API().listCaySam(status: "1", skip: 0);
       }
 
+
+
+      if (res?.items != null) {
+        List<CaySamModel>? allPlants = res?.items;
+
+        // 3. Sắp xếp ưu tiên
+        allPlants?.sort((a, b) {
+          int viewA = viewCounts[a.caySamId.toString()] ?? 0;
+          int viewB = viewCounts[b.caySamId.toString()] ?? 0;
+          if (viewB != viewA) return viewB.compareTo(viewA);
+          return 0;
+        });
+
+        // 4. Cắt lấy 10 cây & Cập nhật UI riêng cho Banner
+        if (mounted) {
+          setState(() {
+            _itemsCaySam = allPlants?.take(10).toList();
+            _isLoadingBanner = false; // Tắt loading banner
+          });
+        }
+      }
+    } catch (e) {
+      print("Lỗi tải Banner: $e");
+      if (mounted) setState(() => _isLoadingBanner = false);
+    }
+  }
+  Future<void> _initializeData() async {
+    // Chỉ set loading nếu chưa có dữ liệu quan trọng để tránh nháy màn hình
+    if (numbertotal == null && _listLoSam == null && mounted) {
+      setState(() => _isLoading = true);
+    }
+
+    try {
+      // 1. Khởi tạo SharedPreferences 1 lần dùng chung
+      final prefs = await SharedPreferences.getInstance();
+
+      // 2. Load thông tin User
+      final userJson = prefs.getString("ginseng_user");
+      if (userJson != null) {
+        try {
+          user = Kttoken.fromJson(jsonDecode(userJson));
+        } catch (e) {
+          print("Lỗi parse user: $e");
+        }
+      }
+
+      // 3. Lấy lịch sử xem cây (để sắp xếp ưu tiên)
+      Map<String, int> viewCounts = {};
+      String? historyJson = prefs.getString('plant_view_counts');
+      if (historyJson != null) {
+        viewCounts = Map<String, int>.from(jsonDecode(historyJson));
+      }
+
+      // 4. Gọi song song các API
       final results = await Future.wait([
-        API().getDashBoardSam(),
-        API().getDashBoardSensor(),
-        API().getDashBoardSucKhoe(),
-        API().listThongBao(status: 'TatCa'),
+        API().getDashBoardSam(),          // 0
+        API().getDashBoardSensor(),       // 1
+        API().getDashBoardSucKhoe(),      // 2
+        API().listThongBao(status: 'TatCa'), // 3
+        API().listLoSam(status: "1")
       ]);
 
+      // 5. Ép kiểu dữ liệu trả về
       final apifarm = results[0] as ApiResponse<DashBoardtotal>?;
       apilistsensor = results[1] as ApiResponse<SensorDeviceModel>?;
       final apisuckhoe = results[2] as ApiResponse<DashBoardSucKhoe>?;
       final thongbao = results[3] as ApiResponse<ThongBaoModel>?;
+      final loSam = results[4] as List<LoSamModel>?;
 
-      if (apilistsensor?.items != null && apilistsensor!.items!.isNotEmpty) {
-        if(apilistsensor!.items!.first.sensors !=null){
-          deviceList = apilistsensor?.items;
-          _selectedDevice = apilistsensor!.items?.first;
-          updateEnvironmentData(apilistsensor?.items?.first.sensors);
+      _listLoSam = loSam;
+      // 6. Xử lý Sensor (Viết gọn lại)
+      if (apilistsensor?.items?.isNotEmpty == true) {
+        deviceList = apilistsensor?.items;
+        // Dùng firstOrNull an toàn hơn
+        _selectedDevice = apilistsensor?.items?.firstOrNull;
+
+        if (_selectedDevice?.sensors != null) {
+          updateEnvironmentData(_selectedDevice!.sensors);
         }
       }
 
@@ -190,17 +279,16 @@ class _DashboardScreenState extends State<DashboardScreen>
         tb = thongbao?.items;
       }
 
+      // 9. Cập nhật UI
       if (!mounted) return;
 
       setState(() {
-        if (apifarm?.oneItem != null) {
-          numbertotal = apifarm?.oneItem;
-        }
-        if (apisuckhoe?.oneItem != null) {
-          numbertotalSucKhoe = apisuckhoe?.oneItem;
-        }
+        numbertotal = apifarm?.oneItem;
+        numbertotalSucKhoe = apisuckhoe?.oneItem;
+
         _isLoading = false;
       });
+      _fetchBannerData();
     } catch (e) {
       print("Lỗi khởi tạo dashboard: $e");
       if (mounted) setState(() => _isLoading = false);
@@ -247,40 +335,49 @@ class _DashboardScreenState extends State<DashboardScreen>
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
-            if(_isValidAndNotZero(environmentStatus['temperature']!['value']))
+            if (_isValidAndNotZero(environmentStatus['temperature']!['value']))
               Expanded(
                 child: _buildTemperatureBar(
-                  value: double.tryParse(environmentStatus['temperature']!['value']) ?? 0.0,
+                  value: double.tryParse(
+                          environmentStatus['temperature']!['value']) ??
+                      0.0,
                   unit: '°C',
                   label: 'Nhiệt độ',
-                  min: (environmentStatus['temperature']!['min'] as num).toDouble(),
-                  max: (environmentStatus['temperature']!['max'] as num).toDouble(),
+                  min: (environmentStatus['temperature']!['min'] as num)
+                      .toDouble(),
+                  max: (environmentStatus['temperature']!['max'] as num)
+                      .toDouble(),
                   gradient: tempGradient,
                 ),
               ),
             const SizedBox(width: 20),
-            if(_isValidAndNotZero(environmentStatus['dewPoint']!['value']))
+            if (_isValidAndNotZero(environmentStatus['dewPoint']!['value']))
               Expanded(
                 child: _buildTemperatureBar(
-                  value: double.tryParse(environmentStatus['dewPoint']!['value']) ?? 0.0,
+                  value: double.tryParse(
+                          environmentStatus['dewPoint']!['value']) ??
+                      0.0,
                   unit: '°C',
                   label: 'Điểm sương',
-                  min: (environmentStatus['dewPoint']!['min'] as num).toDouble(),
-                  max: (environmentStatus['dewPoint']!['max'] as num).toDouble(),
+                  min:
+                      (environmentStatus['dewPoint']!['min'] as num).toDouble(),
+                  max:
+                      (environmentStatus['dewPoint']!['max'] as num).toDouble(),
                   gradient: dewPointGradient,
                 ),
               ),
           ],
         ),
-
         const SizedBox(height: 24),
-        if(_isValidAndNotZero(environmentStatus['humidity']!['value']))
+        if (_isValidAndNotZero(environmentStatus['humidity']!['value']))
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
               Expanded(
                 child: _buildCircularProgress(
-                  value: double.tryParse(environmentStatus['humidity']!['value']) ?? 0.0,
+                  value: double.tryParse(
+                          environmentStatus['humidity']!['value']) ??
+                      0.0,
                   label: 'Độ ẩm không khí',
                   unit: '%',
                   color: Colors.green,
@@ -288,10 +385,13 @@ class _DashboardScreenState extends State<DashboardScreen>
                 ),
               ),
               const SizedBox(width: 20),
-              if(_isValidAndNotZero(environmentStatus['soilMoisture']!['value']))
+              if (_isValidAndNotZero(
+                  environmentStatus['soilMoisture']!['value']))
                 Expanded(
                   child: _buildCircularProgress(
-                    value: double.tryParse(environmentStatus['soilMoisture']!['value']) ?? 0.0,
+                    value: double.tryParse(
+                            environmentStatus['soilMoisture']!['value']) ??
+                        0.0,
                     label: 'Độ ẩm đất',
                     unit: '%',
                     color: Colors.orange,
@@ -314,16 +414,15 @@ class _DashboardScreenState extends State<DashboardScreen>
         }
       }).toList();
       if (_selectedDevice != null) {
-        if(deviceList?.first != null){
+        if (deviceList?.first != null) {
           _selectedDevice = deviceList?.firstWhere(
-                  (d) => d.deviceId == _selectedDevice!.deviceId,
-              orElse: () => deviceList!.first
-          );
+              (d) => d.deviceId == _selectedDevice!.deviceId,
+              orElse: () => deviceList!.first);
         }
-
       }
     });
   }
+
   void updateEnvironmentData(List<SensorModel>? sensors) {
     setState(() {
       environmentStatus = {
@@ -335,14 +434,16 @@ class _DashboardScreenState extends State<DashboardScreen>
       if (sensors != null) {
         for (var sensor in sensors) {
           try {
-            if(sensor.jValue != ""){
+            if (sensor.jValue != "") {
               final Map<String, dynamic> data = jsonDecode(sensor.jValue);
               if (data.containsKey('A1')) {
                 final double rawValue = (data['A1'] as num).toDouble();
                 // print(rawValue);
                 // print(sensor.maxValueSS);
                 // print(sensor.minValueSS);
-                final double percentageValue = (sensor.maxValueSS - rawValue) * 100 / (sensor.maxValueSS - sensor.minValueSS);
+                final double percentageValue = (sensor.maxValueSS - rawValue) *
+                    100 /
+                    (sensor.maxValueSS - sensor.minValueSS);
                 _checkAndUpdateStatus(
                   statusEntry: environmentStatus['soilMoisture'],
                   value: percentageValue,
@@ -381,7 +482,6 @@ class _DashboardScreenState extends State<DashboardScreen>
                 );
               }
             }
-
           } catch (e) {
             print('Lỗi phân tích JSON cho sensor ${sensor.sensorCode}: $e');
           }
@@ -447,7 +547,6 @@ class _DashboardScreenState extends State<DashboardScreen>
                 indicatorWeight: 3,
               ),
             ),
-
             Expanded(
               child: TabBarView(
                 controller: _tabController,
@@ -481,15 +580,16 @@ class _DashboardScreenState extends State<DashboardScreen>
                 crossAxisSpacing: 25,
                 mainAxisSpacing: 25,
                 childAspectRatio: 1.3,
-                children: List.generate(4, (index) => Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                )),
+                children: List.generate(
+                    4,
+                    (index) => Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        )),
               ),
               const SizedBox(height: 24),
-
               Container(
                 height: 200,
                 decoration: BoxDecoration(
@@ -498,7 +598,6 @@ class _DashboardScreenState extends State<DashboardScreen>
                 ),
               ),
               const SizedBox(height: 24),
-
               Container(
                 height: 250,
                 decoration: BoxDecoration(
@@ -507,7 +606,6 @@ class _DashboardScreenState extends State<DashboardScreen>
                 ),
               ),
               const SizedBox(height: 24),
-
               Container(
                 height: 150,
                 decoration: BoxDecoration(
@@ -531,8 +629,8 @@ class _DashboardScreenState extends State<DashboardScreen>
     final healthColor = healthPercentage >= 80
         ? Colors.green
         : healthPercentage >= 60
-        ? Colors.orange
-        : Colors.red;
+            ? Colors.orange
+            : Colors.red;
 
     return Scaffold(
       backgroundColor: Colors.grey.shade100,
@@ -546,6 +644,199 @@ class _DashboardScreenState extends State<DashboardScreen>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // 1. TRẠNG THÁI ĐANG TẢI (Hiện Shimmer)
+              if (_isLoadingBanner)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 16.0, left: 4, right: 4),
+                  child: Shimmer.fromColors(
+                    baseColor: Colors.grey[300]!,
+                    highlightColor: Colors.grey[100]!,
+                    child: AspectRatio(
+                      aspectRatio: 16 / 9,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12.0),
+                        ),
+                      ),
+                    ),
+                  ),
+                )
+// 2. TRẠNG THÁI CÓ DỮ LIỆU (Hiện Banner)
+              else if (_itemsCaySam != null && _itemsCaySam!.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 16.0, left: 4, right: 4),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12.0),
+                    child: Stack(
+                      children: [
+                        CarouselSlider(
+                          options: CarouselOptions(
+                            aspectRatio: 16 / 9,
+                            viewportFraction: 1.0,
+                            autoPlay: true,
+                            onPageChanged: (index, reason) {
+                              setState(() => _currentIndex = index);
+                            },
+                          ),
+                          items: _itemsCaySam!.map((item) {
+                            return Builder(
+                              builder: (BuildContext context) {
+                                return GestureDetector(
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => PlantDetailScreen(
+                                            plant: item,
+                                            onBack: () => Navigator.pop(context)),
+                                      ),
+                                    );
+                                  },
+                                  child: Stack(
+                                    fit: StackFit.expand,
+                                    children: [
+                                      // Hình ảnh nền
+                                      CachedNetworkImage(
+                                        // SỬA: Dùng firstOrNull để tránh lỗi crash nếu list nhật ký rỗng
+                                        imageUrl: item.caySamNhatKys.firstOrNull?.hinhAnhTongQuan ?? "",
+                                        fit: BoxFit.cover,
+                                        width: double.infinity,
+                                        fadeInDuration: Duration(milliseconds: 500),
+                                        placeholder: (context, url) => Container(
+                                          color: Colors.grey[300],
+                                          child: Center(
+                                              child: CircularProgressIndicator(strokeWidth: 2)),
+                                        ),
+                                        errorWidget: (context, url, error) => Container(
+                                          color: Colors.grey[200],
+                                          child: Icon(Icons.image_not_supported,
+                                              color: Colors.grey),
+                                        ),
+                                      ),
+                                      // Gradient phủ
+                                      Container(
+                                        decoration: BoxDecoration(
+                                          gradient: LinearGradient(
+                                            begin: Alignment.topCenter,
+                                            end: Alignment.bottomCenter,
+                                            stops: [0.5, 1.0],
+                                            colors: [
+                                              Colors.transparent,
+                                              Colors.black.withOpacity(0.7),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                      // Text hiển thị
+                                      Positioned(
+                                        bottom: 15,
+                                        left: 15,
+                                        right: 15, // Thêm right để giới hạn chiều rộng, tránh chữ tràn ra ngoài màn hình
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            // --- DÒNG 1: TÊN LÔ (Đã đổi màu để dễ nhìn hơn) ---
+                                            Row(
+                                              children: [
+                                                Icon(
+                                                  Icons.layers,
+                                                  // Đổi từ xanh lá sang vàng để nổi bật trên nền tối
+                                                  color: Colors.yellowAccent.shade700,
+                                                  size: 14,
+                                                ),
+                                                SizedBox(width: 4),
+                                                Flexible(
+                                                  child: Text(
+                                                    getNametagLosam(item.loSamId).toUpperCase(),
+                                                    style: TextStyle(
+                                                      // Đổi màu chữ sang vàng sáng
+                                                      color: Colors.yellowAccent,
+                                                      fontWeight: FontWeight.bold,
+                                                      fontSize: 12,
+                                                      letterSpacing: 0.5,
+                                                      // Thêm bóng mờ nhẹ để chữ tách biệt hẳn khỏi nền
+                                                      shadows: [
+                                                        Shadow(
+                                                          offset: Offset(0, 1),
+                                                          blurRadius: 2.0,
+                                                          color: Colors.black.withOpacity(0.5),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                    maxLines: 1,
+                                                    overflow: TextOverflow.ellipsis,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                            SizedBox(height: 4),
+
+                                            // --- DÒNG 2: MÃ CÂY ---
+                                            Text(
+                                              item.maCaySam ?? "Chưa đặt tên",
+                                              style: TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 20, // Tăng nhẹ size để nổi bật hơn
+                                                fontWeight: FontWeight.bold,
+                                                shadows: [ // Thêm bóng đổ nhẹ để chữ nổi lên trên nền ảnh
+                                                  Shadow(offset: Offset(0, 1), blurRadius: 3.0, color: Colors.black45),
+                                                ],
+                                              ),
+                                            ),
+
+                                            SizedBox(height: 2),
+
+                                            // --- DÒNG 3: CHI TIẾT ---
+                                            Text(
+                                              "Vị trí: ${item.viTriTrongLo ?? "_"}  •  " // Dùng dấu chấm tròn (•) thay dấu gạch đứng cho hiện đại
+                                                  "Sức khỏe: ${getSucKhoeText(item.caySamNhatKys.firstOrNull?.diemSucKhoe)}  •  "
+                                                  "Tuổi: ${getTuoiCayText(item.tuoiCayId)}",
+                                              style: TextStyle(
+                                                color: Colors.white.withOpacity(0.9),
+                                                fontSize: 13,
+                                                height: 1.4, // Tăng khoảng cách dòng nếu text bị xuống dòng
+                                              ),
+                                              maxLines: 2,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              },
+                            );
+                          }).toList(),
+                        ),
+                        // Dots Indicator
+                        Positioned(
+                          top: 12,
+                          left: 12,
+                          child: Row(
+                            children: _itemsCaySam!.asMap().entries.map((entry) {
+                              return AnimatedContainer(
+                                duration: Duration(milliseconds: 300),
+                                width: _currentIndex == entry.key ? 10.0 : 8.0,
+                                height: 8.0,
+                                margin: EdgeInsets.symmetric(horizontal: 3.0),
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: Colors.white
+                                      .withOpacity(_currentIndex == entry.key ? 1.0 : 0.4),
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+// 3. TRẠNG THÁI KHÔNG CÓ DỮ LIỆU (Ẩn đi)
+              else
+                SizedBox(),
               GridView.count(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
@@ -555,8 +846,8 @@ class _DashboardScreenState extends State<DashboardScreen>
                 childAspectRatio: 1.3,
                 children: [
                   if (user?.htTaiKhoan.htPhanQuyenTaiKhoans.any((pq) =>
-                  pq.maVaiTro != "nft_invester" &&
-                      pq.maVaiTro == "nft_admin") ??
+                          pq.maVaiTro != "nft_invester" &&
+                          pq.maVaiTro == "nft_admin") ??
                       false)
                     _buildStatCard(
                       context,
@@ -565,14 +856,15 @@ class _DashboardScreenState extends State<DashboardScreen>
                       value: numbertotal?.totalVuonTrong.toString() ?? "0",
                       color: Colors.blue.shade700,
                       onTap: () {
-                        Navigator.push(context,
-                            MaterialPageRoute(builder: (_) => HomeScreen(tabcurrent: 2)));
+                        Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) => HomeScreen(tabcurrent: 2)));
                       },
                     ),
-
                   if (user?.htTaiKhoan.htPhanQuyenTaiKhoans.any((pq) =>
-                  pq.maVaiTro != "nft_invester" &&
-                      pq.maVaiTro == "nft_admin") ??
+                          pq.maVaiTro != "nft_invester" &&
+                          pq.maVaiTro == "nft_admin") ??
                       false)
                     _buildStatCard(
                       context,
@@ -581,8 +873,10 @@ class _DashboardScreenState extends State<DashboardScreen>
                       value: numbertotal?.totalLoSam.toString() ?? "0",
                       color: Colors.green.shade700,
                       onTap: () {
-                        Navigator.push(context,
-                            MaterialPageRoute(builder: (_) => const DanhSachLoSamPage()));
+                        Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) => const DanhSachLoSamPage()));
                       },
                     ),
                   _buildStatCard(
@@ -592,8 +886,10 @@ class _DashboardScreenState extends State<DashboardScreen>
                     value: numbertotal?.totalCaySam.toString() ?? "0",
                     color: Colors.teal.shade600,
                     onTap: () {
-                      Navigator.push(context,
-                          MaterialPageRoute(builder: (_) => const DanhSachCaySamPage()));
+                      Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) => const DanhSachCaySamPage()));
                     },
                   ),
                   _buildStatCard(
@@ -603,19 +899,20 @@ class _DashboardScreenState extends State<DashboardScreen>
                     value: numbertotal?.totalSuckhoeYeu.toString() ?? "0",
                     color: Colors.orange.shade800,
                     onTap: () {
-                      Navigator.push(context,
-                          MaterialPageRoute(builder: (_) => const DanhSachCayYeuPage()));
+                      Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) => const DanhSachCayYeuPage()));
                     },
                   ),
                 ],
               ),
-
               const SizedBox(height: 24),
-
               Card(
                 elevation: 4,
                 shadowColor: Colors.black.withOpacity(0.5),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16)),
                 child: Padding(
                   padding: const EdgeInsets.all(16),
                   child: Column(
@@ -626,14 +923,16 @@ class _DashboardScreenState extends State<DashboardScreen>
                           Icon(Icons.favorite_border_rounded, size: 22),
                           SizedBox(width: 8),
                           Text('Tổng quan sức khỏe',
-                              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                              style: TextStyle(
+                                  fontSize: 18, fontWeight: FontWeight.bold)),
                         ],
                       ),
                       const SizedBox(height: 16),
                       Row(
                         children: [
                           Text('Tình trạng tổng thể',
-                              style: TextStyle(fontSize: 14, color: Colors.grey.shade700)),
+                              style: TextStyle(
+                                  fontSize: 14, color: Colors.grey.shade700)),
                           const Spacer(),
                           Text(
                               '${(5 * (healthPercentage.round() / 100)).toStringAsFixed(2)}/5',
@@ -649,7 +948,8 @@ class _DashboardScreenState extends State<DashboardScreen>
                         child: LinearProgressIndicator(
                           value: healthPercentage / 100,
                           backgroundColor: healthColor.withOpacity(0.2),
-                          valueColor: AlwaysStoppedAnimation<Color>(healthColor),
+                          valueColor:
+                              AlwaysStoppedAnimation<Color>(healthColor),
                           minHeight: 10,
                         ),
                       ),
@@ -694,15 +994,18 @@ class _DashboardScreenState extends State<DashboardScreen>
                 ),
               ),
               const SizedBox(height: 24),
-              if (_isValidAndNotZero(environmentStatus['soilMoisture']!['value']) ||
+              if (_isValidAndNotZero(
+                      environmentStatus['soilMoisture']!['value']) ||
                   _isValidAndNotZero(environmentStatus['dewPoint']!['value']) ||
                   _isValidAndNotZero(environmentStatus['humidity']!['value']) ||
-                  _isValidAndNotZero(environmentStatus['temperature']!['value']) ||
+                  _isValidAndNotZero(
+                      environmentStatus['temperature']!['value']) ||
                   (deviceList?.length ?? 0) > 1)
                 Card(
                   elevation: 4,
                   shadowColor: Colors.black.withOpacity(0.5),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16)),
                   child: Padding(
                     padding: const EdgeInsets.all(16),
                     child: Column(
@@ -717,7 +1020,8 @@ class _DashboardScreenState extends State<DashboardScreen>
                             ),
                             SizedBox(width: 8),
                             Text('Tình trạng môi trường',
-                                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                                style: TextStyle(
+                                    fontSize: 18, fontWeight: FontWeight.bold)),
                           ],
                         ),
                         if ((apilistsensor?.items?.length ?? 0) > 1)
@@ -745,7 +1049,8 @@ class _DashboardScreenState extends State<DashboardScreen>
                               ),
                               isExpanded: true,
                               hint: const Text("Chọn thiết bị..."),
-                              icon: const Icon(Icons.expand_more_rounded, size: 24),
+                              icon: const Icon(Icons.expand_more_rounded,
+                                  size: 24),
                               style: const TextStyle(
                                 fontSize: 15,
                                 color: Colors.black87,
@@ -758,7 +1063,8 @@ class _DashboardScreenState extends State<DashboardScreen>
                                   updateEnvironmentData(newValue.sensors);
                                 }
                               },
-                              items: deviceList?.map((SensorDeviceModel device) {
+                              items:
+                                  deviceList?.map((SensorDeviceModel device) {
                                 return DropdownMenuItem<SensorDeviceModel>(
                                   value: device,
                                   child: Text(
@@ -778,7 +1084,8 @@ class _DashboardScreenState extends State<DashboardScreen>
                           padding: const EdgeInsets.only(left: 8),
                           child: Text(
                             _selectedDevice?.deviceName ?? "",
-                            style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+                            style: TextStyle(
+                                fontSize: 14, color: Colors.grey.shade600),
                           ),
                         ),
                         const SizedBox(height: 24),
@@ -790,7 +1097,8 @@ class _DashboardScreenState extends State<DashboardScreen>
                               const Spacer(),
                               Text(
                                 formatDateTime(_selectedDevice?.updateTime),
-                                style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+                                style: TextStyle(
+                                    fontSize: 14, color: Colors.grey.shade600),
                               ),
                             ],
                           ),
@@ -799,16 +1107,17 @@ class _DashboardScreenState extends State<DashboardScreen>
                     ),
                   ),
                 ),
-
               const SizedBox(height: 24),
               if ((user?.htTaiKhoan.htPhanQuyenTaiKhoans.any((pq) =>
-              pq.maVaiTro != "nft_invester" &&
-                  pq.maVaiTro == "nft_admin") ??
-                  false) && _loSamCanhBaoList?.length != 0)
+                          pq.maVaiTro != "nft_invester" &&
+                          pq.maVaiTro == "nft_admin") ??
+                      false) &&
+                  _loSamCanhBaoList?.length != 0)
                 Card(
                   elevation: 3,
                   shadowColor: Colors.black.withOpacity(0.5),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16)),
                   child: Padding(
                     padding: const EdgeInsets.all(16),
                     child: Column(
@@ -821,32 +1130,36 @@ class _DashboardScreenState extends State<DashboardScreen>
                             const SizedBox(width: 10),
                             const Text(
                               'Cảnh báo cần xử lý',
-                              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                              style: TextStyle(
+                                  fontSize: 18, fontWeight: FontWeight.bold),
                             ),
                           ],
                         ),
                         const SizedBox(height: 12),
                         _isLoadingCanhBao
                             ? const Center(
-                            child: Padding(
-                                padding: EdgeInsets.all(8.0),
-                                child: CircularProgressIndicator(strokeWidth: 2)))
-                            : (_loSamCanhBaoList == null || _loSamCanhBaoList!.isEmpty)
-                            ? const SizedBox()
-                            : Column(
-                          children: _loSamCanhBaoList!.map((loSam) {
-                            return _buildAlertItem(
-                              icon: Icons.eco_outlined,
-                              iconColor: Colors.orange.shade600,
-                              title: 'Lô: ${loSam.tenLo ?? loSam.maLo}',
-                              subtitle: loSam.soLuongCaySams > 0
-                                  ? '${loSam.soLuongCaySams} cây cần cập nhật nhật ký'
-                                  : '',
-                              caySams: loSam.caySams,
-                              idzone: loSam.loSamId,
-                            );
-                          }).toList(),
-                        ),
+                                child: Padding(
+                                    padding: EdgeInsets.all(8.0),
+                                    child: CircularProgressIndicator(
+                                        strokeWidth: 2)))
+                            : (_loSamCanhBaoList == null ||
+                                    _loSamCanhBaoList!.isEmpty)
+                                ? const SizedBox()
+                                : Column(
+                                    children: _loSamCanhBaoList!.map((loSam) {
+                                      return _buildAlertItem(
+                                        icon: Icons.eco_outlined,
+                                        iconColor: Colors.orange.shade600,
+                                        title:
+                                            'Lô: ${loSam.tenLo ?? loSam.maLo}',
+                                        subtitle: loSam.soLuongCaySams > 0
+                                            ? '${loSam.soLuongCaySams} cây cần cập nhật nhật ký'
+                                            : '',
+                                        caySams: loSam.caySams,
+                                        idzone: loSam.loSamId,
+                                      );
+                                    }).toList(),
+                                  ),
                       ],
                     ),
                   ),
@@ -859,13 +1172,13 @@ class _DashboardScreenState extends State<DashboardScreen>
   }
 
   Widget _buildStatCard(
-      BuildContext context, {
-        required IconData icon,
-        required String title,
-        required String value,
-        required Color color,
-        VoidCallback? onTap,
-      }) {
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required String value,
+    required Color color,
+    VoidCallback? onTap,
+  }) {
     return Card(
       elevation: 4,
       shadowColor: Colors.black.withOpacity(0.08),
@@ -883,14 +1196,18 @@ class _DashboardScreenState extends State<DashboardScreen>
           borderRadius: BorderRadius.circular(AppDimensions.fontSizeExtraSmall),
           onTap: onTap,
           child: Padding(
-            padding:  EdgeInsets.all(AppDimensions.fontSizeExtraSmall),
+            padding: EdgeInsets.all(AppDimensions.fontSizeExtraSmall),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 CircleAvatar(
                   backgroundColor: color.withOpacity(0.2),
-                  child: Icon(icon, color: color,size: AppDimensions.fontSizeLarge,),
+                  child: Icon(
+                    icon,
+                    color: color,
+                    size: AppDimensions.fontSizeLarge,
+                  ),
                 ),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -898,7 +1215,8 @@ class _DashboardScreenState extends State<DashboardScreen>
                     Text(
                       value,
                       style: TextStyle(
-                        fontSize: AppDimensions.responsiveWidth(context, AppDimensions.fontSizeLarge),
+                        fontSize: AppDimensions.responsiveWidth(
+                            context, AppDimensions.fontSizeLarge),
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -906,7 +1224,8 @@ class _DashboardScreenState extends State<DashboardScreen>
                     Text(
                       title,
                       style: TextStyle(
-                        fontSize: AppDimensions.responsiveWidth(context, AppDimensions.fontSizeSmall),
+                        fontSize: AppDimensions.responsiveWidth(
+                            context, AppDimensions.fontSizeSmall),
                         color: Colors.grey.shade700,
                       ),
                     ),
@@ -920,7 +1239,8 @@ class _DashboardScreenState extends State<DashboardScreen>
     );
   }
 
-  Widget _buildHealthStatItem(String title, int count, Color color, IconData icon) {
+  Widget _buildHealthStatItem(
+      String title, int count, Color color, IconData icon) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 5),
       decoration: BoxDecoration(
@@ -930,12 +1250,18 @@ class _DashboardScreenState extends State<DashboardScreen>
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, color: color, size: AppDimensions.responsiveWidth(context, AppDimensions.fontSizeExtraLarge)),
-          SizedBox(height:AppDimensions.responsiveHeight(context, AppDimensions.sp2), ),
+          Icon(icon,
+              color: color,
+              size: AppDimensions.responsiveWidth(
+                  context, AppDimensions.fontSizeExtraLarge)),
+          SizedBox(
+            height: AppDimensions.responsiveHeight(context, AppDimensions.sp2),
+          ),
           Text(
             count.toString(),
             style: TextStyle(
-              fontSize: AppDimensions.responsiveWidth(context, AppDimensions.fontSizeSmall),
+              fontSize: AppDimensions.responsiveWidth(
+                  context, AppDimensions.fontSizeSmall),
               fontWeight: FontWeight.bold,
             ),
             maxLines: 1,
@@ -946,7 +1272,8 @@ class _DashboardScreenState extends State<DashboardScreen>
             title,
             textAlign: TextAlign.center,
             style: TextStyle(
-              fontSize: AppDimensions.responsiveWidth(context, AppDimensions.fontSizeExtraSmall),
+              fontSize: AppDimensions.responsiveWidth(
+                  context, AppDimensions.fontSizeExtraSmall),
               color: Colors.grey.shade700,
             ),
             maxLines: 1,
@@ -956,6 +1283,7 @@ class _DashboardScreenState extends State<DashboardScreen>
       ),
     );
   }
+
   Widget _buildTemperatureBar({
     required double value,
     required String unit,
@@ -993,7 +1321,8 @@ class _DashboardScreenState extends State<DashboardScreen>
               TweenAnimationBuilder<double>(
                 tween: Tween<double>(begin: 0.0, end: targetHeight),
                 duration: const Duration(milliseconds: 400),
-                builder: (BuildContext context, double animatedHeight, Widget? child) {
+                builder: (BuildContext context, double animatedHeight,
+                    Widget? child) {
                   return Container(
                     width: barWidth,
                     height: animatedHeight,
@@ -1007,7 +1336,6 @@ class _DashboardScreenState extends State<DashboardScreen>
             ],
           ),
         ),
-
         const SizedBox(height: 8),
         Container(
           width: circleDiameter,
@@ -1061,7 +1389,8 @@ class _DashboardScreenState extends State<DashboardScreen>
           child: TweenAnimationBuilder<double>(
             tween: Tween<double>(begin: 0.0, end: progress),
             duration: const Duration(milliseconds: 400),
-            builder: (BuildContext context, double animatedValue, Widget? child) {
+            builder:
+                (BuildContext context, double animatedValue, Widget? child) {
               return Stack(
                 alignment: Alignment.center,
                 children: [
@@ -1084,10 +1413,10 @@ class _DashboardScreenState extends State<DashboardScreen>
               value < 0
                   ? '0$unit'
                   : (value > 100
-                  ? '100$unit'
-                  : (value == 100
-                  ? '${value.toStringAsFixed(0)}$unit'
-                  : '${value.toStringAsFixed(1)}$unit')),
+                      ? '100$unit'
+                      : (value == 100
+                          ? '${value.toStringAsFixed(0)}$unit'
+                          : '${value.toStringAsFixed(1)}$unit')),
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
@@ -1109,6 +1438,7 @@ class _DashboardScreenState extends State<DashboardScreen>
       ],
     );
   }
+
   Widget _buildAlertItem({
     required IconData icon,
     required Color iconColor,
@@ -1119,7 +1449,9 @@ class _DashboardScreenState extends State<DashboardScreen>
     int? idzone,
   }) {
     Color cardBackgroundColor = Colors.white;
-    if (iconColor == Colors.orange.shade600 || iconColor == Colors.red.shade600 || iconColor == Colors.orange.shade700) {
+    if (iconColor == Colors.orange.shade600 ||
+        iconColor == Colors.red.shade600 ||
+        iconColor == Colors.orange.shade700) {
       cardBackgroundColor = iconColor.withOpacity(0.08);
     } else if (iconColor == Colors.green.shade600) {
       cardBackgroundColor = Colors.green.shade50.withOpacity(0.5);
@@ -1136,8 +1468,12 @@ class _DashboardScreenState extends State<DashboardScreen>
       if (positionsToShow.length > maxLength) {
         positionsToShow = '${positionsToShow.substring(0, maxLength)}...';
       }
-      final moreCount = caySams.length > positionsList.length ? ' +${caySams.length - positionsList.length}' : '';
-      plantPositionsInfo = subtitle != '' ? '\nCây $positionsToShow$moreCount chưa cập nhật ký trong nhiều tháng' : 'Cây $positionsToShow$moreCount chưa cập nhật ký trong nhiều tháng';
+      final moreCount = caySams.length > positionsList.length
+          ? ' +${caySams.length - positionsList.length}'
+          : '';
+      plantPositionsInfo = subtitle != ''
+          ? '\nCây $positionsToShow$moreCount chưa cập nhật ký trong nhiều tháng'
+          : 'Cây $positionsToShow$moreCount chưa cập nhật ký trong nhiều tháng';
     }
     return Card(
       elevation: 2,
@@ -1150,7 +1486,7 @@ class _DashboardScreenState extends State<DashboardScreen>
         borderRadius: BorderRadius.circular(12),
         onTap: () async {
           LoSamModel? losamitem;
-          if(idzone != null){
+          if (idzone != null) {
             showLoadingDialog(context, message: 'Đang tải dữ liệu lô...');
             try {
               losamitem = await API().getLoSamById(idzone);
@@ -1168,7 +1504,6 @@ class _DashboardScreenState extends State<DashboardScreen>
                   ),
                 ),
               );
-
             } catch (e) {
               if (mounted) {
                 Navigator.of(context, rootNavigator: true).pop();
@@ -1209,14 +1544,16 @@ class _DashboardScreenState extends State<DashboardScreen>
                   children: [
                     Text(
                       title,
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold, fontSize: 15),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 4),
                     Text(
                       '$subtitle$plantPositionsInfo',
-                      style: TextStyle(color: Colors.grey.shade700, fontSize: 13),
+                      style:
+                          TextStyle(color: Colors.grey.shade700, fontSize: 13),
                       maxLines: plantPositionsInfo.isNotEmpty ? 3 : 2,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -1230,5 +1567,27 @@ class _DashboardScreenState extends State<DashboardScreen>
         ),
       ),
     );
+  }
+
+}
+String getSucKhoeText(int? diem) {
+  switch (diem) {
+    case 1: return "Rất tốt";
+    case 2: return "Yếu";
+    case 3: return "Trung bình";
+    case 4: return "Tốt";
+    case 5: return "Rất tốt"; // Theo yêu cầu của bạn 1 và 5 đều là Rất tốt
+    default: return "Không xác định";
+  }
+}
+
+// Chuyển đổi tuổi cây
+String getTuoiCayText(int? id) {
+  switch (id) {
+    case 1: return "3 năm";
+    case 2: return "6-7 năm";
+    case 3: return "8-9 năm";
+    case 4: return "Trên 10 năm";
+    default: return "Chưa rõ tuổi";
   }
 }

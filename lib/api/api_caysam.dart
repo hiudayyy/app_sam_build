@@ -4,16 +4,12 @@ import 'package:nftsam/models/nhat_ky.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/kttoken.dart';
-import '../models/login_model.dart';
 import '../models/message_enum.dart';
 import '../models/response_model.dart';
-import '../models/user_model.dart';
 import '../models/vuontrong/caysam_model.dart';
 import '../models/vuontrong/caysamdinhkem_model.dart';
-import '../models/vuontrong/losam_model.dart';
-import '../models/vuontrong/vuontrong_model.dart';
+import '../models/vuontrong/losamcamera_model.dart';
 import '../services/auth_service.dart';
-import '../services/local_service.dart';
 import 'api.dart';
 
 extension APIExtension on API {
@@ -687,6 +683,59 @@ extension APIExtension on API {
       }
     } catch (e) {
       print("❌ Lỗi kết nối: $e");
+      return null;
+    }
+  }
+  Future<ApiResponse<LoSamCameraModel>?> getOptionCameraByLoSamAndUser(String idLosam,{bool isRetry = false}) async {
+    final uri = Uri.parse("${host}api/CaySam/OptionCameraByLoSamAndUser?LoSamId=${idLosam}");
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final userJson = prefs.getString("ginseng_user");
+      Kttoken? user;
+      if (userJson != null) {
+        user = Kttoken.fromJson(jsonDecode(userJson));
+      }
+      final headers = {
+        ...headerSvkt1,
+        "AuthenticateToken": user?.authenticateToken ?? "",
+        "FuncsTagActive": user?.funcsTagActives.firstWhere(
+              (x) => x.tenController.toLowerCase() == "caysam",
+          orElse: () => FuncTagActive(
+            tenController: "",
+            tenActions: "",
+            funcsTagActive: "",
+          ),
+        ).funcsTagActive ?? "",
+      };
+      final response = await http.get(uri, headers: headers);
+      if (response.statusCode == 200) {
+        final responseJson = jsonDecode(response.body);
+        return ApiResponse<LoSamCameraModel>.fromJson(
+          responseJson,
+              (json) => LoSamCameraModel.fromJson(json),
+        );
+      }else if (response.statusCode == 401) {
+        if (!isRetry) {
+          print("Gặp lỗi 401 -> Đang thử refresh token...");
+          var newUser = await await AuthService.getStoredUser();
+          if (newUser != null) {
+            print("Refresh thành công -> Gọi lại API Dashboard lần 2.");
+            return await getOptionCameraByLoSamAndUser(idLosam,isRetry: true);
+          } else {
+            print("Refresh thất bại -> Đăng xuất.");
+            return null;
+          }
+        } else {
+          print("Đã retry nhưng vẫn lỗi 401 -> Dừng.");
+          return null;
+        }
+      }
+      else {
+        print("Lỗi API db: ${response.statusCode} - ${response.body}");
+        return null;
+      }
+    } catch (e) {
+      print("Exception khi gọi API: $e");
       return null;
     }
   }

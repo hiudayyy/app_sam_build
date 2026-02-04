@@ -4,33 +4,25 @@ import 'dart:io';
 
 import 'package:app_links/app_links.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_nfc_kit/flutter_nfc_kit.dart';
 import 'package:nftsam/api/api_caysam.dart';
 import 'package:nftsam/models/vuontrong/caysam_model.dart';
 import 'package:nftsam/models/vuontrong/losam_model.dart';
 import 'package:nftsam/screens/plant_management_view_screen.dart';
-import 'package:nftsam/screens/plants_screen.dart';
 import 'package:flutter/material.dart';
-import 'package:nfc_manager/nfc_manager.dart';
 import 'package:overlay_support/overlay_support.dart'; // Bổ sung
 import 'package:provider/provider.dart';
 import '../api/api.dart';
 import '../main.dart'; // Bổ sung (để lấy navigatorKey)
 import '../models/user_model.dart';
 import '../services/nfc_service.dart';
+import '../services/phantom_service.dart';
 import '../services/signalr_service.dart';
 import '../widgets/lazyIndexedStack.dart';
 import 'add_plant_screen.dart';
 import 'dashboard_screen.dart';
-import 'diary_management_screen.dart';
-import 'environment_management_screen.dart';
-import 'investor_plant_view_screen.dart';
-import 'verification_screen.dart';
 import 'plant_detail_screen.dart';
-import 'batch_diary_update_screen.dart';
 import 'diary_form_screen.dart';
 import '../data/mock_data.dart';
-import '../models/cay_sam.dart';
 import '../models/user.dart';
 import '../providers/auth_provider.dart';
 import '../widgets/role_based_navigation.dart';
@@ -67,7 +59,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   bool _showDiaryForm = false;
   List<String> _selectedPlantsForDiary = [];
   bool _showAddPlantForm = false;
-  String _latestMessage = "Chưa có thông báo"; // Biến này có thể không cần nữa
+  final PhantomService _phantomService = PhantomService();
 
   // (2) BỔ SUNG: Hàm sửa lỗi font
   String _fixBadUtf8(String badString) {
@@ -113,20 +105,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     }
   }
 
-  void _handlePlantSelect(String plantId) {
-    setState(() {
-      _selectedPlantId = plantId;
-    });
-  }
-
-  void _handleAddNewPlant() {
-    setState(() {
-      _showAddPlantForm = true;
-    });
-  }
 
   void _handleAddPlantSubmit(Map<String, dynamic> plantData, List<File?> image,String? caysamid) {
-    print('New plant added: $plantData');
     setState(() {
       _showAddPlantForm = false;
     });
@@ -138,7 +118,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     _currentTab = widget.tabcurrent == 2 ? NavTab.plants : NavTab.dashboard;
     WidgetsBinding.instance.addObserver(this);
     // NfcService.startNfcSession(context);
-     _initDeepLinkListener();
+    //   _initDeepLinkListener();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
         if (mounted) {
@@ -148,13 +128,17 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         plantScreenKey.currentState?.Selectlo(widget.zone);
       }
     });
+    // _phantomService.verifyWalletConnection().catchError((e) {
+    //   print("Lỗi kết nối Phantom: $e");
+    //   ScaffoldMessenger.of(context).showSnackBar(
+    //     const SnackBar(content: Text("Lỗi: Không tìm thấy ứng dụng Phantom Wallet")),
+    //   );
+    // });
+
 
     // (3) ĐÃ THAY THẾ: Gọi hàm khởi tạo SignalR
 
   }
-
-  // (4) BỔ SUNG: Hàm khởi tạo và lắng nghe SignalR
-  // Hàm này nằm BÊN TRONG class _HomeScreenState
   void _setupSignalRListener() async {
     try {
       await signalRService.initSignalR();
@@ -173,16 +157,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
         OverlaySupportEntry? entry;
 
-        entry = showOverlayNotification(
-              (context) {
+        entry = showOverlayNotification((context) {
             return GestureDetector(
               onTap: () async {
                 entry?.dismiss();
-
                 final CaySamModel? model = await API().getCaySamById(caySamId);
                 if (model != null) {
-                  print("Đang chuyển trang tới $caySamId");
-
                   navigatorKey.currentState?.push(
                     MaterialPageRoute(
                       builder: (context) => PlantDetailScreen(plant: model, onBack: () => Navigator.pop(context)),
@@ -246,41 +226,15 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   // }
 
   // Gọi hàm này trong initState()
-  Uri? _lastProcessedUri;
-
-  Future<void> _initDeepLinkListener() async {
-    // --- 1. Xử lý COLD START (App đang tắt -> Mở App) ---
-    try {
-      final Uri? initialUri = await _appLinks.getInitialLink();
-      if (initialUri != null) {
-        print('🚀 Deep Link (Cold Start): $initialUri');
-
-        // [QUAN TRỌNG] Lưu lại link này là "đã xử lý"
-        _lastProcessedUri = initialUri;
-
-        if (mounted) {
-          NfcService.processDeepLinkUri(initialUri, context);
-        }
-      }
-    } catch (e) {
-      print('⚠️ Lỗi lấy Initial Link: $e');
-    }
-  }
   Future<void> _startManualNfcScan(BuildContext context) async {
     NfcService.startNfcSession(context);
   }
   @override
   void dispose() {
-    // QUAN TRỌNG: Hủy đăng ký observer
     WidgetsBinding.instance.removeObserver(this);
-
-    // QUAN TRỌNG: Dừng session khi Widget bị hủy
     NfcService.stopNfcSession();
-
-    // (5) BỔ SUNG: Hủy lắng nghe SignalR và Deep Link
     _signalRSubscription?.cancel();
     _linkSubscription?.cancel();
-
     super.dispose();
   }
 
@@ -464,26 +418,61 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             ],
           ),
 
-          // CRITICAL: Only show bottom navigation if user has available tabs
-          // This mirrors React logic exactly
+          extendBody: false,
+
           bottomNavigationBar: availableTabs.isNotEmpty
-              ? BottomNavigationBar(
-            type: BottomNavigationBarType.fixed,
-            currentIndex: _getValidTabIndex(availableTabs),
-            onTap: (index) {
-              if (index >= 0 && index < availableTabs.length) {
-                setState(() {
-                  _currentTab = availableTabs[index].id;
-                });
-              }
-            },
-            items: _buildBottomNavItems(availableTabs),
-            selectedItemColor: Theme.of(context).primaryColor,
-            unselectedItemColor: Colors.grey[600],
-            backgroundColor: Colors.white,
-            elevation: 8,
+              ? Container(
+            // Không dùng margin để nó dính sát cạnh dưới
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(20 * scale)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05), // Bóng rất nhẹ
+                  blurRadius: 10,
+                  offset: const Offset(0, -5), // Đẩy bóng lên TRÊN để tách biệt nội dung
+                ),
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.vertical(top: Radius.circular(20 * scale)),
+              child: BottomNavigationBar(
+                type: BottomNavigationBarType.fixed,
+                currentIndex: _getValidTabIndex(availableTabs),
+                backgroundColor: Colors.white,
+                elevation: 0, // Tắt bóng mặc định
+
+                onTap: (index) {
+                  if (index >= 0 && index < availableTabs.length) {
+                    // HapticFeedback.selectionClick(); // Bỏ rung nếu không thích
+                    setState(() {
+                      _currentTab = availableTabs[index].id;
+                    });
+                  }
+                },
+
+                // --- STYLE ---
+                // Màu khi chọn
+                selectedItemColor: Theme.of(context).primaryColor,
+                // Màu khi chưa chọn (đậm hơn chút cho rõ)
+                unselectedItemColor: Colors.grey.shade500,
+
+                selectedLabelStyle: TextStyle(
+                  fontSize: 12 * scale, // Chữ to hơn một chút cho rõ ràng
+                  fontWeight: FontWeight.w700,
+                  height: 1.5,
+                ),
+                unselectedLabelStyle: TextStyle(
+                  fontSize: 12 * scale,
+                  fontWeight: FontWeight.w500,
+                  height: 1.5,
+                ),
+
+                items: _buildBottomNavItems(availableTabs),
+              ),
+            ),
           )
-              : null, // Hide bottom nav completely if no tabs available
+              : null,// Hide bottom nav completely if no tabs available
         );
       },
     );

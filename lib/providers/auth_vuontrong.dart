@@ -7,9 +7,7 @@ import '../api/api.dart';
 import '../models/kttoken.dart';
 import '../models/login_model.dart';
 import '../models/message_enum.dart';
-import '../models/user.dart';
 import '../models/user_model.dart';
-import '../services/auth_service.dart';
 
 class AuthProvider extends ChangeNotifier {
   final api = API();

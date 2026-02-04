@@ -8,19 +8,24 @@ class FullScreenImageViewer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: Colors.black, // Giữ nền đen để tôn ảnh
       body: Stack(
         children: [
-          // Ảnh chính (có thể zoom)
+          // Sử dụng InteractiveViewer để cho phép người dùng zoom ảnh
           Center(
             child: InteractiveViewer(
+              minScale: 0.5,
+              maxScale: 4.0,
               child: Hero(
                 tag: imageUrl,
                 child: Image.network(
                   imageUrl,
-                  fit: BoxFit.fill,
-                  width: double.infinity,
-                  height: double.infinity,
+                  // THAY ĐỔI Ở ĐÂY:
+                  // BoxFit.contain: Hiển thị toàn bộ ảnh, giữ nguyên tỉ lệ,
+                  // nếu ảnh không vừa màn hình sẽ có khoảng đen.
+                  fit: BoxFit.contain,
+                  width: MediaQuery.of(context).size.width,
+                  height: MediaQuery.of(context).size.height,
                   errorBuilder: (context, error, stackTrace) {
                     return Container(
                       color: Colors.grey[900],

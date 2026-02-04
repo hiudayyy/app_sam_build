@@ -1,11 +1,8 @@
-import 'package:nftsam/api/api_caytrong.dart';
 import 'package:flutter/material.dart';
 import '../api/api.dart';
 import '../models/cay_sam.dart';
 import '../models/farm_hierarchy.dart';
 import '../data/mock_data.dart';
-import '../providers/auth_provider.dart';
-import 'package:provider/provider.dart';
 
 class InvestorPlantViewScreen extends StatefulWidget {
   final List<CaySam> plants;
@@ -34,9 +31,6 @@ class _InvestorPlantViewScreenState extends State<InvestorPlantViewScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final authProvider = Provider.of<AuthProvider>(context);
-    final user = authProvider.user;
-    // Lọc cây của nhà đầu tư hiện tại
     final investorPlants = widget.plants.where((plant) => plant.investorId == "5").toList();
 
     // Tính toán thống kê tổng quan
@@ -211,12 +205,6 @@ class _InvestorPlantViewScreenState extends State<InvestorPlantViewScreen> {
               zone.areas.any((area) => area.id == plant.areaId))).length;
       return farm.copyWith(investorPlantCount: count);
     }).where((farm) => farm.investorPlantCount! > 0).toList();
-    final apifarm = api.listVuonTrong( status: 1,take: 10,skip: 0);
-    print(apifarm);
-    final apilo = api.listLoSam(status: "1", rowCount: 10,skip: 0,);
-    print(apilo);
-    final apilosam = api.getLoSamById(1);
-    print(apilo);
     return Column(
       children: [
         Column(
@@ -413,119 +401,6 @@ class _InvestorPlantViewScreenState extends State<InvestorPlantViewScreen> {
                         ),
                         const SizedBox(width: 8),
                         Icon(Icons.chevron_right, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6)),
-                      ],
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildAreaLevel(List<CaySam> investorPlants) {
-    if (selectedZone == null) return const SizedBox.shrink();
-
-    final areasWithInvestorData = selectedZone!.areas.map((area) {
-      final count = investorPlants.where((plant) => plant.areaId == area.id).length;
-      return area.copyWith(investorPlantCount: count);
-    }).where((area) => area.investorPlantCount! > 0).toList();
-
-    return Column(
-      children: [
-        Column(
-          children: [
-            const Text(
-              'Chọn Khu',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Bạn có cây trồng tại ${areasWithInvestorData.length} khu trong ${selectedZone!.name}',
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 24),
-
-        Expanded(
-          child: ListView.builder(
-            itemCount: areasWithInvestorData.length,
-            itemBuilder: (context, index) {
-              final area = areasWithInvestorData[index];
-              return Card(
-                margin: const EdgeInsets.only(bottom: 12),
-                child: InkWell(
-                  onTap: () {
-                    setState(() {
-                      selectedArea = area;
-                      currentLevel = NavigationLevel.grid;
-                    });
-                  },
-                  borderRadius: BorderRadius.circular(8),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      children: [
-                        Row(
-                          children: [
-                            Container(
-                              width: 40,
-                              height: 40,
-                              decoration: BoxDecoration(
-                                color: Colors.orange.shade600,
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: const Icon(Icons.grid_3x3, color: Colors.white, size: 20),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    area.name,
-                                    style: const TextStyle(fontWeight: FontWeight.w500),
-                                  ),
-                                  Text(
-                                    area.description,
-                                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: Colors.orange.shade100,
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Text(
-                                '${area.investorPlantCount} cây',
-                                style: TextStyle(
-                                  color: Colors.orange.shade700,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Icon(Icons.chevron_right, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6)),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Lưới: ${area.gridSize.cols.join(', ')} | ${area.gridSize.rows} hàng',
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-                          ),
-                        ),
                       ],
                     ),
                   ),

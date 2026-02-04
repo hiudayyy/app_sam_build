@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:nftsam/api/api_taikhoan.dart';
 import 'package:flutter/material.dart';
+import 'package:nftsam/widgets/wallet_info_dialog.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -10,106 +12,88 @@ import '../models/kttoken.dart';
 import '../models/message_enum.dart';
 import '../models/user_model.dart'; // Đảm bảo import đúng model của bạn
 import '../providers/auth_provider.dart';
+import '../services/phantom_service.dart';
+import 'app_info_dialog.dart';
 
-class UserProfile extends StatelessWidget {
+class UserProfile extends StatefulWidget {
   const UserProfile({Key? key}) : super(key: key);
 
   @override
-  Widget build(BuildContext context) {
-    return Consumer<AuthProvider>(
-      builder: (context, authProvider, child) {
-        final user = authProvider.user;
-        if (user == null) return const SizedBox.shrink();
+  State<UserProfile> createState() => _UserProfileState();
+}
 
-        return PopupMenuButton<String>(
-          offset: const Offset(0, 45), // Đẩy menu xuống một chút cho đẹp
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          onSelected: (value) {
-            switch (value) {
-              case 'profile':
-                showDialog(
-                  context: context,
-                  barrierDismissible: false, // Bắt buộc bấm đóng hoặc lưu
-                  builder: (context) => UserProfileDialog(user: user),
-                );
-                break;
-              case 'settings':
-              // Navigate to settings
-                break;
-              case 'logout':
-                _showLogoutDialog(context, authProvider);
-                break;
-            }
-          },
-          itemBuilder: (context) => [
-            const PopupMenuItem(
-              value: 'profile',
-              child: Row(
-                children: [
-                  Icon(Icons.person_outline, size: 20),
-                  SizedBox(width: 12),
-                  Text('Hồ sơ cá nhân'),
-                ],
-              ),
-            ),
-            const PopupMenuItem(
-              value: 'settings',
-              child: Row(
-                children: [
-                  Icon(Icons.settings_outlined, size: 20),
-                  SizedBox(width: 12),
-                  Text('Cài đặt'),
-                ],
-              ),
-            ),
-            const PopupMenuDivider(),
-            const PopupMenuItem(
-              value: 'logout',
-              child: Row(
-                children: [
-                  Icon(Icons.logout, size: 20, color: Colors.red),
-                  SizedBox(width: 12),
-                  Text('Đăng xuất', style: TextStyle(color: Colors.red)),
-                ],
-              ),
-            ),
-          ],
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(20),
-              color: Colors.grey.shade100, // Thêm nền nhẹ cho nút
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
+class _UserProfileState extends State<UserProfile> {
+  // 1. Khởi tạo Service
+  final PhantomService _phantomService = PhantomService();
+
+  // Biến lưu địa chỉ ví
+  String? _walletAddress;
+
+  // Quản lý subscription để tránh memory leak
+  StreamSubscription? _walletSubscription;
+
+  @override
+  void initState() {
+    super.initState();
+    final user = context.read<AuthProvider>().user;
+    if(user?.wallet?.diaChiVi != null){
+      _walletAddress = user?.wallet?.diaChiVi;
+    }
+    _walletSubscription = _phantomService.walletStream.listen((newAddress) async {
+      if (!mounted) return;
+      if (newAddress != null && newAddress != _walletAddress) {
+        await API().ConectionWallet(AddressWallet: newAddress);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
               children: [
-                CircleAvatar(
-                  radius: 16,
-                  backgroundColor: Theme.of(context).primaryColor,
-                  child: Text(
-                    (user.tenTaiKhoan ?? '').trim().isNotEmpty
-                        ? user.tenTaiKhoan![0].toUpperCase()
-                        : '?',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 14,
-                    ),
+                const Icon(Icons.check_circle, color: Colors.white),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text(
+                        "Kết nối ví thành công!",
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                      ),
+                      Text(
+                        _getShortAddress(newAddress),
+                        style: const TextStyle(fontSize: 12),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(width: 8),
-                // Hiển thị tên ngắn gọn nếu cần
-                // Text(user.tenTaiKhoan ?? '', style: TextStyle(fontWeight: FontWeight.bold)),
-                // SizedBox(width: 4),
-                const Icon(Icons.keyboard_arrow_down, size: 18),
               ],
             ),
+            backgroundColor: Colors.green.shade600, // Màu xanh thành công
+            behavior: SnackBarBehavior.floating,    // Nổi lên trên cho đẹp
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            margin: const EdgeInsets.all(16),
+            duration: const Duration(seconds: 3),
           ),
         );
-      },
-    );
+      }
+      setState(() {
+        _walletAddress = newAddress;
+      });
+    });
   }
 
+  @override
+  void dispose() {
+    _walletSubscription?.cancel(); // Hủy lắng nghe khi widget bị đóng
+    super.dispose();
+  }
+
+  // Hàm rút gọn địa chỉ ví: 8xzt...j12k
+  String _getShortAddress(String address) {
+    if (address.length < 10) return address;
+    return "${address.substring(0, 4)}...${address.substring(address.length - 4)}";
+  }
+
+  // Hàm hiển thị dialog xác nhận đăng xuất
   void _showLogoutDialog(BuildContext context, AuthProvider authProvider) {
     showDialog(
       context: context,
@@ -123,9 +107,10 @@ class UserProfile extends StatelessWidget {
             child: const Text('Hủy', style: TextStyle(color: Colors.grey)),
           ),
           ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
               Navigator.of(context).pop();
               authProvider.logout();
+              await _phantomService.disconnectWallet();
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,
@@ -138,11 +123,189 @@ class UserProfile extends StatelessWidget {
       ),
     );
   }
-}
 
-// ==========================================
-// WIDGET DIALOG CHỈNH SỬA HỒ SƠ
-// ==========================================
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<AuthProvider>(
+      builder: (context, authProvider, child) {
+        final user = authProvider.user;
+        // Nếu chưa có user (chưa login) thì ẩn widget này đi
+        if (user == null) return const SizedBox.shrink();
+
+        return PopupMenuButton<String>(
+          offset: const Offset(0, 45),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+
+          // --- XỬ LÝ SỰ KIỆN MENU ---
+          onSelected: (value) {
+            switch (value) {
+              case 'profile':
+                showDialog(
+                  context: context,
+                  barrierDismissible: false,
+                  builder: (context) => UserProfileDialog(user: user),
+                );
+                break;
+
+            // --- CASE XỬ LÝ VÍ ---
+              case 'connect_wallet':
+                if (_walletAddress == null) {
+                  // A. CHƯA KẾT NỐI -> GỌI HÀM CONNECT
+                  _phantomService.connectWallet().catchError((e) {
+                    print("Lỗi kết nối Phantom: $e");
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("Lỗi: Không tìm thấy ứng dụng Phantom Wallet")),
+                    );
+                  });
+                } else {
+                  showDialog(
+                    context: context,
+                    builder: (context) => WalletInfoDialog(
+                      walletAddress: _walletAddress!,
+                      onDisconnect: () async {
+                        // Gọi hàm xóa dữ liệu trong Service
+                        await _phantomService.disconnectWallet();
+
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text("Đã ngắt kết nối ví"),
+                            behavior: SnackBarBehavior.floating,
+                          ),
+                        );
+                      },
+                    ),
+                  );
+                }
+                break;
+
+              case 'app_info':
+                showDialog(
+                  context: context,
+                  builder: (context) => const AppInfoDialog(),
+                );
+                break;
+
+              case 'logout':
+                _showLogoutDialog(context, authProvider);
+                break;
+            }
+          },
+
+          // --- DANH SÁCH MENU ITEM ---
+          itemBuilder: (context) => [
+            // 1. Hồ sơ cá nhân
+            const PopupMenuItem(
+              value: 'profile',
+              child: Row(
+                children: [
+                  Icon(Icons.person_outline, size: 20),
+                  SizedBox(width: 12),
+                  Text('Hồ sơ cá nhân'),
+                ],
+              ),
+            ),
+
+            // 2. VÍ PHANTOM (Thay đổi giao diện động)
+            PopupMenuItem(
+              value: 'connect_wallet',
+              child: Row(
+                children: [
+                  Icon(
+                    _walletAddress == null
+                        ? Icons.account_balance_wallet_outlined // Icon Ví thường
+                        : Icons.verified_user_rounded,          // Icon Tick xanh/tím
+                    size: 20,
+                    color: _walletAddress == null ? Colors.blueGrey : Colors.purple,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      _walletAddress == null
+                          ? 'Kết nối ví Phantom'
+                          : 'Ví: ${_getShortAddress(_walletAddress!)}',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: _walletAddress == null
+                            ? Colors.black87
+                            : Colors.purple.shade700,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // 3. Thông tin ứng dụng
+            const PopupMenuItem(
+              value: 'app_info',
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.info_outline_rounded,
+                    size: 20,
+                    color: Colors.blueGrey,
+                  ),
+                  SizedBox(width: 12),
+                  Text(
+                    'Thông tin ứng dụng',
+                    style: TextStyle(
+                        fontSize: 14, fontWeight: FontWeight.w500),
+                  ),
+                ],
+              ),
+            ),
+
+            const PopupMenuDivider(),
+
+            // 4. Đăng xuất
+            const PopupMenuItem(
+              value: 'logout',
+              child: Row(
+                children: [
+                  Icon(Icons.logout, size: 20, color: Colors.red),
+                  SizedBox(width: 12),
+                  Text('Đăng xuất', style: TextStyle(color: Colors.red)),
+                ],
+              ),
+            ),
+          ],
+
+          // --- NÚT BẤM HIỂN THỊ TRÊN APPBAR ---
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              color: Colors.grey.shade100,
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircleAvatar(
+                  radius: 16,
+                  backgroundColor: Theme.of(context).primaryColor,
+                  child: Text(
+                    (user.tenTaiKhoan ?? '').trim().isNotEmpty
+                        ? user.tenTaiKhoan[0].toUpperCase()
+                        : '?',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                const Icon(Icons.keyboard_arrow_down, size: 18),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
 class UserProfileDialog extends StatefulWidget {
   final UserModel user; // Thay UserModel bằng class model thực tế của bạn nếu khác
 
@@ -164,7 +327,6 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
     _sdtController = TextEditingController(text: widget.user.sdt ?? '');
     _emailController = TextEditingController(text: widget.user.email ?? '');
   }
-
   @override
   void dispose() {
     _sdtController.dispose();

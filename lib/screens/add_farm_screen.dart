@@ -6,8 +6,6 @@ import 'package:path_provider/path_provider.dart';
 
 import '../api/api.dart';
 import '../models/vuontrong/losam_model.dart';
-import '../models/vuontrong/losamcamera_model.dart';
-import '../models/vuontrong/losamchitiet_model.dart';
 import '../models/vuontrong/vuontrong_model.dart';
 
 
@@ -346,109 +344,4 @@ class _AddFarmScreenState extends State<AddFarmScreen> {
     );
   }
 
-  Widget _buildNumberField({
-    required String label,
-    required num value,
-    required Function(num) onChanged,
-    String? errorKey,
-    num? min,
-    bool isDouble = false,
-    bool readOnly = false,
-    String? helperText,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: const TextStyle(
-              fontWeight: FontWeight.w500,
-              fontSize: 14,
-            ),
-          ),
-          const SizedBox(height: 8),
-          TextFormField(
-            key: ValueKey(value), // 🔹 Buộc rebuild khi value thay đổi
-            initialValue: value.toString(),
-            onChanged: (val) {
-              num parsedValue;
-
-              if (isDouble) {
-                parsedValue = double.tryParse(val) ?? 0;
-              } else {
-                parsedValue = int.tryParse(val) ?? 0;
-              }
-
-              // Nếu có min thì đảm bảo giá trị không nhỏ hơn min
-              if (min != null && parsedValue < min) {
-                parsedValue = min;
-              }
-
-              onChanged(parsedValue);
-            },
-            keyboardType: TextInputType.numberWithOptions(
-              decimal: isDouble,
-              signed: false,
-            ),
-            readOnly: readOnly,
-            decoration: InputDecoration(
-              border: const OutlineInputBorder(),
-              errorText: errorKey != null ? errors[errorKey] : null,
-              helperText: helperText,
-              filled: readOnly,
-              fillColor: readOnly ? Colors.grey.shade100 : null,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDropdownField({
-    required String label,
-    required dynamic value,
-    required List<OptionModel> items,
-    required Function(dynamic) onChanged,
-    String? errorKey,
-    bool isMap = false,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: const TextStyle(
-              fontWeight: FontWeight.w500,
-              fontSize: 14,
-            ),
-          ),
-          const SizedBox(height: 8),
-          DropdownButtonFormField<int>(
-            // 🔹 Giữ giá trị là int thay vì String
-            value: value is int ? value : int.tryParse(value?.toString() ?? ''),
-            decoration: InputDecoration(
-              border: const OutlineInputBorder(),
-              errorText: errorKey != null ? errors[errorKey] : null,
-            ),
-            items: items.map<DropdownMenuItem<int>>((item) {
-              final intVal = int.tryParse(item.value.toString()) ?? 0;
-              return DropdownMenuItem<int>(
-                value: intVal,
-                child: Text(item.text),
-              );
-            }).toList(),
-            onChanged: (newValue) {
-              if (newValue != null) {
-                onChanged(newValue); // 🔹 Trả lại int thật sự
-              }
-            },
-          ),
-        ],
-      ),
-    );
-  }
 }

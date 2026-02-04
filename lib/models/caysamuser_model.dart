@@ -1,4 +1,3 @@
-import 'package:nftsam/models/vuontrong/caysam_model.dart';
 
 import 'cay_sam.dart';
 

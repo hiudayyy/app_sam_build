@@ -14,7 +14,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shimmer/shimmer.dart';
 import '../api/api.dart';
 import '../core/constants/app_colors.dart';
-import '../models/caysamuser_model.dart';
 import '../models/farm_hierarchy.dart';
 import '../data/mock_data.dart';
 import '../models/kttoken.dart';
@@ -72,6 +71,7 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
   late Animation<double> _multiSelectAnimation;
   late Animation<double> _pulseAnimation;
   Future<LoSamModel?>? _futureLoSam;
+  List<CaySamModel>? Caysamuser;
   Kttoken? user;
   OptionModel? _selectedtuoicay;
   OptionModel? _selectedTinhTrang;
@@ -92,6 +92,7 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
     _pulseAnimationController.dispose();
     super.dispose();
   }
+
   @override
   bool get wantKeepAlive => true;
   // ✅ HÀM LỌC TRUNG TÂM MỚI
@@ -163,6 +164,7 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
         }
       });
     }
+
     if (_selectedtuoicay != null) {
       int? selectedAgeId = int.tryParse(_selectedtuoicay!.value);
       if (selectedAgeId != null) {
@@ -195,13 +197,17 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
         }).toList();
       }
     }
-    if(_selectedtuoicay != null || _selectedTinhTrang != null || _selectedDiemSucKhoe != null){
+    if (_selectedtuoicay != null ||
+        _selectedTinhTrang != null ||
+        _selectedDiemSucKhoe != null) {
       _selectAllEmptyCells(filteredList);
-    }else{
+    } else {
       _selectAllEmptyCells([]);
     }
   }
-  void showLoadingDialog(BuildContext context, {String message = 'Đang xử lý...'}) {
+
+  void showLoadingDialog(BuildContext context,
+      {String message = 'Đang xử lý...'}) {
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -213,7 +219,8 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
             borderRadius: BorderRadius.circular(16.0),
           ),
           content: Column(
-            mainAxisSize: MainAxisSize.min, // Giữ cho dialog có kích thước nhỏ nhất
+            mainAxisSize:
+                MainAxisSize.min, // Giữ cho dialog có kích thước nhỏ nhất
             children: [
               // Vòng quay loading
               const CircularProgressIndicator(),
@@ -233,6 +240,7 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
       },
     );
   }
+
   void _setupAnimations() {
     _multiSelectAnimationController = AnimationController(
       duration: const Duration(milliseconds: 300),
@@ -310,13 +318,16 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
 
     try {
       final newData = await api.getLoSamById(selectedZone!.loSamId);
-
+      final res = await API().listCaySam(
+        status: "1",
+        skip: 0,
+      );
       if (mounted) {
         setState(() {
           loSam = newData;
           // Cập nhật Future để đồng bộ, nhưng quan trọng là biến loSam đã có dữ liệu
           _futureLoSam = Future.value(newData);
-
+          Caysamuser = res?.items;
           // 2. Tắt Loading khi dữ liệu đã về
           _isLoading = false;
         });
@@ -406,17 +417,6 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
     }
   }
 
-
-
-
-  Color _getPlantAgeIconColor(int age) {
-    if (age == 1) return Colors.black54!;
-    if (age == 2) return Colors.black54!;
-    if (age == 3) return Colors.black54!;
-    if (age == 4) return Colors.black54!;
-    return Colors.grey[400]!;
-  }
-
   void _handleNavigationBack() {
     setState(() {
       isMultiSelectMode = false;
@@ -424,7 +424,13 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
       _clearSelection();
       switch (currentLevel) {
         case NavigationLevel.grid:
-          selectedFarm ??= VuonTrongModel(vuonTrongId: 0, tenVuon: '', diaChi: '', viTri: '', ghiChu: '', trangThai: 1); // hoặc kiểu tương ứng
+          selectedFarm ??= VuonTrongModel(
+              vuonTrongId: 0,
+              tenVuon: '',
+              diaChi: '',
+              viTri: '',
+              ghiChu: '',
+              trangThai: 1); // hoặc kiểu tương ứng
           selectedFarm?.vuonTrongId = selectedZone?.vuonTrongId ?? 0;
 
           currentLevel = NavigationLevel.zone;
@@ -464,11 +470,11 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
   }
 
   AppBar? _buildHeader() {
-    // Toàn bộ logic xác định trạng thái của bạn được giữ nguyên
     bool canShowMultiSelectButton = false;
-    if (currentLevel == NavigationLevel.grid && user?.htTaiKhoan.htPhanQuyenTaiKhoans != null) {
+    if (currentLevel == NavigationLevel.grid &&
+        user?.htTaiKhoan.htPhanQuyenTaiKhoans != null) {
       canShowMultiSelectButton = user!.htTaiKhoan.htPhanQuyenTaiKhoans.any(
-            (pq) => pq.maVaiTro != "nft_invester" && pq.maVaiTro == "nft_admin",
+        (pq) => pq.maVaiTro != "nft_invester" && pq.maVaiTro == "nft_admin",
       );
     }
     final breadcrumb = _getBreadcrumb();
@@ -478,13 +484,12 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
     final double scale = MediaQuery.of(context).size.width / 375.0;
     return AppBar(
       backgroundColor: Colors.white,
-      surfaceTintColor: Colors.white, // Đảm bảo trắng hoàn toàn trên Android mới
+      surfaceTintColor:
+          Colors.white, // Đảm bảo trắng hoàn toàn trên Android mới
       foregroundColor: Colors.black87,
       elevation: 0.5, // Giảm nhẹ độ dày đường kẻ cho hiện đại
       shadowColor: Colors.black.withOpacity(0.1),
       titleSpacing: 0,
-
-      // Nút Back co giãn theo scale
       leading: IconButton(
         icon: Icon(Icons.arrow_back_ios_new_rounded, size: 18 * scale),
         onPressed: _handleNavigationBack,
@@ -492,7 +497,8 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
 
       title: Row(
         children: [
-          Icon(Icons.location_on_outlined, size: 14 * scale, color: Colors.grey.shade600),
+          Icon(Icons.location_on_outlined,
+              size: 14 * scale, color: Colors.grey.shade600),
           SizedBox(width: 8 * scale),
           Expanded(
             child: Text(
@@ -513,20 +519,19 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
           Padding(
             padding: EdgeInsets.only(right: 12.0 * scale),
             child: SizedBox(
-              // Khống chế chiều cao nút để trông nhỏ gọn và hiện đại hơn
               height: 34 * scale,
               child: ElevatedButton.icon(
                 onPressed: _toggleMultiSelectMode,
                 icon: Icon(
-                  isMultiSelectMode ? Icons.close_rounded : Icons.checklist_rtl_rounded,
+                  isMultiSelectMode
+                      ? Icons.close_rounded
+                      : Icons.checklist_rtl_rounded,
                   size: 16 * scale,
                 ),
                 label: Text(
                   isMultiSelectMode ? 'Thoát' : 'Nhật ký',
                   style: TextStyle(
-                      fontSize: 12 * scale,
-                      fontWeight: FontWeight.bold
-                  ),
+                      fontSize: 12 * scale, fontWeight: FontWeight.bold),
                 ),
                 style: ElevatedButton.styleFrom(
                   // Màu sắc thay đổi theo trạng thái
@@ -565,14 +570,15 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
       child: user == null
           ? const Center(child: CircularProgressIndicator())
           : Column(
-        children: [
-          Expanded(
-            child: _buildCurrentLevelContent(),
-          ),
-        ],
-      ),
+              children: [
+                Expanded(
+                  child: _buildCurrentLevelContent(),
+                ),
+              ],
+            ),
     );
   }
+
   Widget _buildAgeGroupStats(LoSamModel? lsmod) {
     // Lấy chiều rộng màn hình
     double screenWidth = MediaQuery.of(context).size.width;
@@ -581,14 +587,18 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
     double scale = (screenWidth / 375).clamp(0.85, 1.3);
 
     return Container(
-      margin: EdgeInsets.symmetric(vertical: 4 * scale), // Margin bên ngoài cực nhỏ
-      padding: EdgeInsets.symmetric(horizontal: 12 * scale, vertical: 10 * scale), // Padding bên trong thắt chặt
+      margin:
+          EdgeInsets.symmetric(vertical: 4 * scale), // Margin bên ngoài cực nhỏ
+      padding: EdgeInsets.symmetric(
+          horizontal: 12 * scale,
+          vertical: 10 * scale), // Padding bên trong thắt chặt
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12 * scale), // Bo góc nhỏ hơn (12)
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.06), // Bóng mờ hơn để trông nhẹ nhàng
+            color:
+                Colors.grey.withOpacity(0.06), // Bóng mờ hơn để trông nhẹ nhàng
             blurRadius: 6 * scale,
             offset: Offset(0, 2 * scale),
           ),
@@ -607,8 +617,7 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
                 style: TextStyle(
                     fontSize: 13 * scale, // Font tiêu đề nhỏ (13)
                     fontWeight: FontWeight.bold,
-                    color: Colors.black87
-                ),
+                    color: Colors.black87),
               ),
               // Nút Refresh siêu nhỏ
               SizedBox(
@@ -622,11 +631,13 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
                       });
                     }
                   },
-                  icon: Icon(Icons.refresh_rounded, size: 16 * scale, color: Colors.blue),
+                  icon: Icon(Icons.refresh_rounded,
+                      size: 16 * scale, color: Colors.blue),
                   padding: EdgeInsets.zero,
                   style: IconButton.styleFrom(
                     backgroundColor: Colors.blue.withOpacity(0.1),
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap, // Giúp nút nhận cảm ứng tốt dù nhỏ
+                    tapTargetSize: MaterialTapTargetSize
+                        .shrinkWrap, // Giúp nút nhận cảm ứng tốt dù nhỏ
                   ),
                 ),
               ),
@@ -638,14 +649,14 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildModernStatItem(
-                  "assets/images/icon1t.png", '3 năm', lsmod?.loSamChiTiets.sl(1), Colors.green, scale),
-              _buildModernStatItem(
-                  "assets/images/icon2xp.png", '6-7 năm', lsmod?.loSamChiTiets.sl(2), Colors.teal, scale),
-              _buildModernStatItem(
-                  "assets/images/icon3t.png", '8-9 năm', lsmod?.loSamChiTiets.sl(3), Colors.blue, scale),
-              _buildModernStatItem(
-                  "assets/images/icon4t.png", '>10 năm', lsmod?.loSamChiTiets.sl(4), Colors.purple, scale),
+              _buildModernStatItem("assets/images/icon1t.png", '3 năm',
+                  lsmod?.loSamChiTiets.sl(1), Colors.green, scale),
+              _buildModernStatItem("assets/images/icon2xp.png", '6-7 năm',
+                  lsmod?.loSamChiTiets.sl(2), Colors.teal, scale),
+              _buildModernStatItem("assets/images/icon3t.png", '8-9 năm',
+                  lsmod?.loSamChiTiets.sl(3), Colors.blue, scale),
+              _buildModernStatItem("assets/images/icon4t.png", '>10 năm',
+                  lsmod?.loSamChiTiets.sl(4), Colors.purple, scale),
             ],
           ),
         ],
@@ -653,7 +664,8 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
     );
   }
 
-  Widget _buildModernStatItem(String iconPath, String label, dynamic count, Color color, double scale) {
+  Widget _buildModernStatItem(
+      String iconPath, String label, dynamic count, Color color, double scale) {
     String displayCount = (count == null) ? '0' : count.toString();
 
     return Expanded(
@@ -663,9 +675,11 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
           Container(
             height: 34 * scale,
             width: 34 * scale,
-            padding: EdgeInsets.all(7 * scale), // Padding bên trong icon cũng giảm
+            padding:
+                EdgeInsets.all(7 * scale), // Padding bên trong icon cũng giảm
             decoration: BoxDecoration(
-              color: color.withOpacity(0.4), // Độ đậm màu nền (bạn có thể chỉnh 0.4 hoặc 0.5 tùy mắt)
+              color: color.withOpacity(
+                  0.4), // Độ đậm màu nền (bạn có thể chỉnh 0.4 hoặc 0.5 tùy mắt)
               shape: BoxShape.circle,
             ),
             child: Image.asset(iconPath, fit: BoxFit.contain),
@@ -698,7 +712,6 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
       ),
     );
   }
-
 
   Widget _buildCurrentLevelContent() {
     switch (currentLevel) {
@@ -741,41 +754,49 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
                   CircleAvatar(
                     radius: 22,
                     backgroundColor: Colors.green.shade50,
-                    child: Icon(Icons.business_rounded, color: Colors.green.shade700),
+                    child: Icon(Icons.business_rounded,
+                        color: Colors.green.shade700),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
                       farm.tenVuon ?? "Chưa có tên",
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17),
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold, fontSize: 17),
                     ),
                   ),
-                  IconButton(
-                    onPressed: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (context) => AddFarmScreen(
-                            farmId: farm,
-                            onSubmit: _edithandleFarmSubmit,
+                  if (user!.htTaiKhoan.htPhanQuyenTaiKhoans.any((pq) =>
+                      pq.maVaiTro != "nft_invester" &&
+                      pq.maVaiTro == "nft_admin"))
+                    IconButton(
+                      onPressed: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) => AddFarmScreen(
+                              farmId: farm,
+                              onSubmit: _edithandleFarmSubmit,
+                            ),
                           ),
-                        ),
-                      );
-                    },
-                    icon: Icon(Icons.edit_outlined, color: Colors.blue.shade600, size: 20),
-                    tooltip: 'Lưu',
-                    visualDensity: VisualDensity.compact,
-                  ),
+                        );
+                      },
+                      icon: Icon(Icons.edit_outlined,
+                          color: Colors.blue.shade600, size: 20),
+                      tooltip: 'Lưu',
+                      visualDensity: VisualDensity.compact,
+                    ),
                 ],
               ),
               const Divider(height: 20),
               Row(
                 children: [
-                  Icon(Icons.location_on_outlined, size: 16, color: Colors.grey.shade600),
+                  Icon(Icons.location_on_outlined,
+                      size: 16, color: Colors.grey.shade600),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       farm.viTri ?? "Chưa có vị trí",
-                      style: TextStyle(color: Colors.grey.shade700, fontSize: 14),
+                      style:
+                          TextStyle(color: Colors.grey.shade700, fontSize: 14),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
@@ -788,7 +809,12 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
       ),
     );
   }
+
   Widget _buildFarmLevel() {
+    final activeFarms = (farmsWithPlantsData ?? [])
+        .where((farm) => farm.trangThai == 1)
+        .toList();
+
     return Column(
       children: [
         Padding(
@@ -803,27 +829,37 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
                     Text(
                       'Quản lý Trang trại',
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        fontSize: MediaQuery.of(context).size.width * 0.05,
-                      ),
+                            fontWeight: FontWeight.bold,
+                            fontSize: MediaQuery.of(context).size.width * 0.05,
+                          ),
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Hiện có ${farmsWithPlantsData?.length ?? 0} trang trại',
-                      style: TextStyle(color: Colors.grey[600],fontSize: MediaQuery.of(context).size.width * 0.03),
+                      'Hiện có ${activeFarms.length} trang trại đang hoạt động',
+                      style: TextStyle(
+                          color: Colors.grey[600],
+                          fontSize: MediaQuery.of(context).size.width * 0.03),
                     ),
                   ],
                 ),
               ),
-              if(user!.htTaiKhoan.htPhanQuyenTaiKhoans.any((pq) =>pq.maVaiTro != "nft_invester" && pq.maVaiTro == "nft_admin"))
+              if (user!.htTaiKhoan.htPhanQuyenTaiKhoans.any((pq) =>
+                  pq.maVaiTro != "nft_invester" && pq.maVaiTro == "nft_admin"))
                 ElevatedButton.icon(
                   onPressed: () => _showAddfarmDialog(),
-                  icon:  Icon(Icons.add,size: MediaQuery.of(context).size.width * 0.035),
-                  label: Text('Thêm vườn',style: TextStyle(fontSize: MediaQuery.of(context).size.width * 0.035),),
+                  icon: Icon(Icons.add,
+                      size: MediaQuery.of(context).size.width * 0.035),
+                  label: Text(
+                    'Thêm vườn',
+                    style: TextStyle(
+                        fontSize: MediaQuery.of(context).size.width * 0.035),
+                  ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.green,
                     foregroundColor: Colors.white,
-                    padding: EdgeInsets.symmetric(horizontal: MediaQuery.of(context).size.width * 0.02, vertical: 0),
+                    padding: EdgeInsets.symmetric(
+                        horizontal: MediaQuery.of(context).size.width * 0.02,
+                        vertical: 0),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -838,23 +874,26 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
         Expanded(
           child: farmsWithPlantsData == null
               ? const Center(child: CircularProgressIndicator())
-              : farmsWithPlantsData!.isEmpty
-              ? const Center(
-            child: Text(
-              'Chưa có trang trại nào.\nHãy nhấn "Thêm vườn" để bắt đầu.',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey),
-            ),
-          )
-              : ListView.builder(
-            padding: const EdgeInsets.only(top:16),
-            itemCount: farmsWithPlantsData!.length,
-            itemBuilder: (context, index) {
-              final farm = farmsWithPlantsData![index];
-              // Gọi hàm build card mới
-              return _buildFarmCard(farm);
-            },
-          ),
+              : activeFarms.isEmpty // Kiểm tra trên danh sách ĐÃ LỌC
+                  ? const Center(
+                      child: Text(
+                        'Chưa có trang trại nào đang hoạt động.\nHãy nhấn "Thêm vườn" để bắt đầu.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: Colors.grey),
+                      ),
+                    )
+                  : ListView.builder(
+                      padding: const EdgeInsets.only(top: 16),
+                      // BƯỚC 2: Sử dụng độ dài của danh sách ĐÃ LỌC
+                      itemCount: activeFarms.length,
+                      itemBuilder: (context, index) {
+                        // BƯỚC 3: Lấy đối tượng từ danh sách ĐÃ LỌC
+                        final farm = activeFarms[index];
+
+                        // Gọi hàm build card
+                        return _buildFarmCard(farm);
+                      },
+                    ),
         )
       ],
     );
@@ -883,7 +922,8 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
         return Column(
           children: [
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4.0, vertical: 2.0),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 4.0, vertical: 2.0),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
@@ -893,29 +933,44 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
                       children: [
                         Text(
                           'Quản lý Lô Sâm',
-                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            fontSize: MediaQuery.of(context).size.width * 0.05,
-                          ),
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleLarge
+                              ?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                fontSize:
+                                    MediaQuery.of(context).size.width * 0.05,
+                              ),
                         ),
                         const SizedBox(height: 4),
                         Text(
                           'Các lô trong ${selectedFarm!.tenVuon}',
-                          style: TextStyle(color: Colors.grey[600],fontSize: MediaQuery.of(context).size.width * 0.03),
+                          style: TextStyle(
+                              color: Colors.grey[600],
+                              fontSize:
+                                  MediaQuery.of(context).size.width * 0.03),
                         ),
                       ],
                     ),
                   ),
-                  if(user!.htTaiKhoan.htPhanQuyenTaiKhoans.any((pq) =>
-                  pq.maVaiTro != "nft_invester" && pq.maVaiTro == "nft_admin"))
+                  if (user!.htTaiKhoan.htPhanQuyenTaiKhoans.any((pq) =>
+                      pq.maVaiTro != "nft_invester" &&
+                      pq.maVaiTro == "nft_admin"))
                     ElevatedButton.icon(
                       onPressed: () => _showAddLoSamDialog(),
-                      icon: Icon(Icons.add,size: MediaQuery.of(context).size.width * 0.035),
-                      label: Text('Thêm lô',style: TextStyle(fontSize: MediaQuery.of(context).size.width * 0.035)),
+                      icon: Icon(Icons.add,
+                          size: MediaQuery.of(context).size.width * 0.035),
+                      label: Text('Thêm lô',
+                          style: TextStyle(
+                              fontSize:
+                                  MediaQuery.of(context).size.width * 0.035)),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.green,
                         foregroundColor: Colors.white,
-                        padding: EdgeInsets.symmetric(horizontal: MediaQuery.of(context).size.width * 0.02, vertical: 0),
+                        padding: EdgeInsets.symmetric(
+                            horizontal:
+                                MediaQuery.of(context).size.width * 0.02,
+                            vertical: 0),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10),
                         ),
@@ -928,20 +983,20 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
             Expanded(
               child: zonesWithPlantsData.isEmpty
                   ? const Center(
-                child: Text(
-                  'Chưa có lô sâm nào.\nHãy nhấn "Thêm lô" để bắt đầu.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.grey),
-                ),
-              )
+                      child: Text(
+                        'Chưa có lô sâm nào.\nHãy nhấn "Thêm lô" để bắt đầu.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: Colors.grey),
+                      ),
+                    )
                   : ListView.builder(
-                padding: const EdgeInsets.only(top: 16),
-                itemCount: zonesWithPlantsData.length,
-                itemBuilder: (context, index) {
-                  final zone = zonesWithPlantsData[index];
-                  return _buildZoneCard(zone);
-                },
-              ),
+                      padding: const EdgeInsets.only(top: 16),
+                      itemCount: zonesWithPlantsData.length,
+                      itemBuilder: (context, index) {
+                        final zone = zonesWithPlantsData[index];
+                        return _buildZoneCard(zone);
+                      },
+                    ),
             ),
           ],
         );
@@ -949,12 +1004,10 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
     );
   }
 
-
   Widget _buildZoneCard(LoSamModel zone) {
     final soCaySam = zone.soLuongCaySams ?? 0;
     final soHang = zone.soHang ?? 0;
     final soCot = zone.soCot ?? 0;
-
     return Card(
       elevation: 6,
       margin: const EdgeInsets.only(bottom: 16),
@@ -962,7 +1015,8 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
-        onTap: () { // Giữ nguyên logic onTap của bạn
+        onTap: () {
+          // Giữ nguyên logic onTap của bạn
           setState(() {
             selectedZone = zone;
             _reloadData();
@@ -993,45 +1047,69 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
                       children: [
                         Text(
                           zone.tenLo ?? "Chưa có tên lô",
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17),
+                          style: const TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: 17),
                         ),
                         const SizedBox(height: 4),
                         Text(
                           'Mã Lô: ${zone.maLo ?? "N/A"}',
-                          style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                          style: TextStyle(
+                              color: Colors.grey.shade600, fontSize: 13),
                         ),
                       ],
                     ),
                   ),
-                  IconButton(
-                    onPressed: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (context) => AddLoSamScreen(
-                            farmId: zone.vuonTrongId,
-                            zoneid: zone.loSamId,
-                            onSubmit: _edithandleLoSamSubmit,
-                          ),
-                        ),
-                      );
-                    },
-                    icon: Icon(Icons.edit_outlined, color: Colors.blue.shade600, size: 20),
-                    tooltip: 'Chỉnh sửa lô',
-                    visualDensity: VisualDensity.compact,
-                  ),
-                  if (((zone.loSamCameras?.length ?? 0) == 1 && zone.soLuongCaySams > 0))
+                  if (user!.htTaiKhoan.htPhanQuyenTaiKhoans.any((pq) =>
+                      pq.maVaiTro != "nft_invester" &&
+                      pq.maVaiTro == "nft_admin"))
                     IconButton(
-                      onPressed: () => _showCameraView(
-                        zone.loSamCameras ?? [],
-                        zone,
-                      ),
-                      icon: Icon(Icons.videocam_outlined, color: Colors.green.shade600, size: 22),
-                      tooltip: 'Xem camera',
+                      onPressed: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) => AddLoSamScreen(
+                              farmId: zone.vuonTrongId,
+                              zoneid: zone.loSamId,
+                              onSubmit: _edithandleLoSamSubmit,
+                            ),
+                          ),
+                        );
+                      },
+                      icon: Icon(Icons.edit_outlined,
+                          color: Colors.blue.shade600, size: 20),
+                      tooltip: 'Chỉnh sửa lô',
                       visualDensity: VisualDensity.compact,
                     ),
+                  FutureBuilder<ApiResponse<LoSamCameraModel>?>(
+                    future: API()
+                        .getOptionCameraByLoSamAndUser(zone.loSamId.toString()),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2));
+                      }
+                      final bool truecam =
+                          snapshot.data?.messCode == MessCode.IsOK ?? false;
+                      if (truecam &&
+                          ((zone.loSamCameras?.length ?? 0) == 1 &&
+                              (zone.soLuongCaySams ?? 0) > 0)) {
+                        return IconButton(
+                          onPressed: () => _showCameraView(
+                            zone.loSamCameras ?? [],
+                            zone,
+                          ),
+                          icon: Icon(Icons.videocam_outlined,
+                              color: Colors.green.shade600, size: 22),
+                          tooltip: 'Xem camera',
+                          visualDensity: VisualDensity.compact,
+                        );
+                      }
+                      return const SizedBox.shrink();
+                    },
+                  )
                 ],
               ),
-
               const Divider(height: 20),
               Row(
                 children: [
@@ -1075,15 +1153,153 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
     );
   }
 
-  // Thay thế hàm _buildGridLevel cũ bằng hàm này:
+  Widget _buildSkeletonFromImage() {
+    return SingleChildScrollView(
+      physics: const NeverScrollableScrollPhysics(),
+      padding: const EdgeInsets.all(16),
+      child: Shimmer.fromColors(
+        baseColor: Colors.grey.shade300,
+        highlightColor: Colors.grey.shade100,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 1. KHỐI ẢNH LỚN (Mô phỏng ảnh Camera/Vườn)
+            Container(
+              width: double.infinity,
+              height: 220, // Chiều cao ước lượng theo ảnh
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // 2. DÒNG TEXT KÍCH THƯỚC (Căn giữa)
+            Center(
+              child: Container(
+                width: 200,
+                height: 12,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            // 3. HEADER CAMERA (Text trái + Nút đen phải)
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                // Giả lập text "Camera giám sát (1)"
+                Container(
+                  width: 140,
+                  height: 20,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ),
+                // Giả lập nút "Xem Camera"
+                Container(
+                  width: 110,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            // 4. ITEM CAMERA (Dòng Camera Tapo - Online)
+            Container(
+              width: double.infinity,
+              height: 50,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  // Chấm tròn online
+                  Container(
+                    width: 10,
+                    height: 10,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  // Tên camera
+                  Container(
+                    width: 100,
+                    height: 14,
+                    color: Colors.white,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            // 5. CHÚ THÍCH (Legend: Sống, Ngủ đông, Chết...)
+            Row(
+              children: [
+                // Giả lập "Nền:"
+                Container(width: 30, height: 12, color: Colors.white),
+                const SizedBox(width: 12),
+                // Các item chú thích
+                ...List.generate(
+                    3,
+                    (index) => Row(
+                          children: [
+                            Container(
+                                width: 16,
+                                height: 16,
+                                decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(4))),
+                            const SizedBox(width: 6),
+                            Container(
+                                width: 40, height: 12, color: Colors.white),
+                            const SizedBox(width: 16),
+                          ],
+                        )),
+              ],
+            ),
+            const SizedBox(height: 12),
+            // Dòng chú thích thứ 2 (Ô trống)
+            Row(
+              children: [
+                const SizedBox(width: 42), // Thụt đầu dòng cho thẳng hàng
+                Container(
+                    width: 16,
+                    height: 16,
+                    decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(4))),
+                const SizedBox(width: 6),
+                Container(width: 50, height: 12, color: Colors.white),
+              ],
+            )
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildGridLevel() {
-    if (_futureLoSam == null) return const SizedBox();
+    if (_futureLoSam == null) return _buildSkeletonFromImage();
 
     return FutureBuilder<LoSamModel?>(
       future: _futureLoSam,
       builder: (context, snapshot) {
         // 1. Logic Loading cho lần đầu tiên vào màn hình (khi chưa có dữ liệu cũ)
-        if (snapshot.connectionState == ConnectionState.waiting && loSam == null) {
+        if (snapshot.connectionState == ConnectionState.waiting &&
+            loSam == null) {
           return const Center(child: CircularProgressIndicator());
         }
         if (snapshot.hasError) {
@@ -1101,10 +1317,8 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
         // ... (Các đoạn cập nhật biến phụ trợ giữ nguyên) ...
         final areaPlants = loSam?.caySams ?? [];
         losamchitiet = loSam?.loSamChiTiets;
-        final allPlantPositions = areaPlants
-            .map((plant) => plant.viTriTrongLo)
-            .whereType<String>()
-            .toSet();
+        final allPlantPositions =
+            Caysamuser?.map((plant) => plant.viTriTrongLo).toList();
 
         List<CaySamModel> displayPlants = areaPlants;
         // ... (Logic lọc user giữ nguyên) ...
@@ -1117,7 +1331,8 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
             SingleChildScrollView(
               key: const PageStorageKey("GridScrollKey"),
               controller: _scrollController,
-              physics: const AlwaysScrollableScrollPhysics(), // Luôn cho phép cuộn
+              physics:
+                  const AlwaysScrollableScrollPhysics(), // Luôn cho phép cuộn
               child: Column(
                 children: [
                   _buildLegend(loSam, displayPlants),
@@ -1130,7 +1345,7 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
                   const SizedBox(height: 8),
                   _buildPlantGrid(displayPlants, allPlantPositions),
                   // Thêm padding dưới cùng để không bị che bởi nút bấm nếu có
-                  const SizedBox(height: 80),
+                  const SizedBox(height: 16),
                 ],
               ),
             ),
@@ -1163,7 +1378,8 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(15),
-        border: Border.all(color: Colors.grey.shade200, width: 1.5), // Viền rõ ràng hơn
+        border: Border.all(
+            color: Colors.grey.shade200, width: 1.5), // Viền rõ ràng hơn
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.04),
@@ -1191,18 +1407,19 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
                           fontSize: 20,
                           fontWeight: FontWeight.w900,
                           color: Colors.blueGrey.shade900,
-                          letterSpacing: -0.5
-                      ),
+                          letterSpacing: -0.5),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       'Lọc nhanh & Thêm nhật ký',
-                      style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                      style:
+                          TextStyle(fontSize: 12, color: Colors.grey.shade500),
                     ),
                   ],
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   decoration: BoxDecoration(
                     color: Colors.green.shade50,
                     borderRadius: BorderRadius.circular(12),
@@ -1210,7 +1427,8 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.check_circle_rounded, size: 14, color: Colors.green.shade700),
+                      Icon(Icons.check_circle_rounded,
+                          size: 14, color: Colors.green.shade700),
                       const SizedBox(width: 6),
                       Text(
                         'Đã chọn: $selectedCount',
@@ -1229,7 +1447,6 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
               padding: EdgeInsets.symmetric(vertical: 16),
               child: Divider(height: 1, thickness: 1),
             ),
-
 
             // 1. Dropdown Tuổi cây
             _buildModernDropdown(
@@ -1321,12 +1538,16 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.location_on_rounded, size: 16, color: Colors.blueGrey.shade400),
+                    Icon(Icons.location_on_rounded,
+                        size: 16, color: Colors.blueGrey.shade400),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         'Vị trí: $selectedPositions$moreText',
-                        style: TextStyle(fontSize: 12, color: Colors.blueGrey.shade700, fontWeight: FontWeight.w500),
+                        style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.blueGrey.shade700,
+                            fontWeight: FontWeight.w500),
                       ),
                     ),
                   ],
@@ -1356,16 +1577,18 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
   }) {
     return DropdownButtonFormField<OptionModel>(
       value: value,
-      hint: Text(label, style: const TextStyle(fontSize: 14, color: Colors.grey)),
+      hint:
+          Text(label, style: const TextStyle(fontSize: 14, color: Colors.grey)),
       style: const TextStyle(color: Colors.black87, fontSize: 14),
       decoration: InputDecoration(
         prefixIcon: Icon(icon, size: 20, color: Colors.blueGrey.shade600),
         // ✨ Thêm nút X ở cuối nếu đã có giá trị được chọn
         suffixIcon: value != null
             ? IconButton(
-          icon: const Icon(Icons.cancel_rounded, size: 18, color: Colors.grey),
-          onPressed: onClear,
-        )
+                icon: const Icon(Icons.cancel_rounded,
+                    size: 18, color: Colors.grey),
+                onPressed: onClear,
+              )
             : null,
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
@@ -1377,39 +1600,64 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
         ),
         filled: true,
         fillColor: Colors.grey.shade50,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
       ),
-      items: items.map((opt) => DropdownMenuItem(value: opt, child: Text(opt.text))).toList(),
+      items: items
+          .map((opt) => DropdownMenuItem(value: opt, child: Text(opt.text)))
+          .toList(),
       onChanged: onChanged,
     );
   }
 
-  Widget _buildPrimaryButton({required IconData icon, required String label, required bool isActive, required VoidCallback onPressed}) {
+  Widget _buildPrimaryButton(
+      {required IconData icon,
+      required String label,
+      required bool isActive,
+      required VoidCallback onPressed}) {
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(14),
-        gradient: isActive ? LinearGradient(colors: [Colors.green.shade600, Colors.green.shade700]) : null,
-        boxShadow: isActive ? [BoxShadow(color: Colors.green.withOpacity(0.3), blurRadius: 10, offset: const Offset(0, 4))] : [],
+        gradient: isActive
+            ? LinearGradient(
+                colors: [Colors.green.shade600, Colors.green.shade700])
+            : null,
+        boxShadow: isActive
+            ? [
+                BoxShadow(
+                    color: Colors.green.withOpacity(0.3),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4))
+              ]
+            : [],
       ),
       child: ElevatedButton.icon(
         onPressed: isActive ? onPressed : null,
         icon: Icon(icon, size: 18, color: Colors.white),
-        label: Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        label: Text(label,
+            style: const TextStyle(
+                color: Colors.white, fontWeight: FontWeight.bold)),
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.transparent,
           shadowColor: Colors.transparent,
           padding: const EdgeInsets.symmetric(vertical: 16),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         ),
       ),
     );
   }
 
-  Widget _buildSecondaryButton({required IconData icon, required String label, required VoidCallback onPressed}) {
+  Widget _buildSecondaryButton(
+      {required IconData icon,
+      required String label,
+      required VoidCallback onPressed}) {
     return OutlinedButton.icon(
       onPressed: onPressed,
       icon: Icon(icon, size: 18, color: Colors.blueGrey.shade600),
-      label: Text(label, style: TextStyle(color: Colors.blueGrey.shade800, fontWeight: FontWeight.w600)),
+      label: Text(label,
+          style: TextStyle(
+              color: Colors.blueGrey.shade800, fontWeight: FontWeight.w600)),
       style: OutlinedButton.styleFrom(
         side: BorderSide(color: Colors.grey.shade300),
         padding: const EdgeInsets.symmetric(vertical: 16),
@@ -1424,12 +1672,16 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
         width: double.infinity,
         child: OutlinedButton.icon(
           onPressed: _pickPdfFile,
-          icon: const Icon(Icons.picture_as_pdf_rounded, color: Colors.redAccent, size: 20),
-          label: const Text('Đính kèm PDF báo cáo', style: TextStyle(color: Colors.black87, fontWeight: FontWeight.w600)),
+          icon: const Icon(Icons.picture_as_pdf_rounded,
+              color: Colors.redAccent, size: 20),
+          label: const Text('Đính kèm PDF báo cáo',
+              style: TextStyle(
+                  color: Colors.black87, fontWeight: FontWeight.w600)),
           style: OutlinedButton.styleFrom(
             padding: const EdgeInsets.symmetric(vertical: 14),
             side: BorderSide(color: Colors.red.shade100),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
             backgroundColor: Colors.red.shade50.withOpacity(0.3),
           ),
         ),
@@ -1451,9 +1703,14 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
                 const Icon(Icons.picture_as_pdf, color: Colors.redAccent),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: Text(_selectedFileName!, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                  child: Text(_selectedFileName!,
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold, fontSize: 13)),
                 ),
-                IconButton(icon: const Icon(Icons.remove_circle_outline, color: Colors.red), onPressed: _clearSelectedFile),
+                IconButton(
+                    icon: const Icon(Icons.remove_circle_outline,
+                        color: Colors.red),
+                    onPressed: _clearSelectedFile),
               ],
             ),
           ),
@@ -1463,12 +1720,14 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
             child: ElevatedButton.icon(
               onPressed: () => _uploadFileToServer(areaPlants),
               icon: const Icon(Icons.cloud_upload_rounded),
-              label: const Text('GỬI DỮ LIỆU LÊN HỆ THỐNG', style: TextStyle(fontWeight: FontWeight.bold)),
+              label: const Text('GỬI DỮ LIỆU LÊN HỆ THỐNG',
+                  style: TextStyle(fontWeight: FontWeight.bold)),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.blue.shade700,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14)),
               ),
             ),
           ),
@@ -1476,6 +1735,7 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
       ),
     );
   }
+
   Future<void> _uploadFileToServer(List<CaySamModel> areaPlants) async {
     if (_selectedFileName == null) return; // Kiểm tra xem đã có data file chưa
     final prefs = await SharedPreferences.getInstance();
@@ -1487,9 +1747,10 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
     try {
       final updateData = {
         "CaySam_IDs": areaPlants
-          .where((plant) => selectedEmptyCells.contains(plant.viTriTrongLo)) // Điều kiện lọc
-          .map((plant) => plant.caySamId) // Lấy ID
-          .toList(),
+            .where((plant) => selectedEmptyCells
+                .contains(plant.viTriTrongLo)) // Điều kiện lọc
+            .map((plant) => plant.caySamId) // Lấy ID
+            .toList(),
         "IdTaiKhoan": "${user?.htTaiKhoan.id}",
         "ThoiGian": DateTime.now().toIso8601String(),
         "TrangThai": true
@@ -1505,14 +1766,17 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
         _clearSelection();
         _clearSelectedFile();
       } else {
-        _showSnackBar("Tải file thất bại.${apiResponse?.message} !", isSuccess: false);
+        _showSnackBar("Tải file thất bại.${apiResponse?.message} !",
+            isSuccess: false);
       }
     } catch (e) {
       // Xử lý lỗi
       print("Lỗi: $e");
-      _showSnackBar("Tải file thất bại.Vui lòng thử lại sau !", isSuccess: false);
+      _showSnackBar("Tải file thất bại.Vui lòng thử lại sau !",
+          isSuccess: false);
     }
   }
+
   void _showSnackBar(String message, {required bool isSuccess}) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -1533,6 +1797,7 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
       ),
     );
   }
+
   Future<void> _pickPdfFile() async {
     try {
       FilePickerResult? result = await FilePicker.platform.pickFiles(
@@ -1545,7 +1810,7 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
 
         setState(() {
           _selectedFileName = file.name;
-          _selectedFilePath = File(file.path!) ;
+          _selectedFilePath = File(file.path!);
         });
 
         print("Đã chọn file: ${file.name}");
@@ -1662,19 +1927,20 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
     );
   }*/
 
-  Widget _buildLegend(LoSamModel? losam,List<CaySamModel> caysam) {
+  Widget _buildLegend(LoSamModel? losam, List<CaySamModel> caysam) {
     final isValid = user!.htTaiKhoan.htPhanQuyenTaiKhoans.any((pq) {
       if (pq.maVaiTro == "nft_invester") {
         return caysam.isNotEmpty && (losam?.loSamCameras?.length ?? 0) > 0;
       } else if (pq.maVaiTro == "nft_admin") {
-        return (losam?.loSamCameras?.length ?? 0) > 0 && (selectedZone?.soLuongCaySams ?? 0) > 0;
+        return (losam?.loSamCameras?.length ?? 0) > 0 &&
+            (selectedZone?.soLuongCaySams ?? 0) > 0;
       }
       return false;
     });
     final String? imageUrl = losam?.hinhAnh;
     final bool hasImage = imageUrl != null && imageUrl.isNotEmpty;
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.only(bottom: 16, left: 16, right: 16, top: 5),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
@@ -1696,57 +1962,62 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
           //     fontWeight: FontWeight.w500,
           //   ),
           // ),
-          const SizedBox(height: 16),
           Container(
             width: double.infinity,
             height: 200,
             decoration: BoxDecoration(
               color: Colors.grey.shade200,
               borderRadius: BorderRadius.circular(8), // Giữ nguyên bo góc
-              border: Border.all(color: Colors.grey.shade300), // Giữ nguyên viền
+              border:
+                  Border.all(color: Colors.grey.shade300), // Giữ nguyên viền
             ),
             // Clip.hardEdge cực kỳ quan trọng để cắt Shimmer/Ảnh theo góc bo của Container
             clipBehavior: Clip.hardEdge,
             child: hasImage
                 ? CachedNetworkImage(
-              imageUrl: imageUrl!,
-              fit: BoxFit.cover,
-              width: double.infinity,
-              height: double.infinity,
+                    imageUrl: imageUrl,
+                    fit: BoxFit.cover,
+                    width: double.infinity,
+                    height: double.infinity,
 
-              // === HIỆU ỨNG SHIMMER KHI ĐANG TẢI ===
-              placeholder: (context, url) => Shimmer.fromColors(
-                baseColor: Colors.grey.shade300, // Màu nền xám đậm hơn chút
-                highlightColor: Colors.grey.shade100, // Màu vệt sáng lướt qua
-                child: Container(
-                  color: Colors.white, // Cần container màu trắng để hiệu ứng hiện lên
-                  width: double.infinity,
-                  height: double.infinity,
-                ),
-              ),
+                    // === HIỆU ỨNG SHIMMER KHI ĐANG TẢI ===
+                    placeholder: (context, url) => Shimmer.fromColors(
+                      baseColor:
+                          Colors.grey.shade300, // Màu nền xám đậm hơn chút
+                      highlightColor:
+                          Colors.grey.shade100, // Màu vệt sáng lướt qua
+                      child: Container(
+                        color: Colors
+                            .white, // Cần container màu trắng để hiệu ứng hiện lên
+                        width: double.infinity,
+                        height: double.infinity,
+                      ),
+                    ),
 
-              // === HIỂN THỊ KHI LỖI TẢI ẢNH ===
-              errorWidget: (context, url, error) => const Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.broken_image_outlined, color: Colors.grey),
-                    SizedBox(height: 4),
-                    Text("Lỗi tải ảnh", style: TextStyle(color: Colors.grey)),
-                  ],
-                ),
-              ),
-            )
+                    // === HIỂN THỊ KHI LỖI TẢI ẢNH ===
+                    errorWidget: (context, url, error) => const Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.broken_image_outlined, color: Colors.grey),
+                          SizedBox(height: 4),
+                          Text("Lỗi tải ảnh",
+                              style: TextStyle(color: Colors.grey)),
+                        ],
+                      ),
+                    ),
+                  )
                 : const Center(
-              // === HIỂN THỊ KHI DỮ LIỆU RỖNG ===
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.image_not_supported_outlined, color: Colors.grey),
-                  Text("Chưa có ảnh"),
-                ],
-              ),
-            ),
+                    // === HIỂN THỊ KHI DỮ LIỆU RỖNG ===
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.image_not_supported_outlined,
+                            color: Colors.grey),
+                        Text("Chưa có ảnh"),
+                      ],
+                    ),
+                  ),
           ),
           const SizedBox(height: 8),
           Center(
@@ -1762,107 +2033,146 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
           ),
           const SizedBox(height: 12),
 
-        if (isValid) ...[
-          Padding(
-            padding: const EdgeInsets.fromLTRB(0, 10, 0, 0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  children: [
-                    const Icon(Icons.camera_alt, size: 16),
-                    const SizedBox(width: 8),
-                    Text('Camera giám sát (${losam?.loSamCameras?.length})'),
-                  ],
-                ),
-                ElevatedButton.icon(
-                  onPressed: () => _showCameraView(
-                    losam?.loSamCameras ?? [],
-                    losam,
+          if (isValid) ...[
+            Padding(
+              padding: const EdgeInsets.fromLTRB(0, 10, 0, 0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.camera_alt, size: 16),
+                      const SizedBox(width: 8),
+                      Text('Camera giám sát (${losam?.loSamCameras?.length})'),
+                    ],
                   ),
-                  icon: const Icon(Icons.videocam, size: 16),
-                  label: const Text(
-                    'Xem Camera',
-                    style: TextStyle(fontSize: 12),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.black87,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 8,
-                    ), // 👈 chỉnh padding ở đây
-                    minimumSize:
-                    const Size(0, 0), // 👈 bỏ giới hạn min mặc định
-                    tapTargetSize:
-                    MaterialTapTargetSize.shrinkWrap, // 👈 giảm vùng chạm
-                  ),
-                )
-              ],
+                  // Bọc nút của bạn trong FutureBuilder
+                  FutureBuilder(
+                    // 1. Gọi API kiểm tra ngay khi vẽ widget
+                    future: API().getOptionCameraByLoSamAndUser(losam?.loSamId.toString() ?? ""),
+
+                    builder: (context, snapshot) {
+                      // 2. Trong lúc đang load hoặc bị lỗi -> Ẩn nút luôn (trả về widget rỗng)
+                      if (!snapshot.hasData || snapshot.hasError) {
+                        return const SizedBox.shrink();
+                      }
+
+                      // 3. Lấy kết quả từ API
+                      final result = snapshot.data;
+                      final bool allowCamera = (result?.messCode == MessCode.IsOK ?? false);
+
+                      // 4. Nếu KHÔNG có quyền -> Ẩn nút
+                      if (!allowCamera) {
+                        return const SizedBox.shrink();
+                      }
+
+                      // 5. Nếu CÓ quyền -> Vẽ nút ra (Lúc này bấm là mở luôn, không cần check lại)
+                      return ElevatedButton.icon(
+                        onPressed: () {
+                          // Không cần async/await hay loading ở đây nữa
+                          // Vì nút đã hiện nghĩa là đã có quyền rồi.
+                          _showCameraView(
+                            losam?.loSamCameras ?? [],
+                            losam,
+                          );
+                        },
+                        icon: const Icon(Icons.videocam, size: 16),
+                        label: const Text(
+                          'Xem Camera',
+                          style: TextStyle(fontSize: 12),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.black87,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
+                          minimumSize: const Size(0, 0),
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                      );
+                    },
+                  )
+                ],
+              ),
             ),
-          ),
-        ],
-            const SizedBox(height: 12),
-            ...?losam?.loSamCameras
-                ?.take(3)
-                .map((camera) => Container(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade50,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Row(
-                            children: [
-                              Container(
-                                width: 8,
-                                height: 8,
-                                decoration: BoxDecoration(
-                                  color: camera.trangThai == 1
-                                      ? Colors.green
-                                      : Colors.red,
-                                  shape: BoxShape.circle,
-                                ),
+          ],
+          const SizedBox(height: 12),
+          ...?losam?.loSamCameras
+              ?.take(3)
+              .map((camera) => Container(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade50,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              width: 8,
+                              height: 8,
+                              decoration: BoxDecoration(
+                                color: camera.trangThai == 1
+                                    ? Colors.green
+                                    : Colors.red,
+                                shape: BoxShape.circle,
                               ),
-                              const SizedBox(width: 8),
-                              Text(camera.loSamLoaiCamera?.ten ?? "",
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.w500)),
-                            ],
-                          ),
-                          Text(
-                            camera.trangThai == 1 ? 'Online' : 'Offline',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: camera.trangThai == 1
-                                  ? Colors.green.shade700
-                                  : Colors.red.shade700,
                             ),
+                            const SizedBox(width: 8),
+                            Text(camera.loSamLoaiCamera?.ten ?? "",
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.w500)),
+                          ],
+                        ),
+                        Text(
+                          camera.trangThai == 1 ? 'Online' : 'Offline',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: camera.trangThai == 1
+                                ? Colors.green.shade700
+                                : Colors.red.shade700,
                           ),
-                        ],
-                      ),
-                    ))
-                .toList(),
-            const SizedBox(height: 16),
+                        ),
+                      ],
+                    ),
+                  ))
+              .toList(),
+          const SizedBox(height: 16),
           Wrap(
             spacing: 16,
             runSpacing: 8,
             children: [
-              const Text('Nền:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.grey)),
+              const Text('Nền:',
+                  style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                      color: Colors.grey)),
               _buildLegendItem(AppColors.PRIMARY['lighter']!, 'Sống'),
               _buildLegendItem(Colors.blue[200]!, 'Ngủ đông'),
               _buildLegendItem(AppColors.ERROR['lighter']!, 'Chết'),
               _buildLegendItem(Colors.grey[300]!, 'Ô trống'),
-              const SizedBox(width: double.infinity, height: 4), // Dòng ngăn cách
-              const Text('Icon:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.grey)),
-              _buildIconColorLegendItem(AppColors.PRIMARY['darker']!, 'Rất tốt'), // case 5
-              _buildIconColorLegendItem(AppColors.PRIMARY['main']!, 'Tốt'),      // case 4
-              _buildIconColorLegendItem(AppColors.PRIMARY['light']!, 'Trung bình'),// case 3
-              _buildIconColorLegendItem(AppColors.ERROR['light']!, 'Yếu'),       // case 2
-              _buildIconColorLegendItem(AppColors.ERROR['main']!, 'Rất yếu'),    // case 1
+              const SizedBox(
+                  width: double.infinity, height: 4), // Dòng ngăn cách
+              const Text('Icon:',
+                  style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                      color: Colors.grey)),
+              _buildIconColorLegendItem(
+                  AppColors.PRIMARY['darker']!, 'Rất tốt'), // case 5
+              _buildIconColorLegendItem(
+                  AppColors.PRIMARY['main']!, 'Tốt'), // case 4
+              _buildIconColorLegendItem(
+                  AppColors.PRIMARY['light']!, 'Trung bình'), // case 3
+              _buildIconColorLegendItem(
+                  AppColors.ERROR['light']!, 'Yếu'), // case 2
+              _buildIconColorLegendItem(
+                  AppColors.ERROR['main']!, 'Rất yếu'), // case 1
               const SizedBox(width: double.infinity, height: 4),
               _buildLegendItemWithIcon(
                 color: Colors.orange.shade500,
@@ -1896,6 +2206,7 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
       ],
     );
   }
+
   Widget _buildIconColorLegendItem(Color color, String label) {
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -1917,6 +2228,7 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
       ],
     );
   }
+
   Widget _buildLegendItemWithIcon({
     required Color color,
     required IconData icon,
@@ -1947,14 +2259,115 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
       ],
     );
   }
-  Widget _buildPlantGrid(
-      List<CaySamModel>? areaPlants, Set<String?> allPlantPositions) {
 
+  Widget _buildPlantGrid(
+      List<CaySamModel>? areaPlants, List<String?>? allPlantPositions) {
     if (gridColumns.isEmpty || gridRows.isEmpty) {
-      return const SizedBox();
+      // === GIAO DIỆN LOADING (SKELETON) ===
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.06),
+              blurRadius: 15,
+              offset: const Offset(0, 5),
+            ),
+          ],
+        ),
+        child: Shimmer.fromColors(
+          baseColor: Colors.grey.shade300,
+          highlightColor: Colors.grey.shade100,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // 1. Header Skeleton (Icon + Text)
+              Row(
+                children: [
+                  Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        width: 80,
+                        height: 10,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Container(
+                        width: 150,
+                        height: 16,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.white),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    // Tính toán kích thước ô giả định (ví dụ: 6 cột)
+                    double availableWidth = constraints.maxWidth;
+                    const int fakeCols = 6;
+                    const double gap = 4.0;
+                    double cellSize =
+                        (availableWidth - ((fakeCols - 1) * gap)) / fakeCols;
+
+                    // Tạo lưới giả 5 hàng x 6 cột
+                    return Column(
+                      children: List.generate(5, (rowIndex) {
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 6),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: List.generate(fakeCols, (colIndex) {
+                              return Container(
+                                width: cellSize,
+                                height: cellSize,
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                              );
+                            }),
+                          ),
+                        );
+                      }),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
     }
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.only(top: 16, bottom: 16, left: 6, right: 6),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
@@ -2005,7 +2418,7 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
           ),
           const SizedBox(height: 20),
           Container(
-            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
+            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 2),
             decoration: BoxDecoration(
               color: Colors.grey.withOpacity(0.02),
               borderRadius: BorderRadius.circular(16),
@@ -2017,14 +2430,17 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
                 const double gapSize = 3.0;
                 const double walkwaySize = 12.0;
                 int totalCols = gridColumns.length;
-                bool hasWalkway = gridColumns.contains('C') && gridColumns.last != 'C';
+                bool hasWalkway =
+                    gridColumns.contains('C') && gridColumns.last != 'C';
                 double totalSpacingWidth = 0;
                 if (hasWalkway) {
                   totalSpacingWidth = ((totalCols - 2) * gapSize) + walkwaySize;
                 } else {
                   totalSpacingWidth = (totalCols - 1) * gapSize;
                 }
-                double cellSize = ((availableWidth - totalSpacingWidth) / totalCols).floorToDouble();
+                double cellSize =
+                    ((availableWidth - totalSpacingWidth) / totalCols)
+                        .floorToDouble();
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -2041,148 +2457,318 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
                               child: FittedBox(
                                 fit: BoxFit.scaleDown,
                                 child: Text(col,
-                                    style: TextStyle(fontWeight: FontWeight.w900, color: Colors.blueGrey[400], fontSize: 12)),
+                                    style: TextStyle(
+                                        fontWeight: FontWeight.w900,
+                                        color: Colors.blueGrey[400],
+                                        fontSize: 12)),
                               ),
                             ),
                           );
-                          if (col == 'C') return Row(children: [headerCell, SizedBox(width: walkwaySize)]);
-                          else if (index == gridColumns.length - 1) return headerCell;
-                          else return Row(children: [headerCell, SizedBox(width: gapSize)]);
+                          if (col == 'C')
+                            return Row(children: [
+                              headerCell,
+                              SizedBox(width: walkwaySize)
+                            ]);
+                          else if (index == gridColumns.length - 1)
+                            return headerCell;
+                          else
+                            return Row(children: [
+                              headerCell,
+                              SizedBox(width: gapSize)
+                            ]);
                         }).toList(),
                       ),
                     ),
                     ...gridRows.map((row) => Padding(
-                      padding: const EdgeInsets.only(bottom: 6),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.start,
-                        children: gridColumns.asMap().entries.expand((entry) {
-                          int index = entry.key;
-                          String col = entry.value;
-                          final position = '$col$row';
+                          padding: const EdgeInsets.only(bottom: 6),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.start,
+                            children:
+                                gridColumns.asMap().entries.expand((entry) {
+                              int index = entry.key;
+                              String col = entry.value;
+                              final position = '$col$row';
 
-                          final plant = areaPlants?.firstWhere(
+                              final plant = areaPlants?.firstWhere(
                                 (p) => p.viTriTrongLo == position,
-                            orElse: () => CaySamModel(caySamId: '', loSamId: 0, viTriTrongLo: '', tuoiCayId: 0, caySamNhatKys: [], caySam_DinhKems: []),
-                          );
-                          final hasPlant = plant?.caySamId.isNotEmpty ?? false;
-                          final isSelected = plant?.caySamId == selectedPlant;
-                          final isCellSelected = selectedEmptyCells.contains(position);
-                          final ageIcon = _getPlantAgeIconPath(plant?.tuoiCayId ?? 0);
-                          final diemSK = (plant?.caySamNhatKys.isNotEmpty ?? false) ? plant!.caySamNhatKys.first?.diemSucKhoe : 0;
-                          final diemTT = (plant?.caySamNhatKys.isNotEmpty ?? false) ? plant!.caySamNhatKys.first?.tinhTrang : 0;
+                                orElse: () => CaySamModel(
+                                    caySamId: '',
+                                    loSamId: 0,
+                                    viTriTrongLo: '',
+                                    tuoiCayId: 0,
+                                    caySamNhatKys: [],
+                                    caySam_DinhKems: []),
+                              );
 
-                          Color cellBgColor;
-                          Color borderColor;
-                          if (!hasPlant) {
-                            cellBgColor = Colors.grey.shade200;
-                            borderColor = Colors.white;
-                          } else {
-                            if (isMultiSelectMode && isCellSelected) {
-                              cellBgColor = Colors.green[600]!;
-                              borderColor = Colors.green[800]!;
-                            } else {
-                              cellBgColor = getTrangThaiColor(diemTT ?? 0).withOpacity(0.2);
-                              borderColor = getTrangThaiColor(diemTT ?? 0).withOpacity(0.6);
-                            }
-                          }
-                          final cell = GestureDetector(
-                            onTap: () async {
-                              HapticFeedback.selectionClick();
-                              if (isMultiSelectMode) {
-                                if (hasPlant && plant!.caySamNhatKys.isNotEmpty) {
-                                  final ngayGhi = DateTime.parse(plant.caySamNhatKys.first?.ngayGhi ?? "");
-                                  final now = DateTime.now();
-                                  // if (ngayGhi.month == now.month && ngayGhi.year == now.year) {
-                                  //   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đã có nhật ký tháng này'), backgroundColor: Colors.orange));
-                                  // } else {
-                                    _handleEmptyCellToggle(position);
-                                  // }
-                                  // _handleEmptyCellToggle(position);
+                              final hasPlant =
+                                  plant?.caySamId.isNotEmpty ?? false;
+                              final isSelected =
+                                  plant?.caySamId == selectedPlant;
+                              final isCellSelected =
+                                  selectedEmptyCells.contains(position);
+                              final ageIcon =
+                                  _getPlantAgeIconPath(plant?.tuoiCayId ?? 0);
+                              final diemSK =
+                                  (plant?.caySamNhatKys.isNotEmpty ?? false)
+                                      ? plant!.caySamNhatKys.first?.diemSucKhoe
+                                      : 0;
+                              final diemTT =
+                                  (plant?.caySamNhatKys.isNotEmpty ?? false)
+                                      ? plant!.caySamNhatKys.first?.tinhTrang
+                                      : 0;
+
+                              Color cellBgColor;
+                              Color borderColor;
+                              if (!hasPlant) {
+                                cellBgColor = Colors.grey.shade200;
+                                borderColor = Colors.white;
+                              } else {
+                                if (isMultiSelectMode && isCellSelected) {
+                                  cellBgColor = Colors.green[600]!;
+                                  borderColor = Colors.green[800]!;
+                                } else {
+                                  cellBgColor = getTrangThaiColor(
+                                          diemTT ?? 0,
+                                          allPlantPositions,
+                                          plant?.viTriTrongLo)
+                                      .withOpacity(0.2);
+                                  borderColor = getTrangThaiColor(
+                                          diemTT ?? 0,
+                                          allPlantPositions,
+                                          plant?.viTriTrongLo)
+                                      .withOpacity(0.6);
                                 }
-                                return;
                               }
-                              if (!isMultiSelectMode) {
-                                if (hasPlant) {
-                                  final selected = areaPlants?.firstWhere((p) => p.caySamId == plant?.caySamId, orElse: () => CaySamModel(caySamId: '', loSamId: 0, viTriTrongLo: '', tuoiCayId: 0, caySamNhatKys: [], caySam_DinhKems: []));
-                                  if (selected != null && selected.caySamId.isNotEmpty) {
-                                    double savedPosition = 0;
-                                    if (_scrollController.hasClients) {
-                                      savedPosition = _scrollController.position.pixels;
+                              final cell = GestureDetector(
+                                onTap: () async {
+                                  HapticFeedback.selectionClick();
+                                  if (isMultiSelectMode) {
+                                    if (hasPlant &&
+                                        plant!.caySamNhatKys.isNotEmpty) {
+                                      final ngayGhi = DateTime.parse(
+                                          plant.caySamNhatKys.first?.ngayGhi ??
+                                              "");
+                                      final now = DateTime.now();
+                                      // if (ngayGhi.month == now.month && ngayGhi.year == now.year) {
+                                      //   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đã có nhật ký tháng này'), backgroundColor: Colors.orange));
+                                      // } else {
+                                      //   _handleEmptyCellToggle(position);
+                                      // }
+                                      _handleEmptyCellToggle(position);
                                     }
-                                    CaySamModel? model = await API().getCaySamById(selected.caySamId);
-                                    if(model != null){
-                                      await Navigator.push(context, MaterialPageRoute(builder: (_) => PlantDetailScreen(
-                                        plant: model,
-                                        onBack: () {}, // Callback rỗng vì ta dùng await
-                                      )));
-                                    }
-                                    await _reloadData();
-                                    if (mounted) {
-                                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                                    return;
+                                  }
+                                  if (!isMultiSelectMode) {
+                                    if (hasPlant) {
+                                      final selected = areaPlants?.firstWhere(
+                                          (p) => p.caySamId == plant?.caySamId,
+                                          orElse: () => CaySamModel(
+                                              caySamId: '',
+                                              loSamId: 0,
+                                              viTriTrongLo: '',
+                                              tuoiCayId: 0,
+                                              caySamNhatKys: [],
+                                              caySam_DinhKems: []));
+                                      if (selected != null &&
+                                          selected.caySamId.isNotEmpty) {
+                                        double savedPosition = 0;
                                         if (_scrollController.hasClients) {
-                                          // Chỉ cuộn nếu khoảng cách lệch lớn (tránh giật nhẹ)
-                                          if ((_scrollController.position.pixels - savedPosition).abs() > 5) {
-                                            if (savedPosition <= _scrollController.position.maxScrollExtent) {
-                                              _scrollController.jumpTo(savedPosition);
-                                            } else {
-                                              _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+                                          savedPosition =
+                                              _scrollController.position.pixels;
+                                        }
+                                        CaySamModel? model = await API()
+                                            .getCaySamById(selected.caySamId);
+                                        if (model != null) {
+                                          // Kiểm tra điều kiện: Nếu vị trí cây nằm trong danh sách sở hữu
+                                          if ((allPlantPositions?.contains(
+                                                  selected.viTriTrongLo)) ??
+                                              false) {
+                                            await Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (_) =>
+                                                    PlantDetailScreen(
+                                                  plant: model,
+                                                  onBack:
+                                                      () {}, // Callback rỗng vì ta dùng await
+                                                ),
+                                              ),
+                                            );
+                                            await _reloadData();
+                                            if (mounted) {
+                                              WidgetsBinding.instance
+                                                  .addPostFrameCallback((_) {
+                                                if (_scrollController
+                                                    .hasClients) {
+                                                  // Chỉ cuộn nếu khoảng cách lệch lớn (tránh giật nhẹ)
+                                                  if ((_scrollController
+                                                                  .position
+                                                                  .pixels -
+                                                              savedPosition)
+                                                          .abs() >
+                                                      5) {
+                                                    if (savedPosition <=
+                                                        _scrollController
+                                                            .position
+                                                            .maxScrollExtent) {
+                                                      _scrollController.jumpTo(
+                                                          savedPosition);
+                                                    } else {
+                                                      _scrollController.jumpTo(
+                                                          _scrollController
+                                                              .position
+                                                              .maxScrollExtent);
+                                                    }
+                                                  }
+                                                }
+                                              });
                                             }
+                                          } else {
+                                            ScaffoldMessenger.of(context)
+                                                .showSnackBar(
+                                              SnackBar(
+                                                content: Row(
+                                                  children: const [
+                                                    Icon(
+                                                        Icons
+                                                            .warning_amber_rounded,
+                                                        color: Colors.white),
+                                                    SizedBox(width: 10),
+                                                    Expanded(
+                                                        child: Text(
+                                                            'Bạn không sở hữu cây tại vị trí này!')),
+                                                  ],
+                                                ),
+                                                backgroundColor: Colors
+                                                    .redAccent, // Màu đỏ cảnh báo
+                                                behavior: SnackBarBehavior
+                                                    .floating, // Nổi lên cho đẹp
+                                                shape: RoundedRectangleBorder(
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            10)),
+                                                duration:
+                                                    const Duration(seconds: 2),
+                                              ),
+                                            );
                                           }
                                         }
-                                      });
+                                      }
+                                    } else {
+                                      // Logic thêm cây
+                                      if (user!.htTaiKhoan.htPhanQuyenTaiKhoans
+                                          .any((pq) =>
+                                              pq.maVaiTro != "nft_invester" &&
+                                              pq.maVaiTro == "nft_admin"))
+                                        _showAddPlantDialog(position);
                                     }
                                   }
-                                } else {
-                                  // Logic thêm cây
-                                  if(user!.htTaiKhoan.htPhanQuyenTaiKhoans.any((pq) => pq.maVaiTro != "nft_invester" && pq.maVaiTro == "nft_admin")) _showAddPlantDialog(position);
-                                }
-                              }
-                            },
-                            child: Container(
-                              width: cellSize,
-                              height: cellSize,
-                              decoration: BoxDecoration(
-                                color: cellBgColor,
-                                borderRadius: BorderRadius.circular(6),
-                                border: isSelected ? Border.all(color: Colors.blueAccent, width: 2) : Border.all(color: borderColor, width: 1),
-                              ),
-                              child: Stack(
-                                children: [
-                                  Center(
-                                    child: hasPlant
-                                        ? Column(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        Flexible(child: ImageIcon(AssetImage(ageIcon), size: cellSize * 0.6, color: getDiemSKColor(diemSK ?? 0))),
-                                        FittedBox(fit: BoxFit.scaleDown, child: Text(position, style: const TextStyle(color: Colors.black87, fontSize: 8, fontWeight: FontWeight.w800))),
-                                      ],
-                                    )
-                                        : FittedBox(fit: BoxFit.scaleDown, child: Text(position, style: const TextStyle(color: Colors.black54, fontSize: 9, fontWeight: FontWeight.w600))),
+                                },
+                                child: Container(
+                                  width: cellSize,
+                                  height: cellSize,
+                                  decoration: BoxDecoration(
+                                    color: cellBgColor,
+                                    borderRadius: BorderRadius.circular(6),
+                                    border: isSelected
+                                        ? Border.all(
+                                            color: Colors.blueAccent, width: 2)
+                                        : Border.all(
+                                            color: borderColor, width: 1),
                                   ),
-                                  if (plant?.caySamNhatKys != null && plant!.caySamNhatKys.isNotEmpty)
+                                  child: Stack(
+                                    children: [
+                                      Center(
+                                        child: hasPlant
+                                            ? Column(
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment.center,
+                                                children: [
+                                                  Flexible(
+                                                      child: ImageIcon(
+                                                          AssetImage(ageIcon),
+                                                          size: cellSize * 0.6,
+                                                          color: getDiemSKColor(
+                                                              diemSK ?? 0,
+                                                              allPlantPositions,
+                                                              plant
+                                                                  ?.viTriTrongLo))),
+                                                  FittedBox(
+                                                      fit: BoxFit.scaleDown,
+                                                      child: Text(position,
+                                                          style: const TextStyle(
+                                                              color: Colors
+                                                                  .black87,
+                                                              fontSize: 8,
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .w800))),
+                                                ],
+                                              )
+                                            : FittedBox(
+                                                fit: BoxFit.scaleDown,
+                                                child: Text(position,
+                                                    style: const TextStyle(
+                                                        color: Colors.black54,
+                                                        fontSize: 9,
+                                                        fontWeight:
+                                                            FontWeight.w600))),
+                                      ),
+                                      if (plant?.caySamNhatKys != null &&
+                                          plant!.caySamNhatKys.isNotEmpty)
                                         () {
-                                      final ngayGhiStr = plant.caySamNhatKys.first?.ngayGhi;
-                                      if (ngayGhiStr != null) {
-                                        final ngayGhi = DateTime.tryParse(ngayGhiStr);
-                                        final now = DateTime.now();
-                                        if (ngayGhi != null && ngayGhi.month == now.month && ngayGhi.year == now.year) {
-                                          return Positioned(top: 1, right: 1, child: Container(padding: const EdgeInsets.all(1), decoration: BoxDecoration(color: Colors.orange[800], shape: BoxShape.circle, border: Border.all(color: Colors.white, width: 1)), child: const Icon(Icons.edit, size: 6, color: Colors.white)));
-                                        }
-                                      }
-                                      return const SizedBox();
-                                    }(),
-                                  if (isMultiSelectMode && isCellSelected) Center(child: Icon(Icons.check_circle, color: Colors.white, size: 16)),
-                                ],
-                              ),
-                            ),
-                          );
+                                          final ngayGhiStr = plant
+                                              .caySamNhatKys.first?.ngayGhi;
+                                          if (ngayGhiStr != null) {
+                                            final ngayGhi =
+                                                DateTime.tryParse(ngayGhiStr);
+                                            final now = DateTime.now();
+                                            if (ngayGhi != null &&
+                                                ngayGhi.month == now.month &&
+                                                ngayGhi.year == now.year) {
+                                              return Positioned(
+                                                  top: 1,
+                                                  right: 1,
+                                                  child: Container(
+                                                      padding:
+                                                          const EdgeInsets.all(
+                                                              1),
+                                                      decoration: BoxDecoration(
+                                                          color: Colors
+                                                              .orange[800],
+                                                          shape:
+                                                              BoxShape.circle,
+                                                          border: Border.all(
+                                                              color:
+                                                                  Colors.white,
+                                                              width: 1)),
+                                                      child: const Icon(
+                                                          Icons.edit,
+                                                          size: 6,
+                                                          color:
+                                                              Colors.white)));
+                                            }
+                                          }
+                                          return const SizedBox();
+                                        }(),
+                                      if (isMultiSelectMode && isCellSelected)
+                                        Center(
+                                            child: Icon(Icons.check_circle,
+                                                color: Colors.white, size: 16)),
+                                    ],
+                                  ),
+                                ),
+                              );
 
-                          if (col == 'C') return [cell, SizedBox(width: walkwaySize)];
-                          else if (index == gridColumns.length - 1) return [cell];
-                          else return [cell, SizedBox(width: gapSize)];
-                        }).toList(),
-                      ),
-                    )),
+                              if (col == 'C')
+                                return [cell, SizedBox(width: walkwaySize)];
+                              else if (index == gridColumns.length - 1)
+                                return [cell];
+                              else
+                                return [cell, SizedBox(width: gapSize)];
+                            }).toList(),
+                          ),
+                        )),
                   ],
                 );
               },
@@ -2201,7 +2787,8 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
         loSamId: 0,
         viTriTrongLo: '',
         tuoiCayId: 0,
-        caySamNhatKys: [], caySam_DinhKems: [],
+        caySamNhatKys: [],
+        caySam_DinhKems: [],
       ),
     );
 
@@ -2307,11 +2894,8 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
     );
   }
 
-  void _handleAddPlantSubmit(
-      Map<String, dynamic> plantData,
-      List<File?> images,
-      String? caysamid
-      ) async {
+  void _handleAddPlantSubmit(Map<String, dynamic> plantData, List<File?> images,
+      String? caysamid) async {
     showLoadingDialog(context, message: 'Đang lưu cây mới...');
 
     try {
@@ -2350,7 +2934,8 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
         // Lỗi từ server
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Không thể thêm cây sâm. Lỗi: ${apiResponse?.message ?? "Không xác định"}'),
+            content: Text(
+                'Không thể thêm cây sâm. Lỗi: ${apiResponse?.message ?? "Không xác định"}'),
             backgroundColor: Colors.red,
           ),
         );
@@ -2395,7 +2980,8 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
       ),
     );
   }
-  void Selectlo(LoSamModel? zone){
+
+  void Selectlo(LoSamModel? zone) {
     selectedZone = zone;
     _reloadData();
     if (selectedZone != null) {
@@ -2405,8 +2991,8 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
     }
     currentLevel = NavigationLevel.grid;
   }
-  void _showAddfarmDialog() {
 
+  void _showAddfarmDialog() {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => AddFarmScreen(
@@ -2433,7 +3019,8 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
     );
   }
 
-  void _handleLoSamSubmit(Map<String, dynamic> data,int id, {File? image}) async {
+  void _handleLoSamSubmit(Map<String, dynamic> data, int id,
+      {File? image}) async {
     print('LoSam data submitted: ${jsonEncode(data)}');
 
     List<int>? fileBytes;
@@ -2482,8 +3069,9 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
       );
     }
   }
+
   void _handleFarmSubmit(VuonTrongModel model) async {
-    final response = await API().addVuonTrong( model: model);
+    final response = await API().addVuonTrong(model: model);
     if (response != null) {
       if (response.messCode == MessCode.IsOK) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -2496,7 +3084,6 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
           _initializeData();
         });
         Navigator.of(context).pop();
-
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -2516,7 +3103,9 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
       );
     }
   }
-  void _edithandleLoSamSubmit(Map<String, dynamic> data,int id, {File? image}) async {
+
+  void _edithandleLoSamSubmit(Map<String, dynamic> data, int id,
+      {File? image}) async {
     print('LoSam data submitted: ${jsonEncode(data)}');
 
     List<int>? fileBytes;
@@ -2568,7 +3157,6 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
   }
 
   void _edithandleFarmSubmit(VuonTrongModel model) async {
-
     final response = await API().editVuonTrong(model: model);
     if (response != null) {
       if (response.messCode == MessCode.IsOK) {
@@ -2689,8 +3277,6 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
   }
 }
 
-
-
 extension LoSamChiTietExt on List<LoSamChiTietModel>? {
   int sl(int loaiTuoiId) =>
       this
@@ -2707,32 +3293,43 @@ extension LoSamChiTietExt on List<LoSamChiTietModel>? {
           .soLuong ??
       0;
 }
-Color getDiemSKColor(int trangThaiId) {
-  switch (trangThaiId) {
-    case 5:
-      return AppColors.PRIMARY['darker']!;
-    case 4:
-      return AppColors.PRIMARY['main']!;
-    case 3:
-      return AppColors.PRIMARY['light']!;
-    case 2:
-      return AppColors.ERROR['light']!;
-    case 1:
-      return AppColors.ERROR['main']!;
-    default:
-      return Colors.grey.shade50;
-  }
-}
-Color getTrangThaiColor(int status) {
-  switch (status) {
-    case 1:
-      return Colors.green[200]!; // 🌿 Sống
-    case 2:
-      return Colors.blue[200]!; // ❄️ Ngủ đông
-    case 3:
-      return AppColors.ERROR['light']!; // 💀 Chết
-    default:
-      return Colors.grey[50]!; // ⚪ Trạng thái không xác định
+
+Color getDiemSKColor(
+    int trangThaiId, List<String?>? vitricayuser, String? vitritronglo) {
+  if ((vitricayuser?.contains(vitritronglo)) ?? false) {
+    switch (trangThaiId) {
+      case 5:
+        return AppColors.PRIMARY['darker']!;
+      case 4:
+        return AppColors.PRIMARY['main']!;
+      case 3:
+        return AppColors.PRIMARY['light']!;
+      case 2:
+        return AppColors.ERROR['light']!;
+      case 1:
+        return AppColors.ERROR['main']!;
+      default:
+        return Colors.grey.shade50;
+    }
+  } else {
+    return Colors.grey.shade500;
   }
 }
 
+Color getTrangThaiColor(
+    int status, List<String?>? vitricayuser, String? vitritronglo) {
+  if ((vitricayuser?.contains(vitritronglo)) ?? false) {
+    switch (status) {
+      case 1:
+        return Colors.green[200]!; // 🌿 Sống
+      case 2:
+        return Colors.blue[200]!; // ❄️ Ngủ đông
+      case 3:
+        return AppColors.ERROR['light']!; // 💀 Chết
+      default:
+        return Colors.grey[50]!; // ⚪ Trạng thái không xác định
+    }
+  } else {
+    return Colors.grey[400]!;
+  }
+}

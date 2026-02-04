@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import '../api/api.dart';
-import '../models/cay_sam.dart';
 import '../models/option_model.dart';
 
 class BatchPlantUpdateScreen extends StatefulWidget {
@@ -43,8 +42,6 @@ class _BatchPlantUpdateScreenState extends State<BatchPlantUpdateScreen> {
 // UI State
   int _currentStep = 0;
   bool _isLoading = false;
-  String _selectedLoSamId = '';
-  String _selectedTuoiCayId = '';
   List<OptionModel> OptionLoSamTinhTrang = [];
 
   @override

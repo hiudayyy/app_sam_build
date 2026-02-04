@@ -1,4 +1,4 @@
-import '../vuontrong/sensor_model.dart';
+
 
 class DashBoardtotal {
   final int totalVuonTrong;

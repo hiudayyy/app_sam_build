@@ -135,7 +135,7 @@ class AuthProvider extends ChangeNotifier {
         _usermodel = response.oneItem?.htTaiKhoan;
 
       } else {
-        _error = response.message ?? "Có lỗi xảy ra nhưng không có thông báo.";
+        _error = response.message;
         _usermodel = null;
       }
 
@@ -188,6 +188,8 @@ class AuthProvider extends ChangeNotifier {
       _error = null;
       if(item?.message != "OK"){
         return item?.message;
+      }else{
+        return _error = "Có lỗi xảy ra!";
       }
     } catch (e) {
       _error = e.toString();

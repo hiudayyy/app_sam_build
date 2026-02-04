@@ -1,9 +1,10 @@
-import 'dart:convert';
+
 import 'dart:io';
 
 import 'package:nftsam/api/api_caysam.dart';
 import 'package:nftsam/screens/plant_detail_screen.dart';
 import 'package:nftsam/services/http_override.dart';
+import 'package:nftsam/services/phantom_service.dart';
 import 'package:nftsam/services/signalr_service.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -47,17 +48,6 @@ Future<void> _navigateToPlant(String plantId) async {
     }
   }
 }
-String _fixBadUtf8(String badString) {
-  try {
-    // 1. Lấy chuỗi lỗi, mã hóa nó trở lại thành bytes (dưới dạng latin1)
-    List<int> bytes = latin1.encode(badString);
-    // 2. Lấy bytes đó, giải mã chúng (dưới dạng UTF-8)
-    return utf8.decode(bytes);
-  } catch (e) {
-    // Nếu có lỗi, trả về chuỗi gốc
-    return badString;
-  }
-}
 Future<void> onNotificationTapped(NotificationResponse response) async {
   final String? plantId = response.payload; // Lấy ID cây từ payload
   if (plantId != null && plantId.isNotEmpty) {
@@ -76,6 +66,8 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  final authProvider = AuthProvider();
+  await PhantomService().initialize(authProvider);
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   await FirebaseMessaging.instance.setForegroundNotificationPresentationOptions(
     alert: true,
@@ -96,8 +88,8 @@ Future<void> main() async {
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider<AuthProvider>(
-          create: (context) => AuthProvider(),
+        ChangeNotifierProvider.value(
+          value: authProvider,
         ),
       ],
       child: OverlaySupport.global(

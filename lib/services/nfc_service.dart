@@ -140,20 +140,35 @@ class NfcService {
       _isProcessingTag = false;
     }
   }
+  static Future<bool> checkNfcSupport() async {
+    return await NfcManager.instance.isAvailable();
+  }
   static Future<void> processDeepLinkUri(Uri uri, BuildContext context) async {
+    bool isAvailable = await NfcManager.instance.isAvailable();
+    if (!isAvailable) {
+      if (context.mounted) {
+        _showError(context, "Thiết bị của bạn không hỗ trợ NFC!");
+      }
+      return; // Dừng ngay lập tức
+    }
+    // 1. Kiểm tra tính hợp lệ của Link (Deep Link)
     if (uri.host == 'nft.samnghigia.com' &&
         uri.pathSegments.length == 2 &&
         uri.pathSegments.first == 'caysam') {
+
       final String caySamId = uri.pathSegments[1];
       BuildContext? dialogContext;
+      await NfcManager.instance.stopSession().catchError((_) {});
+
+      // 3. Hiển thị Dialog chờ (Chỉ dành cho Android vì iOS có UI riêng)
       if (Platform.isAndroid) {
         showDialog(
           context: context,
           barrierDismissible: false,
           builder: (ctx) {
-            dialogContext = ctx; // Lưu lại context của dialog để lát nữa đóng cho chuẩn
-            return WillPopScope( // Chặn nút Back vật lý để tránh lỗi logic
-              onWillPop: () async => false,
+            dialogContext = ctx;
+            return WillPopScope(
+              onWillPop: () async => false, // Chặn nút Back
               child: AlertDialog(
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                 content: Column(
@@ -161,11 +176,11 @@ class NfcService {
                   children: const [
                     Icon(Icons.nfc_outlined, size: 60, color: Colors.blue),
                     SizedBox(height: 20),
-                    Text("Đang tải chi tiết cây",
+                    Text("Đang tải dữ liệu...",
                         style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                     SizedBox(height: 10),
                     Text(
-                      "Vui lòng chạm lại thẻ...",
+                      "Vui lòng chạm lại thẻ để xác thực...",
                       textAlign: TextAlign.center,
                       style: TextStyle(fontSize: 16),
                     ),
@@ -180,60 +195,81 @@ class NfcService {
       }
 
       try {
-        if (Platform.isAndroid) {
-          // Android: Cần 2s để phần cứng reset sau khi mở Deep Link
-          await Future.delayed(const Duration(seconds: 2));
+        // 4. Delay nhỏ để phần cứng iOS reset sau khi stop session cũ
+        if (Platform.isIOS) {
+          await Future.delayed(const Duration(milliseconds: 500));
+        } else {
+          // Android đôi khi cần delay lâu hơn nếu vừa mở từ background
+          await Future.delayed(const Duration(seconds: 1));
         }
-        // } else {
-        //   // iOS: Chỉ cần delay cực ngắn (0.5s) để UI App load xong hoàn toàn
-        //   // giúp bảng quét NFC hiện lên mượt mà hơn, không bị giật.
-        //   await Future.delayed(const Duration(milliseconds: 500));
-        // }
-        // try {
-        //   await FlutterNfcKit.finish();
-        // } catch (_) {}
 
-        // Bắt đầu quét mới
+        // 5. Bắt đầu quét thẻ bằng FlutterNfcKit
+        // Lưu ý: timeout 10s là hợp lý
         var tag = await FlutterNfcKit.poll(
           timeout: const Duration(seconds: 10),
-          iosAlertMessage: "Vui lòng chạm lại thẻ...",
+          iosAlertMessage: "Vui lòng chạm lại thẻ để xác thực...",
           readIso14443A: true,
           readIso15693: true,
         );
 
         String realHardwareId = tag.id;
-        // print("UIDUIDUID $realHardwareId");
 
-        // Đóng Dialog (Nếu đang hiển thị)
-        if (Platform.isAndroid && dialogContext != null && Navigator.canPop(dialogContext!)) {
-          Navigator.pop(dialogContext!);
-        }
+        // Debug
+        // print("UID DeepLink: $realHardwareId");
 
+        // 6. Xử lý logic API
         if (realHardwareId.isNotEmpty) {
           final checkuid = await API().CheckNFCCaySam(serialNumber: realHardwareId);
-          if(checkuid?.message == "Thẻ NFC đã tồn tại!" ){
-            // Kết thúc session NFC
-            await FlutterNfcKit.finish(iosAlertMessage: "Thành công");
-            // Xử lý logic
-            await _handleCaySamId(caySamId, context);
-          }else{
+
+          if (checkuid?.message == "Thẻ NFC đã tồn tại!") {
+            // >> THÀNH CÔNG:
+
+            // Báo cho iOS UI biết là xong (Hiện tích xanh)
+            await FlutterNfcKit.finish(iosAlertMessage: "Xác thực thành công!");
+
+            // Đóng Dialog Android
             if (Platform.isAndroid && dialogContext != null && Navigator.canPop(dialogContext!)) {
               Navigator.pop(dialogContext!);
             }
-            await FlutterNfcKit.finish(iosAlertMessage: "Quét không thành công!");
+
+            // Chuyển hướng xử lý ID cây sâm
+            await _handleCaySamId(caySamId, context);
+
+          } else {
+            // >> THẤT BẠI (Sai thẻ hoặc lỗi Server):
+
+            // Báo lỗi trên iOS UI
+            await FlutterNfcKit.finish(iosErrorMessage: "Thẻ không khớp!");
+
+            // Đóng Dialog Android
+            if (Platform.isAndroid && dialogContext != null && Navigator.canPop(dialogContext!)) {
+              Navigator.pop(dialogContext!);
+            }
+
+            if (context.mounted) {
+              _showError(context, "Xác thực thẻ thất bại: ${checkuid?.message ?? 'Lỗi không xác định'}");
+            }
+          }
+        } else {
+          // Trường hợp không lấy được ID
+          await FlutterNfcKit.finish(iosErrorMessage: "Không đọc được ID thẻ");
+          if (Platform.isAndroid && dialogContext != null && Navigator.canPop(dialogContext!)) {
+            Navigator.pop(dialogContext!);
           }
         }
 
       } catch (e) {
-        print("Lỗi quét NFC: $e");
+        print("Lỗi quét NFC DeepLink: $e");
 
-        // Đóng Dialog nếu có lỗi xảy ra
+        // Đảm bảo đóng session nếu có lỗi (Exception, Timeout...)
+        try {
+          await FlutterNfcKit.finish(iosErrorMessage: "Lỗi/Hủy quét");
+        } catch (_) {}
+
+        // Đóng Dialog Android
         if (Platform.isAndroid && dialogContext != null && Navigator.canPop(dialogContext!)) {
           Navigator.pop(dialogContext!);
         }
-
-        // Luôn nhớ finish session dù lỗi
-        await FlutterNfcKit.finish(iosAlertMessage: "Lỗi, Quét thẻ không thành công!");
       }
     }
   }
@@ -243,7 +279,7 @@ class NfcService {
 
       final String hardwareId = _extractTagId(tag);
       if (hardwareId == "UNKNOWN_ID" || hardwareId.isEmpty) {
-        if (context.mounted) _showError(context, "Không đọc được ID vật lý của thẻ!");
+        if (context.mounted) _showError(context, "ID:$hardwareId Không đọc được ID vật lý của thẻ!");
         return;
       }
       final Ndef? ndef = Ndef.from(tag);
@@ -322,40 +358,93 @@ class NfcService {
     }
   }
 
+  // Nhớ import ở đầu file: import 'dart:convert';
+
   static String _extractTagId(NfcTag tag) {
-    final dynamic data = tag.data;
     List<int> idBytes = [];
+
     try {
-      if (Platform.isAndroid) {
-        if (data['nfcA'] != null) {
-          idBytes = List<int>.from(data['nfcA']['identifier'] ?? []);
-        }
-        else if (data['isodep'] != null) {
-          idBytes = List<int>.from(data['isodep']['identifier'] ?? []);
-        }
-        else if (data['nfcV'] != null) {
-          idBytes = List<int>.from(data['nfcV']['identifier'] ?? []);
-        }
-      }
-      // 3. Kiểm tra iOS
-      else if (Platform.isIOS) {
-        if (data['mifare'] != null) {
-          idBytes = List<int>.from(data['mifare']['identifier'] ?? []);
-        }
-        else if (data['iso15693'] != null) {
-          idBytes = List<int>.from(data['iso15693']['identifier'] ?? []);
-        }
-        else if (data['feliCa'] != null) {
-          idBytes = List<int>.from(data['feliCa']['currentIDm'] ?? []);
+      final dynamic rawData = tag.data;
+
+      // 1. Nếu là MAP (Android)
+      if (rawData is Map) {
+        final Map<String, dynamic> data = Map<String, dynamic>.from(rawData);
+        if (Platform.isAndroid) {
+          if (data.containsKey('nfcA')) {
+            idBytes = List<int>.from(data['nfcA']['identifier'] ?? []);
+          } else if (data.containsKey('mifareClassic')) {
+            idBytes = List<int>.from(data['mifareClassic']['identifier'] ?? []);
+          }
+        } else if (Platform.isIOS) {
+          // iOS cũ trả về Map
+          if (data.containsKey('mifare')) {
+            final m = data['mifare'];
+            if(m is Map) idBytes = List<int>.from(m['identifier'] ?? []);
+          }
         }
       }
+      // 2. Nếu là OBJECT (TagPigeon - iOS Mới)
+      else {
+        if (idBytes.isEmpty) {
+          try {
+            final dynamic obj = rawData.miFare; // <--- QUAN TRỌNG
+            if (obj != null) {
+              final dynamic id = obj.identifier;
+              if (id != null) {
+                idBytes = List<int>.from(id);
+              }
+            } else {
+              print("      -> .miFare trả về null");
+            }
+          } catch (e) {
+            print("      ❌ Lỗi gọi .miFare: $e");
+          }
+        }
+
+        // --- Các dòng dưới giữ nguyên nhưng bọc try-catch kỹ hơn ---
+
+        // Thử ISO15693
+        if (idBytes.isEmpty) {
+          try {
+            final dynamic obj = rawData.iso15693;
+            if (obj != null) {
+              idBytes = List<int>.from(obj.identifier);
+            }
+          } catch (_) {}
+        }
+
+        // Thử FeliCa
+        if (idBytes.isEmpty) {
+          try {
+            final dynamic obj = rawData.feliCa; // Chữ C viết hoa
+            if (obj != null) {
+              idBytes = List<int>.from(obj.currentIDm);
+            }
+          } catch (_) {}
+        }
+
+        // Thử ISO7816
+        if (idBytes.isEmpty) {
+          try {
+            final dynamic obj = rawData.iso7816;
+            if (obj != null) {
+              idBytes = List<int>.from(obj.identifier);
+            }
+          } catch (_) {}
+        }
+      }
+
     } catch (e) {
-      print("⚠️ Lỗi trích xuất UID: $e");
+      print("🔴 Lỗi tổng quát: $e");
       return "";
     }
 
-    if (idBytes.isEmpty) return "";
-    return idBytes.map((e) => e.toRadixString(16).padLeft(2, '0').toUpperCase()).join();
+    if (idBytes.isEmpty) {
+      print("   ⚠️ Vẫn không tìm thấy ID. Có thể thẻ này thuộc loại khác (IsoDep/NfcA?)");
+      return "";
+    }
+    String finalUid = idBytes.map((e) => e.toRadixString(16).padLeft(2, '0').toUpperCase()).join();
+    return finalUid;
   }
   static String _parseUriPayloadFromBytes(List<int> payload) {
     if (payload.isEmpty) return "";
@@ -444,110 +533,85 @@ class NfcService {
     return utf8.decode(payload.sublist(textStartIndex));
   }
 
-  // --- QUẢN LÝ PHIÊN NFC ---
-  // (Giữ nguyên: startNfcSession, stopNfcSession)
 
   static Future<void> startNfcSession(BuildContext context) async {
-    // 1. Chặn spam nút
-    if (_isNfcSessionRunning) return;
-    bool isAvailable = false;
-    try {
-      isAvailable = await NfcManager.instance.isAvailable();
-    } catch (_) {}
-
-    if (!isAvailable) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Thiết bị không hỗ trợ NFC'), backgroundColor: Colors.red),
-        );
-      }
-      return;
-    }
-    if (Platform.isAndroid) {
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (ctx) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: const [
-              Icon(Icons.nfc, size: 60, color: Colors.green),
-              SizedBox(height: 20),
-              Text("Đang quét thẻ...", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              SizedBox(height: 10),
-              Text("Vui lòng chạm thẻ vào mặt lưng điện thoại", textAlign: TextAlign.center),
-              SizedBox(height: 20),
-              LinearProgressIndicator(color: Colors.green),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () async {
-                _isNfcSessionRunning = false;
-                await NfcManager.instance.stopSession();
-                if (ctx.mounted && Navigator.canPop(ctx)) {
-                  Navigator.pop(ctx);
-                }
-              },
-              child: const Text("Hủy", style: TextStyle(color: Colors.red)),
-            )
-          ],
-        ),
-      );
-    }
-
-    _isNfcSessionRunning = true;
-    bool isScanSuccess = false;
-
-    try {
+    // 1. CHỐNG SPAM CLICK
+    if (_isNfcSessionRunning) {
+      print("⚠️ Session đang chạy, đang thử reset...");
       await NfcManager.instance.stopSession().catchError((_) {});
-      await NfcManager.instance.startSession(
-          pollingOptions: {
-            NfcPollingOption.iso14443,
-            NfcPollingOption.iso15693,
-          },
-          alertMessageIos: "Vui lòng đưa thẻ lại gần điện thoại...",
-          onDiscovered: (NfcTag tag) async {
-            try {
-              await _handleTagDiscovered(tag, context);
-              isScanSuccess = true;
-            } catch (e) {
-              isScanSuccess = false;
-              print("Lỗi xử lý thẻ: $e");
-            } finally {
-              _isNfcSessionRunning = false;
+      _isNfcSessionRunning = false;
+    }
 
-              if (Platform.isIOS) {
-                NfcManager.instance.stopSession(
-                  alertMessageIos: isScanSuccess ? "Thành công!" : "Lỗi đọc thẻ",
-                  errorMessageIos: isScanSuccess ? null : "Thử lại",
-                );
-              } else {
-                NfcManager.instance.stopSession();
-                if (!isScanSuccess) {
-                  if (context.mounted && Navigator.canPop(context)) {
-                    Navigator.pop(context); // Tắt Dialog "Đang quét"
-                  }
-                  // Hiện thông báo lỗi nếu cần
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("Không đọc được thẻ hoặc thẻ lỗi"), backgroundColor: Colors.red),
-                    );
-                  }
-                }
-              }
+    _isNfcSessionRunning = true; // Khóa
+    try {
+      bool isAvailable = await NfcManager.instance.isAvailable();
+      if (!isAvailable) {
+        // Tự ném lỗi để nhảy xuống Catch xử lý chung
+        throw PlatformException(code: "not_supported", message: "Thiết bị không hỗ trợ NFC");
+      }
+
+      // 3. CHIẾN THUẬT "DỌN DẸP TRƯỚC"
+      await NfcManager.instance.stopSession().catchError((_) {});
+      if (Platform.isIOS) {
+        await Future.delayed(const Duration(milliseconds: 200));
+      }
+
+      // 4. BẮT ĐẦU SESSION MỚI
+      await NfcManager.instance.startSession(
+        alertMessageIos: "Vui lòng đưa thẻ lại gần điện thoại...",
+        pollingOptions: {
+          NfcPollingOption.iso14443,
+          NfcPollingOption.iso15693,
+        },
+        onSessionErrorIos: (error) async {
+          print("NFC Error Callback: $error");
+          _isNfcSessionRunning = false;
+        },
+        onDiscovered: (NfcTag tag) async {
+          bool isScanSuccess = false;
+          try {
+            await _handleTagDiscovered(tag, context);
+            isScanSuccess = true;
+          } catch (e) {
+            print("Lỗi xử lý thẻ: $e");
+            // Có thể show lỗi nhỏ nếu muốn
+          } finally {
+            // 5. KẾT THÚC SESSION
+            if (Platform.isIOS) {
+              await NfcManager.instance.stopSession(
+                alertMessageIos: isScanSuccess ? "Thành công!" : "Lỗi đọc thẻ",
+                errorMessageIos: isScanSuccess ? null : "Thử lại",
+              ).catchError((_){});
+            } else {
+              await NfcManager.instance.stopSession().catchError((_){});
             }
-          },
+            _isNfcSessionRunning = false;
+          }
+        },
       );
 
     } catch (e) {
+      // 6. XỬ LÝ LỖI CHUNG (Bao gồm cả lỗi không hỗ trợ)
+      print("❌ Lỗi NFC Session: $e");
+
+      // Đảm bảo mở khóa session
       _isNfcSessionRunning = false;
-      // Tắt dialog nếu khởi động lỗi
-      if (Platform.isAndroid && context.mounted && Navigator.canPop(context)) {
-        Navigator.pop(context);
+      await NfcManager.instance.stopSession().catchError((_) {});
+
+      if (context.mounted) {
+        // Lọc bớt các lỗi do người dùng bấm hủy
+        String errorMsg = e.toString();
+        if (!errorMsg.contains("Session invalidated by user") &&
+            !errorMsg.contains("System is busy")) { // iOS hay bị System busy nếu bấm nhanh
+
+          // Hiển thị thông báo lỗi rõ ràng
+          if (errorMsg.contains("not_supported")) {
+            _showError(context, "Thiết bị này không hỗ trợ NFC!");
+          } else {
+            _showError(context, "Lỗi: Không thể bật NFC.");
+          }
+        }
       }
-      print("Lỗi khởi động NFC: $e");
     }
   }
 

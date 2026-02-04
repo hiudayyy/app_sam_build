@@ -25,7 +25,7 @@ class _EnvironmentSearchScreenState extends State<EnvironmentSearchScreen> {
       final matchesText = _searchTerm.isEmpty ||
           zone.name.toLowerCase().contains(_searchTerm.toLowerCase()) ||
           (zone.description?.toLowerCase().contains(_searchTerm.toLowerCase()) ?? false) ||
-          (zone.location.address?.toLowerCase().contains(_searchTerm.toLowerCase()) ?? false); // ✅ Fixed null safety
+          (zone.location.address.toLowerCase().contains(_searchTerm.toLowerCase()) ?? false); // ✅ Fixed null safety
 
       final matchesStatus = _filters['status'] == 'all' ||
           zone.status.toString().split('.').last == _filters['status'];
@@ -47,7 +47,7 @@ class _EnvironmentSearchScreenState extends State<EnvironmentSearchScreen> {
       }
 
       final matchesLocation = (_filters['location'] ?? '').isEmpty ||
-          (zone.location.address?.toLowerCase().contains((_filters['location'] ?? '').toLowerCase()) ?? false); // ✅ Fixed null safety
+          (zone.location.address.toLowerCase().contains((_filters['location'] ?? '').toLowerCase()) ?? false); // ✅ Fixed null safety
 
       bool matchesAlerts = true;
       if (_filters['hasAlerts'] != 'all') {

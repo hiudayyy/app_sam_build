@@ -339,8 +339,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             validator: _validateUsername,
                           ),
                           const SizedBox(height: 16),
-
-                          // Email field
                           TextFormField(
                             controller: _emailController,
                             keyboardType: TextInputType.emailAddress,
@@ -357,8 +355,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             validator: _validateEmail,
                           ),
                           const SizedBox(height: 16),
-
-                          // Phone field
                           TextFormField(
                             controller: _phoneController,
                             keyboardType: TextInputType.phone,
@@ -403,8 +399,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             validator: _validatePassword,
                           ),
                           const SizedBox(height: 16),
-
-                          // Confirm Password field
                           TextFormField(
                             controller: _confirmPasswordController,
                             obscureText: !_showConfirmPassword,
