@@ -6,11 +6,13 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../api/api.dart';
+import '../main.dart';
 import '../models/kttoken.dart';
 import '../models/login_model.dart';
 import '../models/message_enum.dart';
 import '../models/user.dart';
 import '../models/user_model.dart';
+import '../screens/login_screen.dart';
 import '../services/auth_service.dart';
 import '../services/signalr_service.dart';
 
@@ -57,30 +59,42 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> login(LoginModel credentials) async {
-      try {
+  // Trong file auth_provider.dart
+
+  Future<bool> login(LoginModel credentials) async {
+    try {
       _isLoading = true;
       _error = null;
       notifyListeners();
+
+      // Gọi API
       final user = await api.login(credentials);
-      if(user == null){
-        _error = "Lỗi API";
+
+      if (user == null) {
+        _error = "Lỗi kết nối hoặc lỗi server (Response null)";
         _usermodel = null;
-      }else if(user.messCode == MessCode.IsOK){
+        return false; // Đánh dấu thất bại
+      } else if (user.messCode == MessCode.IsOK) {
+        // THÀNH CÔNG
         _usermodel = user.oneItem?.htTaiKhoan;
-      }else{
-        _error = user.message;
+        return true; // Đánh dấu thành công
+      } else {
+        // LỖI TỪ SERVER TRẢ VỀ (429, Sai pass, v.v.)
+        _error = user.message ?? "Đăng nhập thất bại";
         _usermodel = null;
+        return false; // Đánh dấu thất bại
       }
     } catch (e) {
-        if (e is SocketException) {
-          _error = e.message; // "Connection refused"
-        } else if (e is ClientException) {
-          _error = e.message;
-        } else {
-          _error = "Lỗi không xác định!";
-        }
+      // XỬ LÝ EXCEPTION
+      if (e is SocketException) {
+        _error = "Không có kết nối mạng hoặc server không phản hồi";
+      } else if (e is ClientException) {
+        _error = "Lỗi Client: ${e.message}";
+      } else {
+        _error = "Lỗi không xác định: $e";
+      }
       _usermodel = null;
+      return false; // Đánh dấu thất bại
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -156,27 +170,43 @@ class AuthProvider extends ChangeNotifier {
     }
   }
   Future<void> logout() async {
+    // 1. Ép error bằng null ngay lập tức để UI không hiện lỗi cũ
     _error = null;
     try {
       const String _userKey = 'ginseng_user';
       final prefs = await SharedPreferences.getInstance();
       String? userJson = prefs.getString(_userKey);
-      if (userJson == null) {
-        return;
+
+      if (userJson != null) {
+        final Map<String, dynamic> json = jsonDecode(userJson);
+        final user = Kttoken.fromJson(json);
+        if (user.authenticateToken != "") {
+          try {
+            await api.Logout(user);
+          } catch (apiError) {
+            print("API Logout failed (Ignored): $apiError");
+          }
+        }
       }
-      final Map<String, dynamic> json = jsonDecode(userJson);
-      final user = Kttoken.fromJson(json);
-      if (user.authenticateToken == "") {
-        return;
-      }
-      await api.Logout(user);
     } catch (e) {
-      _error = e.toString();
+      print("Local Logout error: $e");
     } finally {
-      SignalRService().disconnect();
-      await AuthService.logout();
+      // 2. Dọn dẹp sạch sẽ
+      try {
+        SignalRService().disconnect();
+        await AuthService.logout();
+      } catch (_) {}
+
       _usermodel = null;
+
+      // 3. CHỐT CHẶN CUỐI CÙNG: ÉP ERROR VỀ NULL
+      _error = null;
+
       notifyListeners();
+      navigatorKey.currentState?.pushAndRemoveUntil(
+        MaterialPageRoute(builder: (context) => LoginScreen()),
+            (Route<dynamic> route) => false, // false nghĩa là xóa hết các trang trước đó
+      );
     }
   }
 

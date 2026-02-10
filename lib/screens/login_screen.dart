@@ -1,11 +1,12 @@
-
 import 'package:nftsam/screens/register_screen.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../api/api.dart';
 import '../models/login_model.dart';
 import '../providers/auth_provider.dart';
+import 'home_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   @override
@@ -13,10 +14,12 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
+  // KHAI BÁO CONTROLLER TẠI ĐÂY ĐỂ KHÔNG BỊ MẤT TEXT KHI REBUILD
   final api = API();
   final _formKey = GlobalKey<FormState>();
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
+
   bool _obscurePassword = true;
   bool _showRegister = false;
 
@@ -28,14 +31,32 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _handleLogin() async {
-    var token = await FirebaseMessaging.instance.getToken();
+    // 1. Ẩn bàn phím
+    FocusScope.of(context).unfocus();
+
     if (_formKey.currentState!.validate()) {
+      var token = await FirebaseMessaging.instance.getToken();
+
       var model = LoginModel(
-          uname: _usernameController.text,
-          pass: _passwordController.text,
-          deviceToken: token ?? "",
+        uname: _usernameController.text, // Text được lấy từ controller
+        pass: _passwordController.text,
+        deviceToken: token ?? "",
       );
-      context.read<AuthProvider>().login(model);
+
+      // Lưu ý: Dùng read() để gọi hàm, không dùng watch() trong callback
+      final authProvider = context.read<AuthProvider>();
+
+      // Gọi hàm login (Hàm này trả về true/false như logic đã sửa ở Provider)
+      bool isSuccess = await authProvider.login(model);
+
+      // --- KẾT QUẢ ---
+      if (isSuccess) {
+        // ✅ THÀNH CÔNG: Chuyển trang
+        if (!mounted) return;
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => HomeScreen()), // Thay HomeScreen bằng tên class trang chủ của bạn
+        );
+      }
     }
   }
 
@@ -43,83 +64,136 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     if (_showRegister) {
       return RegisterScreen(
-        onSwitchToLogin: () {
-          setState(() {
-            _showRegister = false;
-          });
-        },
+        onSwitchToLogin: () => setState(() => _showRegister = false),
       );
     }
+
+    // Lấy kích thước màn hình để Responsive
+    final size = MediaQuery.of(context).size;
+    final width = size.width;
+    final height = size.height;
+
+    // Các màu chủ đạo
+    final primaryColor = Color(0xFF15803D);
+    final secondaryColor = Color(0xFF166534);
+
     return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color(0xFFF0FDF4), // green-50
-              Color(0xFFDCFCE7), // green-100
-            ],
-          ),
-        ),
-        height: MediaQuery.of(context).size.height,
-        child: SafeArea(
-          child: SingleChildScrollView(
-            padding: EdgeInsets.all(24),
-            child: Column(
-              children: [
-                SizedBox(height: 40),
-
-                // Logo and Title
-                Column(
-                  children: [
-                  Container(
-                  width: 64,
-                  height: 64,
+      backgroundColor: Colors.white,
+      resizeToAvoidBottomInset: true, // Tránh bị che khi bật bàn phím
+      body: AnnotatedRegion<SystemUiOverlayStyle>(
+        value: SystemUiOverlayStyle.light,
+        child: Container(
+          height: height,
+          width: width,
+          child: Stack(
+            children: [
+              // 1. HEADER (Gradient Background)
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                height: height * 0.45,
+                child: Container(
                   decoration: BoxDecoration(
-                    color: /*Color(0xFF16A34A)*/ Colors.green.shade300,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(16),
-                    child: Image.asset(
-                      'assets/images/samnghigia.png',
-                      width: 32,
-                      height: 32,
-                      fit: BoxFit.contain,
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [primaryColor, secondaryColor],
                     ),
+                  ),
+                  child: Stack(
+                    children: [
+                      // Họa tiết trang trí
+                      Positioned(
+                        top: -width * 0.1,
+                        right: -width * 0.1,
+                        child: _buildCircleDeco(width * 0.5),
+                      ),
+                      Positioned(
+                        top: height * 0.12,
+                        left: -width * 0.05,
+                        child: _buildCircleDeco(width * 0.3),
+                      ),
+                      // Logo & Text Center
+                      SafeArea(
+                        child: Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Container(
+                                padding: EdgeInsets.all(width * 0.03),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  shape: BoxShape.circle,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.1),
+                                      blurRadius: 15,
+                                      offset: Offset(0, 5),
+                                    )
+                                  ],
+                                ),
+                                child: Image.asset(
+                                  'assets/images/samnghigia.png',
+                                  width: width * 0.12,
+                                  height: width * 0.12,
+                                  fit: BoxFit.contain,
+                                  errorBuilder: (context, error, stackTrace) =>
+                                      Icon(Icons.eco, size: width * 0.12, color: primaryColor),
+                                ),
+                              ),
+                              SizedBox(height: height * 0.02),
+                              Text(
+                                'Sâm Ngọc Linh Nghị Gia',
+                                style: TextStyle(
+                                  fontSize: (width * 0.06).clamp(18.0, 24.0),
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                              SizedBox(height: 5),
+                              Text(
+                                'Sâm thật, giá trị thật',
+                                style: TextStyle(
+                                  fontSize: (width * 0.035).clamp(12.0, 15.0),
+                                  color: Colors.white70,
+                                ),
+                              ),
+                              SizedBox(height: height * 0.08), // Khoảng trống đẩy nội dung lên
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              SizedBox(height: 16),
-                    Text(
-                      'Sâm Ngọc Linh Nghị gia',
-                      style: TextStyle(
-                        fontSize: (MediaQuery.of(context).size.width / 375) * 25,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.grey[900],
-                      ),
-                    ),
-                    SizedBox(height: 8),
-                    Text(
-                      'Sâm thật, giá trị thật',
-                      style: TextStyle(
-                        color: Colors.grey[600],
-                        fontSize: 16,
-                      ),
-                    ),
-                  ],
-                ),
+              ),
 
-                SizedBox(height: 48),
-
-                // Login Form
-                Card(
-                  elevation: 8,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
+              // 2. FORM CONTAINER (Bottom Sheet Style)
+              Align(
+                alignment: Alignment.bottomCenter,
+                child: Container(
+                  height: height * 0.65, // Chiếm 65% màn hình
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(30),
+                      topRight: Radius.circular(30),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 20,
+                        offset: Offset(0, -5),
+                      ),
+                    ],
                   ),
-                  child: Padding(
-                    padding: EdgeInsets.all(24),
+                  child: SingleChildScrollView(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: width * 0.06,
+                      vertical: height * 0.04,
+                    ),
                     child: Form(
                       key: _formKey,
                       child: Column(
@@ -128,45 +202,41 @@ class _LoginScreenState extends State<LoginScreen> {
                           Text(
                             'Đăng nhập',
                             style: TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.w600,
+                              fontSize: (width * 0.07).clamp(22.0, 28.0),
+                              fontWeight: FontWeight.w800,
+                              color: Colors.grey[800],
                             ),
-                            textAlign: TextAlign.center,
                           ),
                           SizedBox(height: 8),
                           Text(
-                            'Nhập thông tin đăng nhập để truy cập hệ thống',
+                            'Vui lòng đăng nhập để tiếp tục',
                             style: TextStyle(
-                              color: Colors.grey[600],
-                              fontSize: 14,
+                              color: Colors.grey[500],
+                              fontSize: (width * 0.038).clamp(13.0, 16.0),
                             ),
-                            textAlign: TextAlign.center,
                           ),
-                          SizedBox(height: 32),
+                          SizedBox(height: height * 0.04),
 
-                          // Error Message
+                          // Error Message (Optional Inline)
                           Consumer<AuthProvider>(
                             builder: (context, authProvider, child) {
                               if (authProvider.error != null) {
                                 return Container(
                                   padding: EdgeInsets.all(12),
-                                  margin: EdgeInsets.only(bottom: 16),
+                                  margin: EdgeInsets.only(bottom: 20),
                                   decoration: BoxDecoration(
                                     color: Colors.red[50],
-                                    borderRadius: BorderRadius.circular(8),
-                                    border: Border.all(color: Colors.red[200]!),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: Colors.red[100]!),
                                   ),
                                   child: Row(
                                     children: [
-                                      Icon(Icons.error, color: Colors.red, size: 20),
-                                      SizedBox(width: 8),
+                                      Icon(Icons.warning_amber_rounded, color: Colors.red[400], size: 20),
+                                      SizedBox(width: 10),
                                       Expanded(
                                         child: Text(
                                           authProvider.error!,
-                                          style: TextStyle(
-                                            color: Colors.red[700],
-                                            fontSize: 14,
-                                          ),
+                                          style: TextStyle(color: Colors.red[700], fontSize: 13),
                                         ),
                                       ),
                                     ],
@@ -177,168 +247,198 @@ class _LoginScreenState extends State<LoginScreen> {
                             },
                           ),
 
-                          // Username field
-                          TextFormField(
+                          // Username Input
+                          _buildResponsiveTextField(
+                            context: context,
                             controller: _usernameController,
-                            decoration: InputDecoration(
-                              labelText: 'Tên đăng nhập',
-                              hintText: 'Nhập tên đăng nhập',
-                              prefixIcon: Icon(Icons.person),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              filled: true,
-                              fillColor: Colors.grey[50],
-                            ),
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Vui lòng nhập tên đăng nhập';
-                              }
-                              return null;
-                            },
+                            label: 'Tên đăng nhập',
+                            icon: Icons.person_outline_rounded,
+                            validator: (val) => val!.isEmpty ? 'Vui lòng nhập tài khoản' : null,
                           ),
-                          SizedBox(height: 16),
+                          SizedBox(height: height * 0.025),
 
-                          // Password field
-                          TextFormField(
+                          // Password Input
+                          _buildResponsiveTextField(
+                            context: context,
                             controller: _passwordController,
+                            label: 'Mật khẩu',
+                            icon: Icons.lock_outline_rounded,
+                            isPassword: true,
                             obscureText: _obscurePassword,
-                            decoration: InputDecoration(
-                              labelText: 'Mật khẩu',
-                              hintText: 'Nhập mật khẩu',
-                              prefixIcon: Icon(Icons.lock),
-                              suffixIcon: IconButton(
-                                icon: Icon(
-                                  _obscurePassword ? Icons.visibility : Icons.visibility_off,
-                                ),
-                                onPressed: () {
-                                  setState(() {
-                                    _obscurePassword = !_obscurePassword;
-                                  });
-                                },
-                              ),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              filled: true,
-                              fillColor: Colors.grey[50],
-                            ),
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Vui lòng nhập mật khẩu';
-                              }
-                              return null;
-                            },
+                            onTogglePassword: () => setState(() => _obscurePassword = !_obscurePassword),
+                            validator: (val) => val!.isEmpty ? 'Vui lòng nhập mật khẩu' : null,
                           ),
-                          SizedBox(height: 24),
+
+                          // Quên mật khẩu
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: TextButton(
+                              onPressed: () {},
+                              child: Text(
+                                'Quên mật khẩu?',
+                                style: TextStyle(
+                                  color: primaryColor,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: (width * 0.035).clamp(12.0, 14.0),
+                                ),
+                              ),
+                            ),
+                          ),
+
+                          SizedBox(height: height * 0.02),
 
                           // Login Button
                           Consumer<AuthProvider>(
                             builder: (context, authProvider, child) {
-                              return ElevatedButton(
-                                onPressed: authProvider.isLoading ? null : _handleLogin,
-                                child: authProvider.isLoading
-                                    ? Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    SizedBox(
-                                      width: 20,
-                                      height: 20,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        color: Colors.white,
-                                      ),
+                              return Container(
+                                height: (height * 0.065).clamp(45.0, 55.0),
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(16),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: primaryColor.withOpacity(0.3),
+                                      blurRadius: 12,
+                                      offset: Offset(0, 6),
                                     ),
-                                    SizedBox(width: 12),
-                                    Text('Đang đăng nhập...'),
                                   ],
-                                )
-                                    : Text(
-                                  'Đăng nhập',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                  ),
                                 ),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Color(0xFF16A34A),
-                                  foregroundColor: Colors.white,
-                                  padding: EdgeInsets.symmetric(vertical: 16),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
+                                child: ElevatedButton(
+                                  onPressed: authProvider.isLoading ? null : _handleLogin,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: primaryColor,
+                                    foregroundColor: Colors.white,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(16),
+                                    ),
+                                    elevation: 0,
                                   ),
-                                  elevation: 2,
+                                  child: authProvider.isLoading
+                                      ? SizedBox(
+                                      width: 24,
+                                      height: 24,
+                                      child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white)
+                                  )
+                                      : Text(
+                                    'ĐĂNG NHẬP',
+                                    style: TextStyle(
+                                      fontSize: (width * 0.04).clamp(14.0, 16.0),
+                                      fontWeight: FontWeight.bold,
+                                      letterSpacing: 1,
+                                    ),
+                                  ),
                                 ),
                               );
                             },
                           ),
-                          Container(
-                            padding: EdgeInsets.only(top: 16),
-                            decoration: BoxDecoration(
-                              border: Border(
-                                top: BorderSide(color: Colors.grey[300]!),
+
+                          SizedBox(height: height * 0.03),
+
+                          // Register Link
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                'Chưa có tài khoản? ',
+                                style: TextStyle(
+                                  color: Colors.grey[600],
+                                  fontSize: (width * 0.035).clamp(12.0, 14.0),
+                                ),
                               ),
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  'Chưa có tài khoản? ',
-                                  style: TextStyle(
-                                    color: Colors.grey[600],
-                                    fontSize: 14,
-                                  ),
-                                ),
-                                Consumer<AuthProvider>(
-                                  builder: (context, authProvider, child) {
-                                    return TextButton(
-                                      onPressed: authProvider.isLoading ? null : () {
-                                        setState(() {
-                                          _showRegister = true;
-                                        });
-                                      },
-                                      style: TextButton.styleFrom(
-                                        foregroundColor: Color(0xFF16A34A),
-                                        padding: EdgeInsets.zero,
-                                        minimumSize: const Size(0, 0),
-                                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              Consumer<AuthProvider>(
+                                builder: (context, authProvider, child) {
+                                  return GestureDetector(
+                                    onTap: authProvider.isLoading
+                                        ? null
+                                        : () => setState(() => _showRegister = true),
+                                    child: Text(
+                                      'Đăng ký ngay',
+                                      style: TextStyle(
+                                        color: primaryColor,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: (width * 0.035).clamp(12.0, 14.0),
                                       ),
-                                      child: Text(
-                                        'Đăng ký ngay',
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                ),
-                              ],
-                            ),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ],
                           ),
+                          SizedBox(height: 20),
                         ],
                       ),
                     ),
                   ),
                 ),
-
-
-                SizedBox(height: 32),
-
-                // Footer
-                Text(
-                  '© 2025 Smart Ginseng Farm Management',
-                  style: TextStyle(
-                    color: Colors.grey[500],
-                    fontSize: 12,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
+    );
+  }
+
+  // --- WIDGETS BỔ TRỢ (HELPER WIDGETS) ---
+
+  Widget _buildCircleDeco(double size) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.05),
+        shape: BoxShape.circle,
+      ),
+    );
+  }
+
+  Widget _buildResponsiveTextField({
+    required BuildContext context,
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
+    bool isPassword = false,
+    bool obscureText = false,
+    VoidCallback? onTogglePassword,
+    String? Function(String?)? validator,
+  }) {
+    final width = MediaQuery.of(context).size.width;
+
+    // Tính toán kích thước động
+    final labelSize = (width * 0.035).clamp(12.0, 14.0);
+    final inputTextSize = (width * 0.04).clamp(14.0, 16.0);
+    final iconSize = (width * 0.055).clamp(20.0, 24.0);
+    final verticalPadding = (width * 0.04).clamp(14.0, 18.0);
+
+    return TextFormField(
+      controller: controller,
+      obscureText: obscureText,
+      style: TextStyle(fontSize: inputTextSize, color: Colors.grey[900]),
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: TextStyle(color: Colors.grey[600], fontSize: labelSize),
+        floatingLabelBehavior: FloatingLabelBehavior.auto,
+        prefixIcon: Icon(icon, color: Colors.grey[500], size: iconSize),
+        suffixIcon: isPassword
+            ? IconButton(
+          icon: Icon(
+            obscureText ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+            color: Colors.grey[500],
+            size: iconSize,
+          ),
+          onPressed: onTogglePassword,
+        )
+            : null,
+        filled: true,
+        fillColor: Colors.grey[100],
+        contentPadding: EdgeInsets.symmetric(vertical: verticalPadding, horizontal: 20),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: Color(0xFF15803D), width: 1.5),
+        ),
+        errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: Colors.red.shade200, width: 1.5)),
+        focusedErrorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: Colors.red, width: 1.5)),
+      ),
+      validator: validator,
     );
   }
 }

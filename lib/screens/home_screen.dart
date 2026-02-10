@@ -250,13 +250,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           );
         }
 
-        if (!authProvider.isAuthenticated || authProvider.user == null) {
-          return Scaffold(
-            body: Center(
-              child: Text('Not authenticated'),
-            ),
-          );
-        }
+        // if (!authProvider.isAuthenticated || authProvider.user == null) {
+        //   return Scaffold(
+        //     body: Center(
+        //       child: Text('Not authenticated'),
+        //     ),
+        //   );
+        // }
         // Show add plant form overlay
         if (_showAddPlantForm) {
           return AddPlantScreen(
