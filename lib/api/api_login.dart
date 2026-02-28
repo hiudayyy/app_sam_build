@@ -404,5 +404,68 @@ extension APIExtension on API {
       return null;
     }
   }
+  Future<ApiResponse<Kttoken>?> googleLogin({required String idToken, required String deviceToken}) async {
+    final url = Uri.parse('${host}api/Home/GoogleLogin');
 
+    try {
+      final response = await http.post(
+        url,
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+        },
+        body: jsonEncode({
+          "idToken": idToken,
+          "deviceToken": deviceToken,
+        }),
+      );
+      print(response.statusCode);
+
+
+      if (response.statusCode == 200) {
+        // Parse dữ liệu trả về
+        Map<String, dynamic> responseJson = jsonDecode(response.body);
+
+        final data = ApiResponse<Kttoken>.fromJson(
+          responseJson,
+              (json) => Kttoken.fromJson(json),
+        );
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString(_userKey, jsonEncode(data.oneItem?.toJson()));
+        if (data.messCode == MessCode.IsOK) {
+          await LocalStoreService.setUserModel(data.oneItem!.htTaiKhoan);
+        }
+        return data;
+      }
+      else if(response.statusCode == 429){
+        Map<String, dynamic> errorJson = jsonDecode(response.body);
+        return ApiResponse<Kttoken>(
+          messCode: MessCode.Unknown,
+          typeRp: "TooManyRequests",
+          message: errorJson['Message'] ?? "Thao tác quá nhanh, vui lòng thử lại.",
+          messageGoiY: "Vui lòng chờ giây lát",
+          oneItem: null,
+        );
+      }
+      else {
+        print("Backend từ chối đăng nhập: ${response.statusCode} - ${response.body}");
+        return null;
+      }
+    } catch (e) {
+      print("Lỗi gọi API server C#: $e");
+      return null;
+    }
+  }
+
+  // Hàm hỗ trợ kiểm tra xem đã login chưa (giống isLoggedIn() của JS)
+  Future<bool> isLoggedIn() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString("jwt") != null;
+  }
+
+  // Hàm hỗ trợ logout (giống logout() của JS)
+  Future<void> logout() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove("jwt");
+  }
 }

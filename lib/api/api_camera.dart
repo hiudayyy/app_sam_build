@@ -13,7 +13,6 @@ extension APIExtension on API {
   Future<CameraStreamResponse?> startStreamCamera(LoSamCameraModel camera) async {
     final linkURL = "${host}api/Camera/StartStreamCamera";
     final uri = Uri.parse(linkURL);
-
     try {
       final prefs = await SharedPreferences.getInstance();
       final userJson = prefs.getString("ginseng_user");

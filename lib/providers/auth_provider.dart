@@ -1,6 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:nftsam/api/api_login.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart';
@@ -30,6 +33,22 @@ class AuthProvider extends ChangeNotifier {
   bool get isAuthenticated => _usermodel != null;
   bool get isLoading => _isLoading;
   String? get error => _error;
+  FirebaseAuth get _auth => FirebaseAuth.instance;
+  GoogleSignIn get _googleSignIn => GoogleSignIn.instance;
+  bool _isGoogleSignInInitialized = false;
+  final String _serverClientId = "525482222879-48iplli6p73kap7go2dbk4iuv56js9ep.apps.googleusercontent.com";
+  Future<void> _ensureGoogleSignInInitialized() async {
+    if (!_isGoogleSignInInitialized) {
+      try {
+        await _googleSignIn.initialize(
+          serverClientId: _serverClientId,
+        );
+        _isGoogleSignInInitialized = true;
+      } catch (e) {
+        print("Lỗi cấu hình khởi tạo Google Sign-In: $e");
+      }
+    }
+  }
 
 
 
@@ -59,8 +78,61 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  // Trong file auth_provider.dart
+  Future<bool> loginWithGoogle() async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
 
+    try {
+      await _ensureGoogleSignInInitialized();
+      final GoogleSignInAccount? googleUser = await _googleSignIn.authenticate();
+
+      if (googleUser == null) {
+        _error = "Bạn đã hủy đăng nhập.";
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      }
+      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      final String? idToken = googleAuth.idToken;
+      if (idToken == null) {
+        _error = "Không lấy được Token từ Google.";
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      }
+      String? deviceToken = await FirebaseMessaging.instance.getToken();
+      final user = await api.googleLogin(
+        idToken: idToken,
+        deviceToken: deviceToken ?? "",
+      );
+
+      if (user == null) {
+        _error = "Lỗi kết nối hoặc lỗi server (Response null)";
+        _usermodel = null;
+        _isLoading = false;
+        return false; // Đánh dấu thất bại
+      } else if (user.messCode == MessCode.IsOK) {
+        // THÀNH CÔNG
+        _usermodel = user.oneItem?.htTaiKhoan;
+        _isLoading = false;
+        return true; // Đánh dấu thành công
+      } else {
+        // LỖI TỪ SERVER TRẢ VỀ (429, Sai pass, v.v.)
+        _error = user.message ?? "Đăng nhập thất bại";
+        _usermodel = null;
+        _isLoading = false;
+        return false; // Đánh dấu thất bại
+      }
+
+    } catch (e) {
+      print("Lỗi: $e");
+      _error = "Sự cố kết nối hệ thống.";
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
   Future<bool> login(LoginModel credentials) async {
     try {
       _isLoading = true;

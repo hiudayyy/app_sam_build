@@ -3,6 +3,8 @@ class VuonTrongModel {
   String tenVuon;
   String diaChi;
   String viTri;
+  double? viTriCenterLat;
+  double? viTriCenterLng;
   String ghiChu;
   int trangThai;
 
@@ -11,6 +13,8 @@ class VuonTrongModel {
     required this.tenVuon,
     required this.diaChi,
     required this.viTri,
+    this.viTriCenterLat,
+    this.viTriCenterLng,
     required this.ghiChu,
     required this.trangThai,
   });
@@ -21,6 +25,8 @@ class VuonTrongModel {
       tenVuon: json['tenVuon'] ?? '',
       diaChi: json['diaChi'] ?? '',
       viTri: json['viTri'] ?? '',
+      viTriCenterLat:  json['viTriCenterLat'] ?? 0.0,
+      viTriCenterLng: json['viTriCenterLng'] ?? 0.0,
       ghiChu: json['ghiChu'] ?? '',
       trangThai: json['trangThai'] ?? 0,
     );
@@ -32,6 +38,8 @@ class VuonTrongModel {
       'tenVuon': tenVuon,
       'diaChi': diaChi,
       'viTri': viTri,
+      'viTriCenterLat': viTriCenterLat,
+      'viTriCenterLng': viTriCenterLng,
       'ghiChu': ghiChu,
       'trangThai': trangThai,
     };

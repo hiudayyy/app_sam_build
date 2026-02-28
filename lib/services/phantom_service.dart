@@ -58,12 +58,8 @@ class PhantomService {
   }
 
   Future<void> _initKeys() async {
-    // Nếu đã có key trong RAM thì dùng luôn, không load lại
     if (_dappPrivateKey != null) return;
-
     final prefs = await SharedPreferences.getInstance();
-
-    // Kiểm tra xem đã có Key lưu trong ổ cứng chưa
     final String? storedKey = prefs.getString('dapp_private_key');
 
     if (storedKey != null && storedKey.isNotEmpty) {
@@ -71,9 +67,9 @@ class PhantomService {
         _dappPrivateKey = PrivateKey(base58.decode(storedKey));
         _dappPublicKey = _dappPrivateKey!.publicKey;
 
-        // IN LOG ĐỂ KIỂM TRA: Key load lên là gì?
-        final keyStr = base58.encode(Uint8List.fromList(_dappPublicKey!.asTypedList));
-        print("🔑 [LOAD OLD KEY] Public Key: $keyStr");
+        // // IN LOG ĐỂ KIỂM TRA: Key load lên là gì?
+        // final keyStr = base58.encode(Uint8List.fromList(_dappPublicKey!.asTypedList));
+        // print("🔑 [LOAD OLD KEY] Public Key: $keyStr");
 
       } catch (e) {
         print("❌ Lỗi load key cũ, buộc phải tạo mới: $e");

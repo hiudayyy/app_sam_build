@@ -231,13 +231,10 @@ class MyAppState extends State<MyApp> {
       }
     }
   }
-
-
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Sâm Ngọc Linh',
-      // === SỬA LỖI 4: GÁN KEY TOP-LEVEL VÀO ĐÂY ===
       navigatorKey: navigatorKey,
       theme: ThemeData(
         primarySwatch: Colors.green,

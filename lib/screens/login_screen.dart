@@ -14,7 +14,6 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  // KHAI BÁO CONTROLLER TẠI ĐÂY ĐỂ KHÔNG BỊ MẤT TEXT KHI REBUILD
   final api = API();
   final _formKey = GlobalKey<FormState>();
   final _usernameController = TextEditingController();
@@ -31,32 +30,43 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _handleLogin() async {
-    // 1. Ẩn bàn phím
     FocusScope.of(context).unfocus();
 
     if (_formKey.currentState!.validate()) {
       var token = await FirebaseMessaging.instance.getToken();
 
       var model = LoginModel(
-        uname: _usernameController.text, // Text được lấy từ controller
+        uname: _usernameController.text,
         pass: _passwordController.text,
         deviceToken: token ?? "",
       );
 
-      // Lưu ý: Dùng read() để gọi hàm, không dùng watch() trong callback
       final authProvider = context.read<AuthProvider>();
-
-      // Gọi hàm login (Hàm này trả về true/false như logic đã sửa ở Provider)
       bool isSuccess = await authProvider.login(model);
 
-      // --- KẾT QUẢ ---
       if (isSuccess) {
-        // ✅ THÀNH CÔNG: Chuyển trang
         if (!mounted) return;
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => HomeScreen()), // Thay HomeScreen bằng tên class trang chủ của bạn
+          MaterialPageRoute(builder: (_) => HomeScreen()),
         );
       }
+    }
+  }
+
+  // THÊM MỚI: Hàm xử lý Đăng nhập bằng Google
+  void _handleGoogleLogin() async {
+    FocusScope.of(context).unfocus();
+
+    final authProvider = context.read<AuthProvider>();
+
+    // Gọi hàm đăng nhập Google (đảm bảo hàm này trả về true/false trong AuthProvider)
+    bool isSuccess = await authProvider.loginWithGoogle();
+
+    if (isSuccess) {
+      if (!mounted) return;
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => HomeScreen()),
+      );
     }
   }
 
@@ -68,18 +78,16 @@ class _LoginScreenState extends State<LoginScreen> {
       );
     }
 
-    // Lấy kích thước màn hình để Responsive
     final size = MediaQuery.of(context).size;
     final width = size.width;
     final height = size.height;
 
-    // Các màu chủ đạo
     final primaryColor = Color(0xFF15803D);
     final secondaryColor = Color(0xFF166534);
 
     return Scaffold(
       backgroundColor: Colors.white,
-      resizeToAvoidBottomInset: true, // Tránh bị che khi bật bàn phím
+      resizeToAvoidBottomInset: true,
       body: AnnotatedRegion<SystemUiOverlayStyle>(
         value: SystemUiOverlayStyle.light,
         child: Container(
@@ -87,7 +95,7 @@ class _LoginScreenState extends State<LoginScreen> {
           width: width,
           child: Stack(
             children: [
-              // 1. HEADER (Gradient Background)
+              // 1. HEADER
               Positioned(
                 top: 0,
                 left: 0,
@@ -103,7 +111,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   child: Stack(
                     children: [
-                      // Họa tiết trang trí
                       Positioned(
                         top: -width * 0.1,
                         right: -width * 0.1,
@@ -114,7 +121,6 @@ class _LoginScreenState extends State<LoginScreen> {
                         left: -width * 0.05,
                         child: _buildCircleDeco(width * 0.3),
                       ),
-                      // Logo & Text Center
                       SafeArea(
                         child: Center(
                           child: Column(
@@ -160,7 +166,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   color: Colors.white70,
                                 ),
                               ),
-                              SizedBox(height: height * 0.08), // Khoảng trống đẩy nội dung lên
+                              SizedBox(height: height * 0.08),
                             ],
                           ),
                         ),
@@ -170,11 +176,11 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
 
-              // 2. FORM CONTAINER (Bottom Sheet Style)
+              // 2. FORM CONTAINER
               Align(
                 alignment: Alignment.bottomCenter,
                 child: Container(
-                  height: height * 0.65, // Chiếm 65% màn hình
+                  height: height * 0.68, // Tăng thêm một chút để đủ chỗ cho nút Google
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.only(
@@ -192,7 +198,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   child: SingleChildScrollView(
                     padding: EdgeInsets.symmetric(
                       horizontal: width * 0.06,
-                      vertical: height * 0.04,
+                      vertical: height * 0.025,
                     ),
                     child: Form(
                       key: _formKey,
@@ -207,7 +213,6 @@ class _LoginScreenState extends State<LoginScreen> {
                               color: Colors.grey[800],
                             ),
                           ),
-                          SizedBox(height: 8),
                           Text(
                             'Vui lòng đăng nhập để tiếp tục',
                             style: TextStyle(
@@ -215,9 +220,9 @@ class _LoginScreenState extends State<LoginScreen> {
                               fontSize: (width * 0.038).clamp(13.0, 16.0),
                             ),
                           ),
-                          SizedBox(height: height * 0.04),
+                          SizedBox(height: height * 0.02),
 
-                          // Error Message (Optional Inline)
+                          // Error Message
                           Consumer<AuthProvider>(
                             builder: (context, authProvider, child) {
                               if (authProvider.error != null) {
@@ -255,7 +260,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             icon: Icons.person_outline_rounded,
                             validator: (val) => val!.isEmpty ? 'Vui lòng nhập tài khoản' : null,
                           ),
-                          SizedBox(height: height * 0.025),
+                          SizedBox(height: height * 0.02),
 
                           // Password Input
                           _buildResponsiveTextField(
@@ -285,9 +290,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                           ),
 
-                          SizedBox(height: height * 0.02),
-
-                          // Login Button
+                          // Login Button (Tài khoản)
                           Consumer<AuthProvider>(
                             builder: (context, authProvider, child) {
                               return Container(
@@ -329,6 +332,68 @@ class _LoginScreenState extends State<LoginScreen> {
                                 ),
                               );
                             },
+                          ),
+
+                          SizedBox(height: height * 0.025),
+
+                          // Dải phân cách (Divider)
+                          Row(
+                            children: [
+                              Expanded(child: Divider(color: Colors.grey[300], thickness: 1)),
+                              Padding(
+                                padding: EdgeInsets.symmetric(horizontal: 16),
+                                child: Text(
+                                  'Hoặc đăng nhập với',
+                                  style: TextStyle(color: Colors.grey[500], fontSize: (width * 0.035).clamp(12.0, 14.0)),
+                                ),
+                              ),
+                              Expanded(child: Divider(color: Colors.grey[300], thickness: 1)),
+                            ],
+                          ),
+
+                          SizedBox(height: height * 0.025),
+
+                          // THÊM MỚI: Nút Google Sign In
+                          Consumer<AuthProvider>(
+                              builder: (context, authProvider, child) {
+                                return Container(
+                                  height: (height * 0.065).clamp(45.0, 55.0),
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(16),
+                                    border: Border.all(color: Colors.grey[300]!),
+                                  ),
+                                  child: ElevatedButton(
+                                    onPressed: authProvider.isLoading ? null : _handleGoogleLogin,
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.white,
+                                      foregroundColor: Colors.grey[800],
+                                      elevation: 0,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(16),
+                                      ),
+                                    ),
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        // Sử dụng icon mặc định, nếu bạn có logo Google hãy thay bằng Image.asset
+                                        Image.asset(
+                                          'assets/images/google_logo.png',
+                                          height: 24, // Kích thước chuẩn cho icon trong nút
+                                          width: 24,
+                                        ),
+                                        SizedBox(width: 8),
+                                        Text(
+                                          'Google',
+                                          style: TextStyle(
+                                            fontSize: (width * 0.04).clamp(14.0, 16.0),
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              }
                           ),
 
                           SizedBox(height: height * 0.03),
@@ -377,8 +442,6 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  // --- WIDGETS BỔ TRỢ (HELPER WIDGETS) ---
-
   Widget _buildCircleDeco(double size) {
     return Container(
       width: size,
@@ -402,7 +465,6 @@ class _LoginScreenState extends State<LoginScreen> {
   }) {
     final width = MediaQuery.of(context).size.width;
 
-    // Tính toán kích thước động
     final labelSize = (width * 0.035).clamp(12.0, 14.0);
     final inputTextSize = (width * 0.04).clamp(14.0, 16.0);
     final iconSize = (width * 0.055).clamp(20.0, 24.0);
