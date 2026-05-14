@@ -1,7 +1,10 @@
-
+import 'dart:convert';
 import 'dart:io';
 
+import 'package:home_widget/home_widget.dart';
+import 'package:http/http.dart' as http;
 import 'package:nftsam/api/api_caysam.dart';
+import 'package:nftsam/api/api_dashboard.dart';
 import 'package:nftsam/screens/plant_detail_screen.dart';
 import 'package:nftsam/services/http_override.dart';
 import 'package:nftsam/services/phantom_service.dart';
@@ -13,21 +16,21 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:overlay_support/overlay_support.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
+import 'package:workmanager/workmanager.dart';
 import 'api/api.dart';
+import 'api/api_camera.dart';
 import 'firebase_options.dart';
 import 'models/vuontrong/caysam_model.dart';
 import 'providers/auth_provider.dart';
 import 'screens/login_screen.dart';
 import 'screens/home_screen.dart';
 
-// === SỬA LỖI 1: DI CHUYỂN TẤT CẢ RA NGOÀI CLASS ===
-
 // Key để điều hướng từ bất cứ đâu
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 final SignalRService signalRService = SignalRService();
-// Hàm điều hướng (giờ là top-level)
+
+// Hàm điều hướng (top-level)
 Future<void> _navigateToPlant(String plantId) async {
-  // Logic này được chuyển từ onNotificationTapped
   final CaySamModel? model = await API().getCaySamById(plantId);
   if (navigatorKey.currentState != null) {
     if (model != null) {
@@ -48,21 +51,65 @@ Future<void> _navigateToPlant(String plantId) async {
     }
   }
 }
+
 Future<void> onNotificationTapped(NotificationResponse response) async {
-  final String? plantId = response.payload; // Lấy ID cây từ payload
+  final String? plantId = response.payload;
   if (plantId != null && plantId.isNotEmpty) {
-    // Chỉ cần gọi hàm helper (giờ cũng là top-level)
     await _navigateToPlant(plantId);
   }
 }
 
-
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
-  print(
-    "Thông báo nhận trong nền hoặc khi app bị tắt: ${message.notification?.title}",
-  );
+  print("Thông báo nhận trong nền hoặc khi app bị tắt: ${message.notification?.title}");
 }
+
+// =========================================================================
+// HÀM CHẠY NGẦM CỦA WORKMANAGER (ĐÃ ĐƯỢC CHUYỂN RA NGOÀI CÙNG LÀM TOP-LEVEL)
+// =========================================================================
+@pragma('vm:entry-point')
+void myWidgetBackgroundWorker() {
+  Workmanager().executeTask((task, inputData) async {
+    try {
+      WidgetsFlutterBinding.ensureInitialized();
+
+      // 1. Cập nhật thời tiết
+      final url = 'https://api.open-meteo.com/v1/forecast?latitude=15.111&longitude=108.017&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,weather_code&timezone=auto';
+      final response = await http.get(Uri.parse(url));
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final daily = data['daily'];
+        await HomeWidget.saveWidgetData<String>('temp_range', "${daily['temperature_2m_min'][0].round()}° - ${daily['temperature_2m_max'][0].round()}°");
+      }
+
+      // 2. Cập nhật API Sâm Ngọc Linh
+      try {
+        final statRes = await API().getDashBoardSam();
+        if (statRes?.oneItem != null) {
+          String total = statRes!.oneItem!.totalCaySam.toString();
+          await HomeWidget.saveWidgetData<String>('total_plants', "Tổng số cây: $total");
+        }
+        final healthRes = await API().getDashBoardSucKhoe();
+        if (healthRes?.oneItem != null) {
+          double healthPercentage = healthRes!.oneItem!.HealthPercentage?.toDouble() ?? 0.0;
+          String score = (5 * (healthPercentage / 100)).toStringAsFixed(2);
+          await HomeWidget.saveWidgetData<String>('health_score', "Tình trạng: $score/5");
+        }
+      } catch (e) {
+        print("Lỗi API Sâm: $e");
+      }
+
+      // 3. Gọi Native cập nhật
+      await HomeWidget.updateWidget(name: 'MyWidgetProvider');
+
+    } catch (err) {
+      print("Lỗi Workmanager: $err");
+    }
+    return Future.value(true);
+  });
+}
+// =========================================================================
+
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -83,8 +130,23 @@ Future<void> main() async {
     provisional: false,
     sound: true,
   );
+
+  // KHỞI TẠO WORKMANAGER BẰNG HÀM MỚI Ở TRÊN
+  Workmanager().initialize(
+      myWidgetBackgroundWorker,
+      isInDebugMode: true // Khi nào đẩy lên CH Play nhớ đổi thành false
+  );
+
+  // Đăng ký Task (Lưu ý: Dù bạn để seconds: 10, Android vẫn sẽ tự động ép thành 15 phút 1 lần để tiết kiệm pin)
+  Workmanager().registerPeriodicTask(
+    "test_task_1",
+    "update_widget_task",
+    frequency: const Duration(minutes: 15),
+  );
+
   FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
   HttpOverrides.global = MyHttpOverrides();
+
   runApp(
     MultiProvider(
       providers: [
@@ -93,7 +155,7 @@ Future<void> main() async {
         ),
       ],
       child: OverlaySupport.global(
-        child: MyApp(),
+        child: const MyApp(),
       ),
     ),
   );
@@ -110,17 +172,13 @@ class MyAppState extends State<MyApp> {
   final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
   FlutterLocalNotificationsPlugin();
 
-  // === SỬA LỖI 2: XÓA CÁC BIẾN VÀ HÀM ĐÃ DI CHUYỂN RA NGOÀI ===
-  // (Đã xóa)
-
-  // Biến này vẫn ở lại vì nó là state của app
   String? _pendingPlantIdFromTerminated;
 
   @override
   void initState() {
     super.initState();
     requestNotificationPermission();
-    setupLocalNotifications(); // Sẽ tự động dùng hàm top-level
+    setupLocalNotifications();
 
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       RemoteNotification? notification = message.notification;
@@ -133,7 +191,7 @@ class MyAppState extends State<MyApp> {
           notification.hashCode,
           notification.title,
           notification.body,
-          NotificationDetails(
+          const NotificationDetails(
             android: AndroidNotificationDetails(
               'high_importance_channel',
               'Thông báo quan trọng',
@@ -150,20 +208,19 @@ class MyAppState extends State<MyApp> {
 
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
       print("Ứng dụng mở từ thông báo (Background)!");
-      final String? plantId = message.data['id']; // Lấy ID từ data
+      final String? plantId = message.data['id'];
       if (plantId != null && plantId.isNotEmpty) {
-        _navigateToPlant(plantId); // Gọi hàm top-level
+        _navigateToPlant(plantId);
       }
     });
 
-    // Logic chờ Auth này đã đúng, nó sẽ gọi hàm _navigateToPlant (top-level)
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
       void checkAndNavigate() {
         if (authProvider.isAuthenticated && _pendingPlantIdFromTerminated != null) {
           print("Đã xác thực, đang điều hướng từ trạng thái tắt...");
-          _navigateToPlant(_pendingPlantIdFromTerminated!); // Gọi hàm top-level
+          _navigateToPlant(_pendingPlantIdFromTerminated!);
           _pendingPlantIdFromTerminated = null;
         }
       }
@@ -187,7 +244,7 @@ class MyAppState extends State<MyApp> {
       initialPayload = notificationAppLaunchDetails!.notificationResponse?.payload;
       print("App được khởi chạy từ thông báo. Payload: $initialPayload");
       if (initialPayload != null && initialPayload.isNotEmpty) {
-        _pendingPlantIdFromTerminated = initialPayload; // Lưu ID chờ
+        _pendingPlantIdFromTerminated = initialPayload;
       }
     }
     const AndroidInitializationSettings androidSettings =
@@ -204,12 +261,9 @@ class MyAppState extends State<MyApp> {
       android: androidSettings,
     );
 
-    // === SỬA LỖI 3: THÊM LẠI THAM SỐ BỊ THIẾU ===
-    // Bạn đã quên "onDidReceiveBackgroundNotificationResponse"
     await flutterLocalNotificationsPlugin.initialize(
         initSettings,
         onDidReceiveNotificationResponse: onNotificationTapped,
-        // THÊM DÒNG NÀY:
         onDidReceiveBackgroundNotificationResponse: onNotificationTapped
     );
 
@@ -231,6 +285,7 @@ class MyAppState extends State<MyApp> {
       }
     }
   }
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -238,9 +293,9 @@ class MyAppState extends State<MyApp> {
       navigatorKey: navigatorKey,
       theme: ThemeData(
         primarySwatch: Colors.green,
-        primaryColor: Color(0xFF16A34A),
+        primaryColor: const Color(0xFF16A34A),
         scaffoldBackgroundColor: Colors.white,
-        appBarTheme: AppBarTheme(
+        appBarTheme: const AppBarTheme(
           backgroundColor: Colors.white,
           foregroundColor: Colors.black87,
           elevation: 1,
@@ -267,7 +322,7 @@ class MyAppState extends State<MyApp> {
           ),
         ),
       ),
-      home: AuthWrapper(),
+      home: const AuthWrapper(),
       debugShowCheckedModeBanner: false,
     );
   }

@@ -6,6 +6,7 @@ import 'dart:math' as math;
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:home_widget/home_widget.dart';
 import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
 import 'package:nftsam/api/api_caytrong.dart';
@@ -145,10 +146,10 @@ class _DashboardScreenState extends State<DashboardScreen>
     String dayStr = "${dateObj.day.toString().padLeft(2, '0')}/${dateObj.month.toString().padLeft(2, '0')}";
     String icon = _getWeatherIcon(daily['weather_code'][index]);
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.6),
-        borderRadius: BorderRadius.circular(15),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.white.withOpacity(0.5)),
       ),
       child: Column(
@@ -158,34 +159,34 @@ class _DashboardScreenState extends State<DashboardScreen>
               dayStr,
               style: TextStyle(
                   fontWeight: FontWeight.bold,
-                  fontSize: 13,
+                  fontSize: 11,
                   color: Colors.grey.shade800
               )
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 4),
           Text(
               icon,
-              style: const TextStyle(fontSize: 26)
+              style: const TextStyle(fontSize: 18)
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 4),
           Text(
-            "${daily['temperature_2m_min'][index].round()}° - ${daily['temperature_2m_max'][index].round()}°",
+            "${daily['temperature_2m_min'][index].round()}°-${daily['temperature_2m_max'][index].round()}°",
             style: const TextStyle(
-                fontSize: 12,
+                fontSize: 10,
                 fontWeight: FontWeight.bold,
                 color: Colors.black87
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 2),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.water_drop, size: 10, color: Colors.blueAccent),
-              const SizedBox(width: 2),
+              const Icon(Icons.water_drop, size: 8, color: Colors.blueAccent),
+              const SizedBox(width: 1),
               Text(
                 "${daily['precipitation_sum'][index]}mm",
                 style: const TextStyle(
-                    fontSize: 10,
+                    fontSize: 9,
                     color: Colors.blueAccent,
                     fontWeight: FontWeight.w600
                 ),
@@ -727,7 +728,7 @@ class _DashboardScreenState extends State<DashboardScreen>
           filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 300),
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
               color: Colors.white.withOpacity(0.85),
               borderRadius: BorderRadius.circular(20),
@@ -746,7 +747,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                           Text(
                             "🌿 LÔ SÂM ($_areaHa ha)",
                             style: TextStyle(
-                              fontSize: (14 * textScale).clamp(12.0, 18.0),
+                              fontSize: (12 * textScale).clamp(10.0, 16.0),
                               fontWeight: FontWeight.bold,
                               color: const Color(0xFF1B5E20),
                             ),
@@ -759,28 +760,27 @@ class _DashboardScreenState extends State<DashboardScreen>
                                 Text(
                                   "${current['temperature_2m']}°C",
                                   style: TextStyle(
-                                    fontSize: (24 * textScale).clamp(20.0, 36.0),
+                                    fontSize: (20 * textScale).clamp(18.0, 28.0),
                                     fontWeight: FontWeight.bold,
                                     color: const Color(0xFF1565C0),
                                   ),
                                 ),
-                                const SizedBox(width: 8), // Tăng nhẹ khoảng cách để nhìn không bị bí
+                                const SizedBox(width: 8),
 
-                                // Icon cũng cần scale theo để đồng bộ với kích thước chữ
-                                Icon(Icons.air, size: (14 * textScale).clamp(12.0, 18.0), color: Colors.grey),
-                                const SizedBox(width: 4),
+                                Icon(Icons.air, size: (12 * textScale).clamp(10.0, 16.0), color: Colors.grey),
+                                const SizedBox(width: 2),
                                 Text(
                                   "${current['wind_speed_10m']} km/h",
-                                  style: TextStyle(fontSize: (12 * textScale).clamp(10.0, 16.0)),
+                                  style: TextStyle(fontSize: (10 * textScale).clamp(9.0, 14.0)),
                                 ),
 
-                                const SizedBox(width: 15),
+                                const SizedBox(width: 10),
 
-                                Icon(Icons.water_drop_outlined, size: (14 * textScale).clamp(12.0, 18.0), color: Colors.blue),
-                                const SizedBox(width: 4),
+                                Icon(Icons.water_drop_outlined, size: (12 * textScale).clamp(10.0, 16.0), color: Colors.blue),
+                                const SizedBox(width: 2),
                                 Text(
                                   "${current['precipitation']} mm",
-                                  style: TextStyle(fontSize: (12 * textScale).clamp(10.0, 16.0)),
+                                  style: TextStyle(fontSize: (10 * textScale).clamp(9.0, 14.0)),
                                 ),
                               ],
                             ),
@@ -788,21 +788,20 @@ class _DashboardScreenState extends State<DashboardScreen>
                         ],
                       ),
                     ),
-                    Icon(_isWeatherExpanded ? Icons.keyboard_arrow_down : Icons.keyboard_arrow_up, color: Colors.blueGrey),
+                    Icon(_isWeatherExpanded ? Icons.keyboard_arrow_down : Icons.keyboard_arrow_up, size: 20, color: Colors.blueGrey),
                   ],
                 ),
                 if (_isWeatherExpanded) ...[
                   const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 12),
+                    padding: EdgeInsets.symmetric(vertical: 8),
                     child: Divider(height: 1, color: Colors.black12),
                   ),
-                  const SizedBox(height: 15),
                   Row(
                     children: [
                       Expanded(child: _buildForecastCard(daily, 1)),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: 6),
                       Expanded(child: _buildForecastCard(daily, 2)),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: 6),
                       Expanded(child: _buildForecastCard(daily, 3)),
                     ],
                   ),
@@ -838,6 +837,7 @@ class _DashboardScreenState extends State<DashboardScreen>
         : healthPercentage >= 60
             ? Colors.orange
             : Colors.red;
+    final daily = _weatherData?['daily'];
     final myBounds = LatLngBounds(
       const LatLng(10.611, 103.347), // Góc dưới trái
       const LatLng(19.611, 112.687), // Góc trên phải
@@ -1341,7 +1341,7 @@ class _DashboardScreenState extends State<DashboardScreen>
               const SizedBox(height: 16),
               if(_center != null)
               SizedBox(
-                height: MediaQuery.of(context).size.height * 0.5,
+                height: MediaQuery.of(context).size.height * 0.45,
                 width: double.infinity,
                 child: Card(
                   elevation: 6,
@@ -1415,12 +1415,12 @@ class _DashboardScreenState extends State<DashboardScreen>
                         child: _buildZoomControls(),
                       ),
                       Positioned(
-                        left: 12,
-                        right: 12,
+                        left: 10,
+                        right: 10,
                         bottom:
-                            12,
+                            10,
                         child: _isLoadingWeather
-                            ? _buildShimmerBox(height: 80)
+                            ? _buildShimmerBox(height: 70)
                             : _buildWeatherPanel(),
                       ),
                     ],

@@ -425,6 +425,10 @@ class _State extends State<PlantDetailScreen> {
         ? (plantwidget.caySamNhatKys.first?.tinhTrang ?? -1)
         : -1;
 
+    final int latestHealthScore = plantwidget.caySamNhatKys.isNotEmpty
+        ? (plantwidget.caySamNhatKys.first?.diemSucKhoe ?? -1)
+        : -1;
+
     final bool daGhiNFC = plantwidget.isNFC ?? false;
     final bool isAdmin = user?.htTaiKhoan.htPhanQuyenTaiKhoans.any(
           (pq) => pq.maVaiTro != "nft_invester" && pq.maVaiTro == "nft_admin",
@@ -543,52 +547,71 @@ class _State extends State<PlantDetailScreen> {
 
             SizedBox(height: 12 * scale),
 
-            // === 3. GRID INFO (VỊ TRÍ - TUỔI - TRỌNG LƯỢNG) ===
-            // ✨ CẬP NHẬT: Chia thành 3 cột đều nhau
-            IntrinsicHeight(
-              // Giúp các ô có chiều cao bằng nhau
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // Cột 1: Vị trí
-                  Expanded(
-                    child: _buildDetailBox(
-                      icon: Icons.location_on_rounded,
-                      iconColor: Colors.redAccent,
-                      label: "Vị trí lô",
-                      value: plantwidget.viTriTrongLo ?? '--',
-                      scale: scale,
-                    ),
-                  ),
-                  SizedBox(width: 8 * scale), // Giảm khoảng cách để vừa 3 ô
+            // === 3. GRID INFO (VỊ TRÍ - TUỔI - TRỌNG LƯỢNG - SỨC KHỎE) ===
+            Column(
+              children: [
+                IntrinsicHeight(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // Cột 1: Vị trí
+                      Expanded(
+                        child: _buildDetailBox(
+                          icon: Icons.location_on_rounded,
+                          iconColor: Colors.redAccent,
+                          label: "Vị trí lô",
+                          value: plantwidget.viTriTrongLo ?? '--',
+                          scale: scale,
+                        ),
+                      ),
+                      SizedBox(width: 8 * scale),
 
-                  // Cột 2: Tuổi
-                  Expanded(
-                    child: _buildDetailBox(
-                      icon: Icons.history_edu_rounded,
-                      iconColor: Colors.orange,
-                      label: "Độ tuổi",
-                      value: tuoiCayText,
-                      scale: scale,
-                    ),
+                      // Cột 2: Tuổi
+                      Expanded(
+                        child: _buildDetailBox(
+                          icon: Icons.history_edu_rounded,
+                          iconColor: Colors.orange,
+                          label: "Độ tuổi",
+                          value: tuoiCayText,
+                          scale: scale,
+                        ),
+                      ),
+                    ],
                   ),
-                  SizedBox(width: 8 * scale),
+                ),
+                SizedBox(height: 8 * scale),
+                IntrinsicHeight(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // Cột 3: Trọng lượng
+                      Expanded(
+                        child: _buildDetailBox(
+                          icon: Icons.monitor_weight_rounded,
+                          iconColor: Colors.teal,
+                          label: "Trọng lượng",
+                          value: plantwidget.caySamNhatKys.isNotEmpty
+                              ? "${plantwidget.caySamNhatKys.first?.trongLuong ?? "--"} g"
+                              : "--",
+                          scale: scale,
+                        ),
+                      ),
+                      SizedBox(width: 8 * scale),
 
-                  // Cột 3: Trọng lượng (Mới thêm)
-                  Expanded(
-                    child: _buildDetailBox(
-                      icon: Icons.monitor_weight_rounded, // Icon cái cân
-                      iconColor: Colors.teal, // Màu xanh ngọc
-                      label: "Trọng lượng",
-                      // Giả sử model có trường trongLuong, thêm đơn vị 'g'
-                      value: plantwidget.caySamNhatKys != null
-                          ? "${plantwidget.caySamNhatKys.first?.trongLuong ?? "--"} g"
-                          : "--",
-                      scale: scale,
-                    ),
+                      // Cột 4: Sức khỏe
+                      Expanded(
+                        child: _buildDetailBox(
+                          icon: Icons.favorite_rounded,
+                          iconColor: getSucKhoeColor(latestHealthScore),
+                          label: "Sức khỏe",
+                          value: getSucKhoeText(latestHealthScore),
+                          scale: scale,
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
 
             SizedBox(height: 12 * scale),
@@ -2179,15 +2202,15 @@ class _State extends State<PlantDetailScreen> {
   Color getSucKhoeColor(int? diem) {
     switch (diem) {
       case 5:
-        return Colors.green; // Rất tốt - Xanh lá đậm
+        return Colors.green; // Rất tốt
       case 4:
-        return Colors.lightGreen; // Tốt - Xanh lá nhạt
+        return Colors.lightGreen; // Tốt
       case 3:
-        return Colors.orange; // Trung bình - Cam
+        return Colors.orange; // Trung bình
       case 2:
-        return Colors.redAccent; // Yếu - Đỏ tươi
+        return Colors.deepOrange; // Yếu
       case 1:
-        return Colors.green; // Rất tốt - Xanh lá (theo logic bạn đưa ra)
+        return Colors.red; // Rất yếu
       default:
         return Colors.grey; // Không xác định
     }
@@ -2195,16 +2218,16 @@ class _State extends State<PlantDetailScreen> {
 
   String getSucKhoeText(int? diem) {
     switch (diem) {
-      case 1:
-        return "Rất tốt";
-      case 2:
-        return "Yếu";
-      case 3:
-        return "Trung bình";
-      case 4:
-        return "Tốt";
       case 5:
         return "Rất tốt";
+      case 4:
+        return "Tốt";
+      case 3:
+        return "Trung bình";
+      case 2:
+        return "Yếu";
+      case 1:
+        return "Rất yếu";
       default:
         return "N/A";
     }
