@@ -92,7 +92,7 @@ class _NfcWriterModalState extends State<NfcWriterModal> {
                 throw Exception('${checkuid?.message}');
               }else{
                 await ndefObj.write(message: message);
-                await ndefObj.writeLock();
+                //await ndefObj.writeLock();
               }
             } else {
               // >> TRƯỜNG HỢP 2: Thẻ chưa format (Thường gặp trên Android)
