@@ -291,7 +291,7 @@ class AuthProvider extends ChangeNotifier {
       if(item?.message != "OK"){
         return item?.message;
       }else{
-        return _error = "Có lỗi xảy ra!";
+        return _error = null;
       }
     } catch (e) {
       _error = e.toString();

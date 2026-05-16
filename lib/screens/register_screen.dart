@@ -86,7 +86,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
       final credentials = UserModel(
           tenTaiKhoan: _usernameController.text.trim(),
           matKhau: _passwordController.text,
-          sdt: _phoneController.text.trim(),
           email: _emailController.text.trim(),
           id: '',
           ngayKhoiTao: DateTime.now().toString(),
@@ -99,7 +98,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       if (!mounted) return;
 
       // HIỂN THỊ DIALOG KẾT QUẢ (GIỮ NGUYÊN LOGIC CŨ NHƯNG STYLE LẠI MỘT CHÚT)
-      await showDialog(
+      await   showDialog(
         context: context,
         barrierDismissible: false,
         builder: (context) => AlertDialog(
@@ -354,17 +353,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             inputType: TextInputType.emailAddress,
                             validator: _validateEmail,
                           ),
-                          const SizedBox(height: 16),
-
-                          // Phone
-                          _buildResponsiveTextField(
-                            context: context,
-                            controller: _phoneController,
-                            label: 'Số điện thoại',
-                            icon: Icons.phone_android_rounded,
-                            inputType: TextInputType.phone,
-                            validator: _validatePhone,
-                          ),
+                          // const SizedBox(height: 16),
+                          //
+                          // // Phone
+                          // _buildResponsiveTextField(
+                          //   context: context,
+                          //   controller: _phoneController,
+                          //   label: 'Số điện thoại',
+                          //   icon: Icons.phone_android_rounded,
+                          //   inputType: TextInputType.phone,
+                          //   validator: _validatePhone,
+                          // ),
                           const SizedBox(height: 16),
 
                           // Password

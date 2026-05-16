@@ -306,8 +306,9 @@ class _UserProfileState extends State<UserProfile> {
     );
   }
 }
+
 class UserProfileDialog extends StatefulWidget {
-  final UserModel user; // Thay UserModel bằng class model thực tế của bạn nếu khác
+  final UserModel user;
 
   const UserProfileDialog({Key? key, required this.user}) : super(key: key);
 
@@ -319,14 +320,15 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _sdtController;
   late TextEditingController _emailController;
-  bool _isEditing = false; // Trạng thái có đang chỉnh sửa hay không
+  bool _isEditing = false;
 
   @override
   void initState() {
     super.initState();
-    _sdtController = TextEditingController(text: widget.user.sdt ?? '');
+    _sdtController = TextEditingController();
     _emailController = TextEditingController(text: widget.user.email ?? '');
   }
+
   @override
   void dispose() {
     _sdtController.dispose();
@@ -334,26 +336,27 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
     super.dispose();
   }
 
-  // Hàm xử lý lưu thông tin (Gọi API cập nhật tại đây)
   Future<void> _handleSaveProfile() async {
     if (_formKey.currentState!.validate()) {
       final edittk = {
-        "sdt": "${_sdtController.text}",
-        "email": "${_emailController.text}",
+        "sdt": _sdtController.text,
+        "email": _emailController.text,
+        // Đã xóa trường trangThai ở đây, không còn sợ bị đè mặc định
       };
-      final repose = await API().editmytaikhoan(data:edittk);
+      final repose = await API().editmytaikhoan(data: edittk);
       if (repose?.messCode == MessCode.IsOK) {
         final prefs = await SharedPreferences.getInstance();
         final userJson = prefs.getString("ginseng_user");
         Kttoken? user;
         if (userJson != null) {
           user = Kttoken.fromJson(jsonDecode(userJson));
-          Provider.of<AuthProvider>(context, listen: false).updateUserAfterEdit(user);
+          Provider.of<AuthProvider>(context, listen: false)
+              .updateUserAfterEdit(user);
         }
       }
       if (repose != null && repose.message == "OK") {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Cập nhật thông tin thành công! (Demo)')),
+          const SnackBar(content: Text('Cập nhật thông tin thành công!')),
         );
       }
       setState(() {
@@ -362,9 +365,72 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
     }
   }
 
+  Future<void> _handleLockAccount() async {
+    // SỬA ĐỔI TẠI ĐÂY: Gọi API Khóa riêng biệt thay vì dùng chung editmytaikhoan
+    final repose = await API().lockTaiKhoan();
+
+    if (repose?.messCode == MessCode.IsOK) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Đã khóa tài khoản thành công!'),
+          backgroundColor: Colors.red,
+        ),
+      );
+
+      Navigator.of(context).pop();
+      Provider.of<AuthProvider>(context, listen: false).logout();
+    } else {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(repose?.message ?? 'Khóa tài khoản thất bại!')),
+      );
+    }
+  }
+
+  void _showLockConfirmDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(
+          children: [
+            Icon(Icons.warning_rounded, color: Colors.red, size: 28),
+            SizedBox(width: 8),
+            Text('Khóa tài khoản', style: TextStyle(fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: const Text(
+          'Bạn có chắc chắn muốn khóa tài khoản này không? Sau khi khóa, bạn sẽ bị đăng xuất và không thể tự đăng nhập lại.',
+          style: TextStyle(fontSize: 15, color: Colors.black87, height: 1.4),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: Text('Hủy', style: TextStyle(color: Colors.grey.shade600, fontWeight: FontWeight.w600)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(ctx).pop();
+              _handleLockAccount();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            ),
+            child: const Text('Đồng ý khóa', style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    // Format ngày tham gia
     String ngayKhoiTaoFormatted = 'Không rõ ngày';
     if (widget.user.ngayKhoiTao != null && widget.user.ngayKhoiTao!.isNotEmpty) {
       try {
@@ -375,12 +441,16 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
       }
     }
 
+    // Lấy màu chủ đạo của app
+    final primaryColor = Theme.of(context).primaryColor;
+
     return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      insetPadding: const EdgeInsets.all(16), // Cách lề màn hình
+      backgroundColor: Colors.white, // Đảm bảo nền trắng tinh
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
       child: Container(
         width: double.infinity,
-        constraints: const BoxConstraints(maxWidth: 500), // Giới hạn chiều rộng trên iPad/Web
+        constraints: const BoxConstraints(maxWidth: 450),
         padding: const EdgeInsets.all(24),
         child: SingleChildScrollView(
           child: Form(
@@ -390,86 +460,90 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
               children: [
                 // --- HEADER ---
                 Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Expanded(
-                      child: Text(
-                        _isEditing ? 'Chỉnh sửa hồ sơ' : 'Hồ sơ cá nhân',
-                        style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-                      ),
+                    Text(
+                      _isEditing ? 'Chỉnh sửa hồ sơ' : 'Hồ sơ cá nhân',
+                      style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.black87),
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.close),
-                      onPressed: () => Navigator.of(context).pop(),
+                    InkWell(
+                      onTap: () => Navigator.of(context).pop(),
+                      borderRadius: BorderRadius.circular(50),
+                      child: Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade100,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.close, size: 20, color: Colors.black54),
+                      ),
                     )
                   ],
                 ),
-                const Divider(height: 30, thickness: 1),
+                const SizedBox(height: 24),
 
                 // --- AVATAR LỚN ---
                 Stack(
                   alignment: Alignment.bottomRight,
                   children: [
-                    CircleAvatar(
-                      radius: 50,
-                      backgroundColor: Theme.of(context).primaryColor.withOpacity(0.1),
-                      child: Text(
-                        (widget.user.tenTaiKhoan ?? '?').trim().isNotEmpty
-                            ? widget.user.tenTaiKhoan![0].toUpperCase()
-                            : '?',
-                        style: TextStyle(
-                          color: Theme.of(context).primaryColor,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 40,
+                    Container(
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.grey.shade200, width: 2),
+                      ),
+                      child: CircleAvatar(
+                        radius: 46,
+                        backgroundColor: primaryColor.withOpacity(0.08),
+                        child: Text(
+                          (widget.user.tenTaiKhoan ?? '?').trim().isNotEmpty
+                              ? widget.user.tenTaiKhoan![0].toUpperCase()
+                              : '?',
+                          style: TextStyle(
+                            color: primaryColor,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 36,
+                          ),
                         ),
                       ),
                     ),
-                    // Nút camera để đổi avatar (Demo UI)
                     if (_isEditing)
                       Container(
-                        padding: const EdgeInsets.all(4),
-                        decoration: const BoxDecoration(
-                          color: Colors.white,
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: primaryColor,
                           shape: BoxShape.circle,
-                          boxShadow: [BoxShadow(blurRadius: 2, color: Colors.black26)],
+                          border: Border.all(color: Colors.white, width: 2),
+                          boxShadow: [
+                            BoxShadow(color: primaryColor.withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 2))
+                          ],
                         ),
-                        child: const Icon(Icons.camera_alt, size: 18, color: Colors.grey),
+                        child: const Icon(Icons.camera_alt, size: 16, color: Colors.white),
                       ),
                   ],
                 ),
                 const SizedBox(height: 16),
+
+                // --- THÔNG TIN TEXT ---
                 Text(
                   widget.user.tenTaiKhoan ?? "Tài khoản",
-                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: Colors.black87),
                 ),
+                const SizedBox(height: 4),
                 Text(
                   "Thành viên từ: $ngayKhoiTaoFormatted",
-                  style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                  style: TextStyle(color: Colors.grey.shade500, fontSize: 13, fontWeight: FontWeight.w500),
                 ),
-                const SizedBox(height: 30),
+                const SizedBox(height: 32),
 
                 // --- FORM ĐIỀN THÔNG TIN ---
                 _buildTextField(
-                  label: 'Số điện thoại',
-                  controller: _sdtController,
-                  icon: Icons.phone_iphone,
-                  enabled: _isEditing,
-                  keyboardType: TextInputType.phone,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) return 'Vui lòng nhập SĐT';
-                    if (value.length < 9) return 'SĐT không hợp lệ';
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-                _buildTextField(
-                  label: 'Email',
+                  label: 'Email liên hệ',
                   controller: _emailController,
-                  icon: Icons.email_outlined,
+                  icon: Icons.email_rounded,
                   enabled: _isEditing,
                   keyboardType: TextInputType.emailAddress,
                   validator: (value) {
                     if (value != null && value.isNotEmpty) {
-                      // Regex check email đơn giản
                       final bool emailValid = RegExp(r"^[a-zA-Z0-9.]+@[a-zA-Z0-9]+\.[a-zA-Z]+").hasMatch(value);
                       if (!emailValid) return 'Email không đúng định dạng';
                     }
@@ -477,82 +551,107 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
                   },
                 ),
 
-                const SizedBox(height: 30),
+                const SizedBox(height: 24),
 
-                // --- NÚT ĐỔI MẬT KHẨU ---
-                if (!_isEditing)
+                // --- CÁC NÚT CHỨC NĂNG (Giao diện xem) ---
+                if (!_isEditing) ...[
+                  // Nút Đổi mật khẩu (Màu Primary sáng)
                   SizedBox(
                     width: double.infinity,
-                    child: OutlinedButton.icon(
+                    child: ElevatedButton.icon(
                       onPressed: () {
                         showDialog(
                           context: context,
                           builder: (context) => const ChangePasswordDialog(),
                         );
                       },
-                      icon: const Icon(Icons.lock_outline),
-                      label: const Text('Đổi mật khẩu'),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        side: BorderSide(color: Theme.of(context).primaryColor),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      icon: const Icon(Icons.lock_outline_rounded, size: 20),
+                      label: const Text('Đổi mật khẩu', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+                      style: ElevatedButton.styleFrom(
+                        elevation: 0,
+                        backgroundColor: primaryColor.withOpacity(0.1),
+                        foregroundColor: primaryColor,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                       ),
                     ),
                   ),
 
-                const SizedBox(height: 16),
+                  const SizedBox(height: 12),
 
-                // --- BUTTONS ACTIONS ---
-                Row(
-                  children: [
-                    if (_isEditing)
+                  // Nút Khóa tài khoản (Màu Đỏ sáng)
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: _showLockConfirmDialog,
+                      icon: const Icon(Icons.person_off_outlined, size: 20),
+                      label: const Text('Khóa tài khoản', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+                      style: ElevatedButton.styleFrom(
+                        elevation: 0,
+                        backgroundColor: Colors.red.shade50,
+                        foregroundColor: Colors.red.shade700,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  // Nút Chỉnh sửa (Đen xám sang trọng)
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () => setState(() => _isEditing = true),
+                      icon: const Icon(Icons.edit_outlined, size: 20),
+                      label: const Text('Chỉnh sửa thông tin', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+                      style: ElevatedButton.styleFrom(
+                        elevation: 0,
+                        backgroundColor: const Color(0xFF2D2D2D), // Màu đen xám Dark Mode
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      ),
+                    ),
+                  ),
+                ],
+
+                // --- NÚT ACTION (Giao diện Sửa) ---
+                if (_isEditing)
+                  Row(
+                    children: [
                       Expanded(
                         child: ElevatedButton(
                           onPressed: () {
-                            // Reset lại dữ liệu cũ
-                            _sdtController.text = widget.user.sdt ?? '';
                             _emailController.text = widget.user.email ?? '';
                             setState(() => _isEditing = false);
                           },
-                          // --- SỬA STYLE NÚT HỦY Ở ĐÂY ---
                           style: ElevatedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            backgroundColor: Colors.grey.shade200, // Nền xám nhạt rõ ràng
-                            foregroundColor: Colors.black87,      // Chữ đen đậm
-                            elevation: 0,                         // Bỏ bóng để nó chìm hơn nút Lưu
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8)
-                            ),
+                            elevation: 0,
+                            backgroundColor: Colors.grey.shade200,
+                            foregroundColor: Colors.black87,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                           ),
-                          child: const Text('Hủy bỏ'),
+                          child: const Text('Hủy bỏ', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
                         ),
                       ),
-
-                    if (_isEditing) const SizedBox(width: 16),
-
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: _isEditing
-                            ? _handleSaveProfile
-                            : () => setState(() => _isEditing = true),
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          // Nút chính (Lưu/Sửa) giữ nguyên màu nổi bật
-                          backgroundColor: _isEditing ? Theme.of(context).primaryColor : Colors.grey.shade800,
-                          foregroundColor: Colors.white,
-                          elevation: 2, // Có bóng nhẹ để nổi bật hơn
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8)
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: _handleSaveProfile,
+                          style: ElevatedButton.styleFrom(
+                            elevation: 0,
+                            backgroundColor: primaryColor,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                           ),
-                        ),
-                        child: Text(
-                          _isEditing ? 'Lưu thay đổi' : 'Chỉnh sửa',
-                          style: const TextStyle(fontWeight: FontWeight.bold),
+                          child: const Text('Lưu thay đổi', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
                         ),
                       ),
-                    ),
-                  ],
-                ),
+                    ],
+                  ),
               ],
             ),
           ),
@@ -561,6 +660,7 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
     );
   }
 
+  // --- HÀM BUILD TEXT FIELD GIAO DIỆN MỚI ---
   Widget _buildTextField({
     required String label,
     required TextEditingController controller,
@@ -569,60 +669,58 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
     TextInputType keyboardType = TextInputType.text,
     String? Function(String?)? validator,
   }) {
-    return TextFormField(
-      controller: controller,
-      enabled: enabled,
-      keyboardType: keyboardType,
-      validator: validator,
-      style: TextStyle(
-        color: Colors.black87, // Màu chữ luôn đậm
-        fontWeight: FontWeight.w500,
-      ),
-      decoration: InputDecoration(
-        labelText: label,
-        // Khi đang sửa thì icon màu xanh (hoặc màu chính), khi xem thì màu xám
-        prefixIcon: Icon(
-          icon,
-          color: enabled ? Theme.of(context).primaryColor : Colors.grey.shade600,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 4, bottom: 8),
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: Colors.grey.shade700,
+            ),
+          ),
         ),
+        TextFormField(
+          controller: controller,
+          enabled: enabled,
+          keyboardType: keyboardType,
+          validator: validator,
+          style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.w500, fontSize: 15),
+          decoration: InputDecoration(
+            prefixIcon: Icon(icon, color: enabled ? Theme.of(context).primaryColor : Colors.grey.shade400, size: 22),
+            filled: true,
+            fillColor: enabled ? Colors.white : Colors.grey.shade50,
 
-        // --- SỬA LẠI PHẦN NÀY ---
-        filled: true, // Luôn luôn có màu nền
-        // Nếu đang sửa: Nền trắng. Nếu xem: Nền xám
-        fillColor: enabled ? Colors.white : Colors.grey.shade100,
+            // Viền mặc định: Mờ nhạt hoặc không có nếu không sửa
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide(color: Colors.grey.shade300, width: 1),
+            ),
+            disabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide(color: Colors.grey.shade200, width: 1),
+            ),
 
-        // 1. Viền khi ĐANG SỬA (nhưng chưa bấm vào)
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          // Tăng độ đậm của viền lên shade400 để nhìn rõ hơn
-          borderSide: BorderSide(color: Colors.grey.shade400, width: 1.5),
+            // Viền khi focus: Đậm màu chủ đạo
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide(color: Theme.of(context).primaryColor, width: 1.5),
+            ),
+            errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: const BorderSide(color: Colors.redAccent, width: 1),
+            ),
+            focusedErrorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: const BorderSide(color: Colors.redAccent, width: 1.5),
+            ),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          ),
         ),
-
-        // 2. Viền khi ĐANG XEM (không cho sửa)
-        disabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          // Khi xem thì viền nhạt hơn hoặc trùng màu nền
-          borderSide: BorderSide(color: Colors.grey.shade300, width: 1),
-        ),
-
-        // 3. Viền khi ĐANG BẤM VÀO ĐỂ GÕ (Focus)
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Theme.of(context).primaryColor, width: 2),
-        ),
-
-        // 4. Viền khi CÓ LỖI (Validate)
-        errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Colors.red, width: 1.5),
-        ),
-        focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Colors.red, width: 2),
-        ),
-
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-      ),
+      ],
     );
   }
 }
@@ -649,8 +747,8 @@ class _ChangePasswordDialogState extends State<ChangePasswordDialog> {
   Future<void> _handleChangePassword() async {
     if (_passFormKey.currentState!.validate()) {
       final editmk = {
-        "matKhau": "${_oldPassController.text}",
-        "matKhauMoi": "${_newPassController.text}",
+        "matKhau": _oldPassController.text,
+        "matKhauMoi": _newPassController.text,
       };
       final repose = await API().editmypassword(data:editmk);
       if (repose?.messCode == MessCode.IsOK) {
@@ -661,13 +759,13 @@ class _ChangePasswordDialogState extends State<ChangePasswordDialog> {
           user = Kttoken.fromJson(jsonDecode(userJson));
           Provider.of<AuthProvider>(context, listen: false).updateUserAfterEdit(user);
         }
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Đổi mật khẩu thành công!')),
-          );
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Đổi mật khẩu thành công!')),
+        );
         Navigator.pop(context);
       }else{
         ScaffoldMessenger.of(context).showSnackBar(
-           SnackBar(content: Text('${repose?.message}hh!')),
+          SnackBar(content: Text('${repose?.message}hh!')),
         );
       }
 

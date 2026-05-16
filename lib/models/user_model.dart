@@ -7,7 +7,6 @@ class UserModel {
   final String matKhau;
   final String ngayKhoiTao;
   final int trangThai;
-  final String sdt;
   final String email;
   final List<htPhanQuyenTaiKhoan> htPhanQuyenTaiKhoans;
   final WalletUser? wallet;
@@ -18,7 +17,6 @@ class UserModel {
     required this.matKhau,
     required this.ngayKhoiTao,
     required this.trangThai,
-    required this.sdt,
     required this.email,
     required this.htPhanQuyenTaiKhoans,
     this.wallet
@@ -32,7 +30,6 @@ class UserModel {
       matKhau: json['matKhau'] ?? '',
       ngayKhoiTao: json['ngayKhoiTao'] ?? '',
       trangThai: json['trangThai'] ?? 0,
-      sdt: json['sdt'] ?? '',
       email: json['email'] ?? '',
       htPhanQuyenTaiKhoans: (json['htPhanQuyenTaiKhoans'] as List<dynamic>? ?? [])
           .map((e) => htPhanQuyenTaiKhoan.fromJson(e))
@@ -48,7 +45,6 @@ class UserModel {
       'matKhau': matKhau,
       'ngayKhoiTao': ngayKhoiTao,
       'trangThai': trangThai,
-      'sdt': sdt,
       'email': email,
       'htPhanQuyenTaiKhoans': htPhanQuyenTaiKhoans.map((e) => e.toJson()).toList(),
       'wallet' : wallet
@@ -60,7 +56,6 @@ class UserModel {
       "matKhau": matKhau,
       "ngayKhoiTao": DateTime.now().toIso8601String(), // chuẩn ISO 8601
       "trangThai": trangThai,
-      "sdt": sdt,
       "email": email,
     };
   }

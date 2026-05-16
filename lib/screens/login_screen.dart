@@ -275,20 +275,20 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
 
                           // Quên mật khẩu
-                          Align(
-                            alignment: Alignment.centerRight,
-                            child: TextButton(
-                              onPressed: () {},
-                              child: Text(
-                                'Quên mật khẩu?',
-                                style: TextStyle(
-                                  color: primaryColor,
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: (width * 0.035).clamp(12.0, 14.0),
-                                ),
-                              ),
-                            ),
-                          ),
+                          // Align(
+                          //   alignment: Alignment.centerRight,
+                          //   child: TextButton(
+                          //     onPressed: () {},
+                          //     child: Text(
+                          //       'Quên mật khẩu?',
+                          //       style: TextStyle(
+                          //         color: primaryColor,
+                          //         fontWeight: FontWeight.w600,
+                          //         fontSize: (width * 0.035).clamp(12.0, 14.0),
+                          //       ),
+                          //     ),
+                          //   ),
+                          // ),
 
                           // Login Button (Tài khoản)
                           Consumer<AuthProvider>(
