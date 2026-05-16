@@ -111,17 +111,20 @@ class AuthProvider extends ChangeNotifier {
         _error = "Lỗi kết nối hoặc lỗi server (Response null)";
         _usermodel = null;
         _isLoading = false;
+        notifyListeners();
         return false; // Đánh dấu thất bại
       } else if (user.messCode == MessCode.IsOK) {
         // THÀNH CÔNG
         _usermodel = user.oneItem?.htTaiKhoan;
         _isLoading = false;
+        notifyListeners();
         return true; // Đánh dấu thành công
       } else {
         // LỖI TỪ SERVER TRẢ VỀ (429, Sai pass, v.v.)
         _error = user.message ?? "Đăng nhập thất bại";
         _usermodel = null;
         _isLoading = false;
+        notifyListeners();
         return false; // Đánh dấu thất bại
       }
 
