@@ -139,10 +139,8 @@ extension APIExtension on API {
       return null;
     }
   }
-  Future<ApiResponse<Kttoken>?> lockTaiKhoan() async {
-    // Trỏ đúng tên API Backend C# mà bạn đã tạo
-    final url = Uri.parse("${host}api/TaiKhoan/EditLockTaiKhoan");
-
+  Future<ApiResponse<Kttoken>?> deleteTaiKhoan() async {
+    final url = Uri.parse("${host}api/TaiKhoan/DeleteMyTaiKhoan");
     final prefs = await SharedPreferences.getInstance();
     final userJson = prefs.getString("ginseng_user");
     Kttoken? user;
@@ -165,7 +163,7 @@ extension APIExtension on API {
       ).funcsTagActive ?? "",
     };
 
-    // 🔹 Gửi request POST (Truyền body rỗng vì Backend chỉ cần lấy ID từ Token)
+    // 🔹 Gửi request POST (truyền body rỗng)
     final response = await http.post(url, headers: headers, body: jsonEncode({}));
 
     if (response.statusCode == 200) {
@@ -175,7 +173,7 @@ extension APIExtension on API {
             (json) => Kttoken.fromJson(json),
       );
 
-      // Đã bỏ AuthProvider().resetTokenAu(user!) vì sau khi khóa UI sẽ gọi logout()
+      // Đã bỏ hàm resetTokenAu ở đây, vì bên giao diện sau khi gọi xóa thành công sẽ chạy hàm logout()
       return data;
 
     } else if (response.statusCode == 429) {
@@ -225,7 +223,6 @@ extension APIExtension on API {
                     ),
                     textAlign: TextAlign.center,
                   ),
-
                   const SizedBox(height: 12),
                   Text(
                     "Bạn thao tác quá nhanh. Vui lòng thử lại sau 30 giây.",

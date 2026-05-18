@@ -8,6 +8,7 @@ import 'package:nftsam/api/api_login.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import '../api/api.dart';
 import '../main.dart';
 import '../models/kttoken.dart';
@@ -106,7 +107,7 @@ class AuthProvider extends ChangeNotifier {
         idToken: idToken,
         deviceToken: deviceToken ?? "",
       );
-
+      print("mess code ${user?.message}");
       if (user == null) {
         _error = "Lỗi kết nối hoặc lỗi server (Response null)";
         _usermodel = null;
@@ -134,6 +135,77 @@ class AuthProvider extends ChangeNotifier {
       _isLoading = false;
       notifyListeners();
       return false;
+    }
+    finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+  Future<bool> loginWithApple() async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      final credential = await SignInWithApple.getAppleIDCredential(
+        scopes: [
+          AppleIDAuthorizationScopes.email,
+          AppleIDAuthorizationScopes.fullName,
+        ],
+      );
+
+      final String? idToken = credential.identityToken;
+      if (idToken == null) {
+        _error = "Không lấy được Token từ Apple.";
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      }
+
+      String? deviceToken = await FirebaseMessaging.instance.getToken();
+      String appleName = "${credential.familyName ?? ''} ${credential.givenName ?? ''}".trim();
+
+      // LƯU Ý: Đảm bảo hàm api.appleLogin của bạn có nhận tham số email và fullName
+      final user = await api.appleLogin(
+        idToken: idToken,
+        deviceToken: deviceToken ?? "",
+        email: credential.email ?? "",
+        fullName: appleName,
+      );
+
+      print("mess code Apple ${user?.message}");
+      if (user == null) {
+        _error = "Lỗi kết nối hoặc lỗi server (Response null)";
+        _usermodel = null;
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      } else if (user.messCode == MessCode.IsOK) {
+        _usermodel = user.oneItem?.htTaiKhoan;
+        _isLoading = false;
+        notifyListeners();
+        return true;
+      } else {
+        _error = user.message ?? "Đăng nhập thất bại";
+        _usermodel = null;
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      }
+
+    } catch (e) {
+      print("Lỗi Apple Login: $e");
+      if (e.toString().contains('canceled')) {
+        _error = "Bạn đã hủy đăng nhập.";
+      } else {
+        _error = "Sự cố kết nối hệ thống.";
+      }
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
     }
   }
   Future<bool> login(LoginModel credentials) async {

@@ -292,11 +292,15 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         final maVaiTros = authProvider.user?.htPhanQuyenTaiKhoans ?? [];
         final double scale = MediaQuery.of(context).size.width / 375.0;
 
-        final availableTabs = maVaiTros
+// Bước 1: Gom tất cả các quyền của User thành 1 danh sách List<UserRole>
+        final List<UserRole> userRoles = maVaiTros
             .map((v) => RoleUtils.toUserRole(v.maVaiTro)) // convert id → UserRole
             .whereType<UserRole>() // bỏ null
-            .expand((role) => RoleBasedNavigation.getAvailableTabs(role))
-            .toList(); // ✅ Fixed: use .role property
+            .toList();
+
+// Bước 2: Ném thẳng nguyên cái danh sách đó vào hàm.
+// Hàm sẽ tự động quét và nhặt ra các tab không bao giờ trùng lặp!
+        final availableTabs = RoleBasedNavigation.getAvailableTabs(userRoles);
 
         // If current tab is not available, switch to first available tab
         if (availableTabs.isNotEmpty &&

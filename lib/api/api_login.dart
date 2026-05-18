@@ -456,6 +456,42 @@ extension APIExtension on API {
       return null;
     }
   }
+  // THÊM HÀM NÀY VÀO FILE api.dart
+  Future<dynamic> appleLogin({
+    required String idToken,
+    required String deviceToken,
+    required String email,
+    required String fullName,
+  }) async {
+    try {
+      final url = Uri.parse('${host}api/Home/AppleLogin');
+
+      final response = await http.post(
+        url,
+        headers: {
+          "Content-Type": "application/json-patch+json",
+          "accept": "*/*",
+        },
+        body: jsonEncode({
+          "idToken": idToken,
+          "deviceToken": deviceToken,
+          "email": email,
+          "fullName": fullName
+        }),
+      );
+      if (response.statusCode == 200) {
+        var data = jsonDecode(response.body);
+        print("Apple Login Response: $data");
+        return UserModel.fromJson(data); // <- Chỗ này bạn sửa lại tên Model cho khớp với code cũ của bạn nhé
+      } else {
+        print("Lỗi HTTP: ${response.statusCode}");
+        return null;
+      }
+    } catch (e) {
+      print("Lỗi gọi API Apple Login: $e");
+      return null;
+    }
+  }
 
   // Hàm hỗ trợ kiểm tra xem đã login chưa (giống isLoggedIn() của JS)
   Future<bool> isLoggedIn() async {

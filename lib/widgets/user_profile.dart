@@ -341,7 +341,6 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
       final edittk = {
         "sdt": _sdtController.text,
         "email": _emailController.text,
-        // Đã xóa trường trangThai ở đây, không còn sợ bị đè mặc định
       };
       final repose = await API().editmytaikhoan(data: edittk);
       if (repose?.messCode == MessCode.IsOK) {
@@ -365,15 +364,15 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
     }
   }
 
-  Future<void> _handleLockAccount() async {
-    // SỬA ĐỔI TẠI ĐÂY: Gọi API Khóa riêng biệt thay vì dùng chung editmytaikhoan
-    final repose = await API().lockTaiKhoan();
+  Future<void> _handleDeleteAccount() async {
+    // SỬA ĐỔI TẠI ĐÂY: Gọi API Xóa tài khoản (Soft Delete)
+    final repose = await API().deleteTaiKhoan();
 
     if (repose?.messCode == MessCode.IsOK) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Đã khóa tài khoản thành công!'),
+          content: Text('Đã yêu cầu xóa tài khoản thành công!'),
           backgroundColor: Colors.red,
         ),
       );
@@ -383,12 +382,13 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
     } else {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(repose?.message ?? 'Khóa tài khoản thất bại!')),
+        SnackBar(content: Text(repose?.message ?? 'Xóa tài khoản thất bại!')),
       );
     }
   }
 
-  void _showLockConfirmDialog() {
+  // SỬA ĐỔI TẠI ĐÂY: Đổi từ Khóa thành Xóa tài khoản
+  void _showDeleteConfirmDialog() {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -398,11 +398,11 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
           children: [
             Icon(Icons.warning_rounded, color: Colors.red, size: 28),
             SizedBox(width: 8),
-            Text('Khóa tài khoản', style: TextStyle(fontWeight: FontWeight.bold)),
+            Text('Xóa tài khoản', style: TextStyle(fontWeight: FontWeight.bold)),
           ],
         ),
         content: const Text(
-          'Bạn có chắc chắn muốn khóa tài khoản này không? Sau khi khóa, bạn sẽ bị đăng xuất và không thể tự đăng nhập lại.',
+          'Bạn có chắc chắn muốn xóa tài khoản này không? Mọi thông tin đăng nhập sẽ bị vô hiệu hóa và bạn không thể tự đăng nhập lại.',
           style: TextStyle(fontSize: 15, color: Colors.black87, height: 1.4),
         ),
         actions: [
@@ -413,7 +413,7 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
           ElevatedButton(
             onPressed: () {
               Navigator.of(ctx).pop();
-              _handleLockAccount();
+              _handleDeleteAccount();
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,
@@ -422,7 +422,7 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             ),
-            child: const Text('Đồng ý khóa', style: TextStyle(fontWeight: FontWeight.bold)),
+            child: const Text('Đồng ý xóa', style: TextStyle(fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -579,13 +579,13 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
 
                   const SizedBox(height: 12),
 
-                  // Nút Khóa tài khoản (Màu Đỏ sáng)
+                  // Nút Xóa tài khoản (Màu Đỏ sáng) - ĐÃ CẬP NHẬT
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(
-                      onPressed: _showLockConfirmDialog,
-                      icon: const Icon(Icons.person_off_outlined, size: 20),
-                      label: const Text('Khóa tài khoản', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+                      onPressed: _showDeleteConfirmDialog,
+                      icon: const Icon(Icons.person_remove_outlined, size: 20),
+                      label: const Text('Xóa tài khoản', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
                       style: ElevatedButton.styleFrom(
                         elevation: 0,
                         backgroundColor: Colors.red.shade50,

@@ -2580,9 +2580,7 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
                                             .getCaySamById(selected.caySamId);
                                         if (model != null) {
                                           // Kiểm tra điều kiện: Nếu vị trí cây nằm trong danh sách sở hữu
-                                          if ((allPlantPositions?.contains(
-                                                  selected.viTriTrongLo)) ??
-                                              false) {
+                                          if ((allPlantPositions?.contains(selected.viTriTrongLo) ?? false) || user!.htTaiKhoan.htPhanQuyenTaiKhoans.map((pq) => pq.maVaiTro).contains("nft_admin"))  {
                                             await Navigator.push(
                                               context,
                                               MaterialPageRoute(
@@ -3275,6 +3273,44 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
     // Haptic feedback
     HapticFeedback.lightImpact();
   }
+  Color getTrangThaiColor(
+      int status, List<String?>? vitricayuser, String? vitritronglo) {
+    if (((vitricayuser?.contains(vitritronglo)) ?? false) || user!.htTaiKhoan.htPhanQuyenTaiKhoans.map((pq) => pq.maVaiTro).contains("nft_admin")) {
+      switch (status) {
+        case 1:
+          return Colors.green[200]!; // 🌿 Sống
+        case 2:
+          return Colors.blue[200]!; // ❄️ Ngủ đông
+        case 3:
+          return AppColors.ERROR['light']!; // 💀 Chết
+        default:
+          return Colors.grey[50]!; // ⚪ Trạng thái không xác định
+      }
+    } else {
+      return Colors.grey[400]!;
+    }
+  }
+  Color getDiemSKColor(
+      int trangThaiId, List<String?>? vitricayuser, String? vitritronglo) {
+    if (((vitricayuser?.contains(vitritronglo)) ?? false) || user!.htTaiKhoan.htPhanQuyenTaiKhoans.map((pq) => pq.maVaiTro).contains("nft_admin")) {
+      switch (trangThaiId) {
+        case 5:
+          return AppColors.PRIMARY['darker']!;
+        case 4:
+          return AppColors.PRIMARY['main']!;
+        case 3:
+          return AppColors.PRIMARY['light']!;
+        case 2:
+          return AppColors.ERROR['light']!;
+        case 1:
+          return AppColors.ERROR['main']!;
+        default:
+          return Colors.grey.shade50;
+      }
+    } else {
+      return Colors.grey.shade500;
+    }
+  }
 }
 
 extension LoSamChiTietExt on List<LoSamChiTietModel>? {
@@ -3294,42 +3330,6 @@ extension LoSamChiTietExt on List<LoSamChiTietModel>? {
       0;
 }
 
-Color getDiemSKColor(
-    int trangThaiId, List<String?>? vitricayuser, String? vitritronglo) {
-  if ((vitricayuser?.contains(vitritronglo)) ?? false) {
-    switch (trangThaiId) {
-      case 5:
-        return AppColors.PRIMARY['darker']!;
-      case 4:
-        return AppColors.PRIMARY['main']!;
-      case 3:
-        return AppColors.PRIMARY['light']!;
-      case 2:
-        return AppColors.ERROR['light']!;
-      case 1:
-        return AppColors.ERROR['main']!;
-      default:
-        return Colors.grey.shade50;
-    }
-  } else {
-    return Colors.grey.shade500;
-  }
-}
 
-Color getTrangThaiColor(
-    int status, List<String?>? vitricayuser, String? vitritronglo) {
-  if ((vitricayuser?.contains(vitritronglo)) ?? false) {
-    switch (status) {
-      case 1:
-        return Colors.green[200]!; // 🌿 Sống
-      case 2:
-        return Colors.blue[200]!; // ❄️ Ngủ đông
-      case 3:
-        return AppColors.ERROR['light']!; // 💀 Chết
-      default:
-        return Colors.grey[50]!; // ⚪ Trạng thái không xác định
-    }
-  } else {
-    return Colors.grey[400]!;
-  }
-}
+
+

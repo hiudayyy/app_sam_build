@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:nftsam/screens/register_screen.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
@@ -61,6 +63,19 @@ class _LoginScreenState extends State<LoginScreen> {
 
     // Gọi hàm đăng nhập Google (đảm bảo hàm này trả về true/false trong AuthProvider)
     bool isSuccess = await authProvider.loginWithGoogle();
+
+    if (isSuccess) {
+      if (!mounted) return;
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => HomeScreen()),
+      );
+    }
+  }
+  void _handleAppleLogin() async {
+    FocusScope.of(context).unfocus();
+
+    final authProvider = context.read<AuthProvider>();
+    bool isSuccess = await authProvider.loginWithApple();
 
     if (isSuccess) {
       if (!mounted) return;
@@ -354,44 +369,82 @@ class _LoginScreenState extends State<LoginScreen> {
                           SizedBox(height: height * 0.025),
 
                           // THÊM MỚI: Nút Google Sign In
+                          // Cụm nút đăng nhập Social
                           Consumer<AuthProvider>(
                               builder: (context, authProvider, child) {
-                                return Container(
-                                  height: (height * 0.065).clamp(45.0, 55.0),
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(16),
-                                    border: Border.all(color: Colors.grey[300]!),
-                                  ),
-                                  child: ElevatedButton(
-                                    onPressed: authProvider.isLoading ? null : _handleGoogleLogin,
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.white,
-                                      foregroundColor: Colors.grey[800],
-                                      elevation: 0,
-                                      shape: RoundedRectangleBorder(
+                                return Column(
+                                  children: [
+                                    // Nút Google Sign In
+                                    Container(
+                                      height: (height * 0.065).clamp(45.0, 55.0),
+                                      decoration: BoxDecoration(
                                         borderRadius: BorderRadius.circular(16),
+                                        border: Border.all(color: Colors.grey[300]!),
                                       ),
-                                    ),
-                                    child: Row(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        // Sử dụng icon mặc định, nếu bạn có logo Google hãy thay bằng Image.asset
-                                        Image.asset(
-                                          'assets/images/google_logo.png',
-                                          height: 24, // Kích thước chuẩn cho icon trong nút
-                                          width: 24,
-                                        ),
-                                        SizedBox(width: 8),
-                                        Text(
-                                          'Google',
-                                          style: TextStyle(
-                                            fontSize: (width * 0.04).clamp(14.0, 16.0),
-                                            fontWeight: FontWeight.bold,
+                                      child: ElevatedButton(
+                                        onPressed: authProvider.isLoading ? null : _handleGoogleLogin,
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: Colors.white,
+                                          foregroundColor: Colors.grey[800],
+                                          elevation: 0,
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(16),
                                           ),
                                         ),
-                                      ],
+                                        child: Row(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            Image.asset(
+                                              'assets/images/google_logo.png',
+                                              height: 24,
+                                              width: 24,
+                                            ),
+                                            SizedBox(width: 8),
+                                            Text(
+                                              'Đăng nhập bằng Google',
+                                              style: TextStyle(
+                                                fontSize: (width * 0.04).clamp(14.0, 16.0),
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
                                     ),
-                                  ),
+
+                                    SizedBox(height: 16), // Khoảng cách giữa 2 nút
+
+                                    // Nút Apple Sign In (Chỉ nên hiển thị trên iOS)
+                                    if (Platform.isIOS)
+                                      Container(
+                                        height: (height * 0.065).clamp(45.0, 55.0),
+                                        child: ElevatedButton(
+                                          onPressed: authProvider.isLoading ? null : _handleAppleLogin,
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: Colors.black, // Apple bắt buộc nút màu đen hoặc trắng
+                                            foregroundColor: Colors.white,
+                                            elevation: 0,
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius: BorderRadius.circular(16),
+                                            ),
+                                          ),
+                                          child: Row(
+                                            mainAxisAlignment: MainAxisAlignment.center,
+                                            children: [
+                                              Icon(Icons.apple, size: 28, color: Colors.white),
+                                              SizedBox(width: 8),
+                                              Text(
+                                                'Đăng nhập bằng Apple',
+                                                style: TextStyle(
+                                                  fontSize: (width * 0.04).clamp(14.0, 16.0),
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                  ],
                                 );
                               }
                           ),
