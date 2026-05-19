@@ -147,6 +147,7 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
+
       final credential = await SignInWithApple.getAppleIDCredential(
         scopes: [
           AppleIDAuthorizationScopes.email,
@@ -155,6 +156,7 @@ class AuthProvider extends ChangeNotifier {
       );
 
       final String? idToken = credential.identityToken;
+      final String? authorizationCode = credential.authorizationCode;
       if (idToken == null) {
         _error = "Không lấy được Token từ Apple.";
         _isLoading = false;
@@ -163,14 +165,11 @@ class AuthProvider extends ChangeNotifier {
       }
 
       String? deviceToken = await FirebaseMessaging.instance.getToken();
-      String appleName = "${credential.familyName ?? ''} ${credential.givenName ?? ''}".trim();
 
-      // LƯU Ý: Đảm bảo hàm api.appleLogin của bạn có nhận tham số email và fullName
       final user = await api.appleLogin(
-        idToken: idToken,
+        identityToken: idToken,
         deviceToken: deviceToken ?? "",
-        email: credential.email ?? "",
-        fullName: appleName,
+        authorizationCode: authorizationCode ?? "",
       );
 
       print("mess code Apple ${user?.message}");

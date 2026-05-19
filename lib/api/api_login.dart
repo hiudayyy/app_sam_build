@@ -458,10 +458,9 @@ extension APIExtension on API {
   }
   // THÊM HÀM NÀY VÀO FILE api.dart
   Future<dynamic> appleLogin({
-    required String idToken,
+    required String identityToken,
     required String deviceToken,
-    required String email,
-    required String fullName,
+    required String authorizationCode,
   }) async {
     try {
       final url = Uri.parse('${host}api/Home/AppleLogin');
@@ -473,10 +472,9 @@ extension APIExtension on API {
           "accept": "*/*",
         },
         body: jsonEncode({
-          "idToken": idToken,
+          "identityToken": identityToken,
           "deviceToken": deviceToken,
-          "email": email,
-          "fullName": fullName
+          "authorizationCode": authorizationCode,
         }),
       );
       if (response.statusCode == 200) {
