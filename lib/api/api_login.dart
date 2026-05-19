@@ -457,7 +457,7 @@ extension APIExtension on API {
     }
   }
   // THÊM HÀM NÀY VÀO FILE api.dart
-  Future<dynamic> appleLogin({
+  Future<ApiResponse<Kttoken>?> appleLogin({
     required String identityToken,
     required String deviceToken,
     required String authorizationCode,
@@ -478,11 +478,32 @@ extension APIExtension on API {
         }),
       );
       if (response.statusCode == 200) {
-        var data = jsonDecode(response.body);
-        print("Apple Login Response: $data");
-        return UserModel.fromJson(data); // <- Chỗ này bạn sửa lại tên Model cho khớp với code cũ của bạn nhé
-      } else {
-        print("Lỗi HTTP: ${response.statusCode}");
+        // Parse dữ liệu trả về
+        Map<String, dynamic> responseJson = jsonDecode(response.body);
+
+        final data = ApiResponse<Kttoken>.fromJson(
+          responseJson,
+              (json) => Kttoken.fromJson(json),
+        );
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString(_userKey, jsonEncode(data.oneItem?.toJson()));
+        if (data.messCode == MessCode.IsOK) {
+          await LocalStoreService.setUserModel(data.oneItem!.htTaiKhoan);
+        }
+        return data;
+      }
+      else if(response.statusCode == 429){
+        Map<String, dynamic> errorJson = jsonDecode(response.body);
+        return ApiResponse<Kttoken>(
+          messCode: MessCode.Unknown,
+          typeRp: "TooManyRequests",
+          message: errorJson['Message'] ?? "Thao tác quá nhanh, vui lòng thử lại.",
+          messageGoiY: "Vui lòng chờ giây lát",
+          oneItem: null,
+        );
+      }
+      else {
+        print("Backend từ chối đăng nhập: ${response.statusCode} - ${response.body}");
         return null;
       }
     } catch (e) {
