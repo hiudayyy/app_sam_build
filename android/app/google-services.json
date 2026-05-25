@@ -12,7 +12,12 @@
           "package_name": "com.huetechcoop.nftsam"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "525482222879-48iplli6p73kap7go2dbk4iuv56js9ep.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyBhz3bwHwCCb0bgeNqeAtajrXCeKTJB1qA"
@@ -20,7 +25,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "525482222879-48iplli6p73kap7go2dbk4iuv56js9ep.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "525482222879-do3ooii73nhdgqvjioaprul9ao48m3p5.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.huetechcoop.nftsam"
+              }
+            }
+          ]
         }
       }
     }

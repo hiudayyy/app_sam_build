@@ -74,6 +74,12 @@ dependencies {
 }
 configurations.all {
     resolutionStrategy {
+        // Các dòng cũ lúc nãy
+        force("androidx.glance:glance-appwidget:1.1.0")
+        force("androidx.glance:glance:1.1.0")
+        force("androidx.compose.remote:remote-creation-android:1.0.0-alpha01")
+
+        // Thêm 3 dòng này để trị dứt điểm lỗi mới:
         force("androidx.browser:browser:1.8.0")
         force("androidx.core:core-ktx:1.13.1")
         force("androidx.core:core:1.13.1")

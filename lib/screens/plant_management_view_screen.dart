@@ -56,6 +56,10 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
   LoSamModel? loSam;
 
   bool isMultiSelectMode = false;
+  bool isSearchMode = false;
+  Set<String> searchResultCells = <String>{};
+  final GlobalKey _searchFocusKey = GlobalKey();
+  final GlobalKey _multiSelectFocusKey = GlobalKey();
   bool _isLoading = false;
   Set<String> selectedEmptyCells = <String>{};
 
@@ -170,8 +174,9 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
       if (selectedAgeId != null) {
         filteredList = filteredList.where((plant) {
           if (plant.tuoiCayId != selectedAgeId) return false;
-          bool hasDiary = checkHasThisMonthDiary(plant);
-          return !hasDiary;
+          //bool hasDiary = checkHasThisMonthDiary(plant);
+          //return !hasDiary;
+          return true;
         }).toList();
       }
     }
@@ -181,8 +186,9 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
         filteredList = filteredList.where((plant) {
           final lastStatus = plant.caySamNhatKys.firstOrNull?.tinhTrang;
           if (lastStatus != selectedStatusId) return false;
-          bool hasDiary = checkHasThisMonthDiary(plant);
-          return !hasDiary;
+          //bool hasDiary = checkHasThisMonthDiary(plant);
+          //return !hasDiary;
+          return true;
         }).toList();
       }
     }
@@ -192,8 +198,9 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
         filteredList = filteredList.where((plant) {
           final lastHealth = plant.caySamNhatKys.firstOrNull?.diemSucKhoe;
           if (lastHealth != selectedHealthId) return false;
-          bool hasDiary = checkHasThisMonthDiary(plant);
-          return !hasDiary;
+          //bool hasDiary = checkHasThisMonthDiary(plant);
+          //return !hasDiary;
+          return true;
         }).toList();
       }
     }
@@ -204,6 +211,47 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
     } else {
       _selectAllEmptyCells([]);
     }
+  }
+  void _applySearchFilters(List<CaySamModel> areaPlants) {
+    if (!isSearchMode) return;
+
+    List<CaySamModel> filteredList = List.from(areaPlants);
+
+    if (_selectedtuoicay != null) {
+      int? selectedAgeId = int.tryParse(_selectedtuoicay!.value);
+      if (selectedAgeId != null) {
+        filteredList = filteredList.where((plant) => plant.tuoiCayId == selectedAgeId).toList();
+      }
+    }
+
+    if (_selectedTinhTrang != null) {
+      int? selectedStatusId = int.tryParse(_selectedTinhTrang!.value);
+      if (selectedStatusId != null) {
+        filteredList = filteredList.where((plant) {
+          final lastStatus = plant.caySamNhatKys.firstOrNull?.tinhTrang;
+          return lastStatus == selectedStatusId;
+        }).toList();
+      }
+    }
+
+    if (_selectedDiemSucKhoe != null) {
+      int? selectedHealthId = int.tryParse(_selectedDiemSucKhoe!.value);
+      if (selectedHealthId != null) {
+        filteredList = filteredList.where((plant) {
+          final lastHealth = plant.caySamNhatKys.firstOrNull?.diemSucKhoe;
+          return lastHealth == selectedHealthId;
+        }).toList();
+      }
+    }
+
+    setState(() {
+      // Nếu không chọn filter nào, clear kết quả. Nếu có chọn, lưu danh sách vị trí tìm thấy
+      if (_selectedtuoicay == null && _selectedTinhTrang == null && _selectedDiemSucKhoe == null) {
+        searchResultCells.clear();
+      } else {
+        searchResultCells = filteredList.map((p) => p.viTriTrongLo ?? "").toSet();
+      }
+    });
   }
 
   void showLoadingDialog(BuildContext context,
@@ -378,13 +426,31 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
   void _toggleMultiSelectMode() {
     setState(() {
       isMultiSelectMode = !isMultiSelectMode;
-      selectedEmptyCells.clear();
+
+      if (isMultiSelectMode) {
+        // BẬT NHẬT KÝ -> ÉP TẮT TÌM KIẾM
+        isSearchMode = false;
+        searchResultCells.clear();
+        _clearSelection(); // Xóa sạch bộ lọc cũ để bắt đầu chọn mới
+      } else {
+        // TẮT NHẬT KÝ
+        _clearSelection();
+      }
+
       selectedPlant = null;
-      _clearSelection();
     });
 
     if (isMultiSelectMode) {
       _multiSelectAnimationController.forward();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_multiSelectFocusKey.currentContext != null) {
+          Scrollable.ensureVisible(
+            _multiSelectFocusKey.currentContext!,
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+          );
+        }
+      });
     } else {
       _multiSelectAnimationController.reverse();
     }
@@ -515,6 +581,40 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
       ),
 
       actions: [
+        if (currentLevel == NavigationLevel.grid)
+          IconButton(
+            icon: Icon(
+              isSearchMode ? Icons.search_off_rounded : Icons.search_rounded,
+              color: isSearchMode ? Colors.amber.shade700 : Colors.grey.shade700,
+            ),
+            onPressed: () {
+              setState(() {
+                isSearchMode = !isSearchMode;
+
+                if (isSearchMode) {
+                  // BẬT TÌM KIẾM -> ÉP TẮT NHẬT KÝ
+                  isMultiSelectMode = false;
+                  _multiSelectAnimationController.reverse(); // Đóng animation của hộp nhật ký
+                  searchResultCells.clear();
+                  _clearSelection(); // Xóa sạch bộ lọc cũ
+
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (_searchFocusKey.currentContext != null) {
+                      Scrollable.ensureVisible(
+                        _searchFocusKey.currentContext!,
+                        duration: const Duration(milliseconds: 300),
+                        curve: Curves.easeInOut,
+                      );
+                    }
+                  });
+                } else {
+                  // TẮT TÌM KIẾM
+                  searchResultCells.clear();
+                  _clearSelection();
+                }
+              });
+            },
+          ),
         if (canShowMultiSelectButton)
           Padding(
             padding: EdgeInsets.only(right: 12.0 * scale),
@@ -1337,6 +1437,10 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
                 children: [
                   _buildLegend(loSam, displayPlants),
                   const SizedBox(height: 8),
+                  if (isSearchMode) ...[
+                    _buildSearchControls(displayPlants),
+                    const SizedBox(height: 8),
+                  ],
                   if (isMultiSelectMode) ...[
                     _buildMultiSelectControls(displayPlants),
                     const SizedBox(height: 8),
@@ -1375,6 +1479,7 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
         : '';
 
     return Container(
+      key: _multiSelectFocusKey,
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(15),
@@ -1561,6 +1666,94 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
             _buildPdfSection(areaPlants),
           ],
         ),
+      ),
+    );
+  }
+  Widget _buildSearchControls(List<CaySamModel> areaPlants) {
+    final searchCount = searchResultCells.length;
+    final isFiltering = _selectedtuoicay != null || _selectedTinhTrang != null || _selectedDiemSucKhoe != null;
+
+    return Container(
+      key: _searchFocusKey,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.amber.shade50,
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(color: Colors.amber.shade200, width: 1.5),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.search_rounded, color: Colors.amber.shade800),
+                  const SizedBox(width: 8),
+                  Text('Tìm kiếm cây sâm', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.amber.shade900, fontSize: 16)),
+                ],
+              ),
+              if (isFiltering)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(color: Colors.amber, borderRadius: BorderRadius.circular(10)),
+                  child: Text('Tìm thấy: $searchCount', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 12)),
+                )
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          // 1. Dropdown Tuổi cây
+          _buildModernDropdown(
+            label: 'Tuổi cây',
+            icon: Icons.auto_awesome_motion_rounded,
+            value: _selectedtuoicay,
+            items: OptionLoSamLoaiTuoi,
+            onChanged: (val) {
+              setState(() => _selectedtuoicay = val);
+              _applySearchFilters(areaPlants);
+            },
+            onClear: () {
+              setState(() => _selectedtuoicay = null);
+              _applySearchFilters(areaPlants);
+            },
+          ),
+          const SizedBox(height: 8),
+
+          // 2. Dropdown Tình trạng
+          _buildModernDropdown(
+            label: 'Tình trạng',
+            icon: Icons.health_and_safety_rounded,
+            value: _selectedTinhTrang,
+            items: OptionLoSamTinhTrang,
+            onChanged: (val) {
+              setState(() => _selectedTinhTrang = val);
+              _applySearchFilters(areaPlants);
+            },
+            onClear: () {
+              setState(() => _selectedTinhTrang = null);
+              _applySearchFilters(areaPlants);
+            },
+          ),
+          const SizedBox(height: 8),
+
+          // 3. Dropdown Sức khỏe
+          _buildModernDropdown(
+            label: 'Sức khỏe',
+            icon: Icons.speed_rounded,
+            value: _selectedDiemSucKhoe,
+            items: OptionLoSamDiemSucKhoe.reversed.toList(),
+            onChanged: (val) {
+              setState(() => _selectedDiemSucKhoe = val);
+              _applySearchFilters(areaPlants);
+            },
+            onClear: () {
+              setState(() => _selectedDiemSucKhoe = null);
+              _applySearchFilters(areaPlants);
+            },
+          ),
+        ],
       ),
     );
   }
@@ -2506,6 +2699,8 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
                                   plant?.caySamId == selectedPlant;
                               final isCellSelected =
                                   selectedEmptyCells.contains(position);
+                              final isFiltering = isSearchMode && (_selectedtuoicay != null || _selectedTinhTrang != null || _selectedDiemSucKhoe != null);
+                              final isSearchResult = isFiltering && searchResultCells.contains(position);
                               final ageIcon =
                                   _getPlantAgeIconPath(plant?.tuoiCayId ?? 0);
                               final diemSK =
@@ -2526,6 +2721,10 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
                                 if (isMultiSelectMode && isCellSelected) {
                                   cellBgColor = Colors.green[600]!;
                                   borderColor = Colors.green[800]!;
+                                }else if (isSearchResult) {
+                                  // NẾU NẰM TRONG KẾT QUẢ TÌM KIẾM -> LÀM NỔI BẬT
+                                  cellBgColor = Colors.amber.shade100;
+                                  borderColor = Colors.amber.shade600;
                                 } else {
                                   cellBgColor = getTrangThaiColor(
                                           diemTT ?? 0,
@@ -2662,18 +2861,21 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
                                     }
                                   }
                                 },
-                                child: Container(
-                                  width: cellSize,
-                                  height: cellSize,
-                                  decoration: BoxDecoration(
-                                    color: cellBgColor,
-                                    borderRadius: BorderRadius.circular(6),
-                                    border: isSelected
-                                        ? Border.all(
-                                            color: Colors.blueAccent, width: 2)
-                                        : Border.all(
-                                            color: borderColor, width: 1),
-                                  ),
+                                child: Opacity(
+                                    opacity: (isFiltering && !isSearchResult) ? 0.2 : 1.0, // Làm mờ nếu đang bật filter mà không thỏa mãn
+                                    child: Container(
+                                      width: cellSize,
+                                      height: cellSize,
+                                      decoration: BoxDecoration(
+                                        color: cellBgColor,
+                                        borderRadius: BorderRadius.circular(6),
+                                        // Cập nhật lại border để làm nổi bật kết quả tìm kiếm
+                                        border: isSelected || isSearchResult
+                                            ? Border.all(
+                                            color: isSearchResult ? Colors.amber.shade600 : Colors.blueAccent,
+                                            width: 2)
+                                            : Border.all(color: borderColor, width: 1),
+                                      ),
                                   child: Stack(
                                     children: [
                                       Center(
@@ -2755,7 +2957,7 @@ class PlantManagementViewScreenState extends State<PlantManagementViewScreen>
                                                 color: Colors.white, size: 16)),
                                     ],
                                   ),
-                                ),
+                                )),
                               );
 
                               if (col == 'C')
