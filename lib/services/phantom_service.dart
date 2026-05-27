@@ -90,7 +90,7 @@ class PhantomService {
     await prefs.setString('dapp_private_key', keyStr);
 
     final pubKeyStr = base58.encode(Uint8List.fromList(_dappPublicKey!.asTypedList));
-    print("🆕 [GENERATED NEW KEY] Public Key: $pubKeyStr");
+    //print("🆕 [GENERATED NEW KEY] Public Key: $pubKeyStr");
   }
 
   void _startDeepLinkListener() {
