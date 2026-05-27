@@ -11,6 +11,8 @@ import '../models/user_model.dart';
 import '../services/local_service.dart';
 import 'api.dart';
 
+import '/app_config.dart';
+
 extension APIExtension on API {
   static const String _userKey = 'ginseng_user';
   Future<ApiResponse<Kttoken>?> login(LoginModel model) async {
@@ -25,7 +27,7 @@ extension APIExtension on API {
       Map<String, dynamic> responseJson = jsonDecode(response.body);
       final data = ApiResponse<Kttoken>.fromJson(
         responseJson,
-            (json) => Kttoken.fromJson(json),
+        (json) => Kttoken.fromJson(json),
       );
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_userKey, jsonEncode(data.oneItem?.toJson()));
@@ -33,20 +35,21 @@ extension APIExtension on API {
         await LocalStoreService.setUserModel(data.oneItem!.htTaiKhoan);
       }
       return data;
-    }else if(response.statusCode == 429){
+    } else if (response.statusCode == 429) {
       Map<String, dynamic> errorJson = jsonDecode(response.body);
       return ApiResponse<Kttoken>(
         messCode: MessCode.Unknown,
         typeRp: "TooManyRequests",
-        message: errorJson['Message'] ?? "Thao tác quá nhanh, vui lòng thử lại.",
+        message:
+            errorJson['Message'] ?? "Thao tác quá nhanh, vui lòng thử lại.",
         messageGoiY: "Vui lòng chờ giây lát",
         oneItem: null,
       );
-    }
-    else {
+    } else {
       return null;
     }
   }
+
   Future<ApiResponse<Kttoken>?> resetToken(Kttoken model) async {
     // Tạo URL với query parameters nếu cần
     String linkURL = "${host}api/HeThong/RefreshToken";
@@ -64,12 +67,12 @@ extension APIExtension on API {
       Uri.parse(linkURL),
       headers: headers,
     );
-    print(response.statusCode);
+    AppConfig.printEx(response.statusCode);
     if (response.statusCode == 200) {
       Map<String, dynamic> responseJson = jsonDecode(response.body);
       final data = ApiResponse<Kttoken>.fromJson(
         responseJson,
-            (json) => Kttoken.fromJson(json),
+        (json) => Kttoken.fromJson(json),
       );
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_userKey, jsonEncode(data.oneItem?.toJson()));
@@ -77,7 +80,7 @@ extension APIExtension on API {
         await LocalStoreService.setUserModel(data.oneItem!.htTaiKhoan);
       }
       return data;
-    }else if (response.statusCode == 429) {
+    } else if (response.statusCode == 429) {
       final context = navigatorKey.currentContext;
       if (context != null) {
         showDialog(
@@ -124,7 +127,6 @@ extension APIExtension on API {
                     ),
                     textAlign: TextAlign.center,
                   ),
-
                   const SizedBox(height: 12),
                   Text(
                     "Bạn thao tác quá nhanh. Vui lòng thử lại sau 30 giây.",
@@ -169,6 +171,7 @@ extension APIExtension on API {
       return null;
     }
   }
+
   Future<ApiResponse<UserModel>?> register(UserModel model) async {
     String linkURL = "${host}api/Home/DangKy";
 
@@ -182,10 +185,10 @@ extension APIExtension on API {
       Map<String, dynamic> responseJson = jsonDecode(response.body);
       final data = ApiResponse<UserModel>.fromJson(
         responseJson,
-            (json) => UserModel.fromJson(json),
+        (json) => UserModel.fromJson(json),
       );
       return data;
-    }else if (response.statusCode == 429) {
+    } else if (response.statusCode == 429) {
       final context = navigatorKey.currentContext;
       if (context != null) {
         showDialog(
@@ -232,7 +235,6 @@ extension APIExtension on API {
                     ),
                     textAlign: TextAlign.center,
                   ),
-
                   const SizedBox(height: 12),
                   Text(
                     "Bạn thao tác quá nhanh. Vui lòng thử lại sau 30 giây.",
@@ -277,6 +279,7 @@ extension APIExtension on API {
       return null;
     }
   }
+
   Future<Kttoken?> Logout(Kttoken model) async {
     String linkURL = "${host}api/HeThong/DangXuat";
     final prefs = await SharedPreferences.getInstance();
@@ -288,14 +291,17 @@ extension APIExtension on API {
     final headers = {
       ...headerSvkt1,
       "AuthenticateToken": user?.authenticateToken ?? "",
-      "FuncsTagActive": user?.funcsTagActives.firstWhere(
-            (x) => x.tenController.toLowerCase() == "hethong",
-        orElse: () => FuncTagActive(
-          tenController: "",
-          tenActions: "",
-          funcsTagActive: "",
-        ),
-      ).funcsTagActive ?? "",
+      "FuncsTagActive": user?.funcsTagActives
+              .firstWhere(
+                (x) => x.tenController.toLowerCase() == "hethong",
+                orElse: () => FuncTagActive(
+                  tenController: "",
+                  tenActions: "",
+                  funcsTagActive: "",
+                ),
+              )
+              .funcsTagActive ??
+          "",
     };
     final response = await http.get(
       Uri.parse(linkURL),
@@ -312,7 +318,7 @@ extension APIExtension on API {
         return data;
       }
       return data;
-    }else if (response.statusCode == 429) {
+    } else if (response.statusCode == 429) {
       final context = navigatorKey.currentContext;
       if (context != null) {
         showDialog(
@@ -359,7 +365,6 @@ extension APIExtension on API {
                     ),
                     textAlign: TextAlign.center,
                   ),
-
                   const SizedBox(height: 12),
                   Text(
                     "Bạn thao tác quá nhanh. Vui lòng thử lại sau 30 giây.",
@@ -404,7 +409,9 @@ extension APIExtension on API {
       return null;
     }
   }
-  Future<ApiResponse<Kttoken>?> googleLogin({required String idToken, required String deviceToken}) async {
+
+  Future<ApiResponse<Kttoken>?> googleLogin(
+      {required String idToken, required String deviceToken}) async {
     final url = Uri.parse('${host}api/Home/GoogleLogin');
 
     try {
@@ -419,8 +426,7 @@ extension APIExtension on API {
           "deviceToken": deviceToken,
         }),
       );
-      print(response.statusCode);
-
+      AppConfig.printEx(response.statusCode);
 
       if (response.statusCode == 200) {
         // Parse dữ liệu trả về
@@ -428,7 +434,7 @@ extension APIExtension on API {
 
         final data = ApiResponse<Kttoken>.fromJson(
           responseJson,
-              (json) => Kttoken.fromJson(json),
+          (json) => Kttoken.fromJson(json),
         );
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString(_userKey, jsonEncode(data.oneItem?.toJson()));
@@ -436,26 +442,27 @@ extension APIExtension on API {
           await LocalStoreService.setUserModel(data.oneItem!.htTaiKhoan);
         }
         return data;
-      }
-      else if(response.statusCode == 429){
+      } else if (response.statusCode == 429) {
         Map<String, dynamic> errorJson = jsonDecode(response.body);
         return ApiResponse<Kttoken>(
           messCode: MessCode.Unknown,
           typeRp: "TooManyRequests",
-          message: errorJson['Message'] ?? "Thao tác quá nhanh, vui lòng thử lại.",
+          message:
+              errorJson['Message'] ?? "Thao tác quá nhanh, vui lòng thử lại.",
           messageGoiY: "Vui lòng chờ giây lát",
           oneItem: null,
         );
-      }
-      else {
-        print("Backend từ chối đăng nhập: ${response.statusCode} - ${response.body}");
+      } else {
+        AppConfig.printEx(
+            "Backend từ chối đăng nhập: ${response.statusCode} - ${response.body}");
         return null;
       }
     } catch (e) {
-      print("Lỗi gọi API server C#: $e");
+      AppConfig.printEx("Lỗi gọi API server C#: $e");
       return null;
     }
   }
+
   // THÊM HÀM NÀY VÀO FILE api.dart
   Future<ApiResponse<Kttoken>?> appleLogin({
     required String identityToken,
@@ -483,7 +490,7 @@ extension APIExtension on API {
 
         final data = ApiResponse<Kttoken>.fromJson(
           responseJson,
-              (json) => Kttoken.fromJson(json),
+          (json) => Kttoken.fromJson(json),
         );
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString(_userKey, jsonEncode(data.oneItem?.toJson()));
@@ -491,23 +498,23 @@ extension APIExtension on API {
           await LocalStoreService.setUserModel(data.oneItem!.htTaiKhoan);
         }
         return data;
-      }
-      else if(response.statusCode == 429){
+      } else if (response.statusCode == 429) {
         Map<String, dynamic> errorJson = jsonDecode(response.body);
         return ApiResponse<Kttoken>(
           messCode: MessCode.Unknown,
           typeRp: "TooManyRequests",
-          message: errorJson['Message'] ?? "Thao tác quá nhanh, vui lòng thử lại.",
+          message:
+              errorJson['Message'] ?? "Thao tác quá nhanh, vui lòng thử lại.",
           messageGoiY: "Vui lòng chờ giây lát",
           oneItem: null,
         );
-      }
-      else {
-        print("Backend từ chối đăng nhập: ${response.statusCode} - ${response.body}");
+      } else {
+        AppConfig.printEx(
+            "Backend từ chối đăng nhập: ${response.statusCode} - ${response.body}");
         return null;
       }
     } catch (e) {
-      print("Lỗi gọi API Apple Login: $e");
+      AppConfig.printEx("Lỗi gọi API Apple Login: $e");
       return null;
     }
   }

@@ -14,11 +14,12 @@ import '../models/vuontrong/losamcamera_model.dart';
 import '../services/auth_service.dart';
 import 'api.dart';
 
-extension APIExtension on API {
+import '/app_config.dart';
 
+extension APIExtension on API {
   Future<ApiResponse<CaySamModel>?> addCaySam({
     required Map<String, dynamic> data, // modelJson
-    required List<File?> files,          // BE yêu cầu đúng 2 ảnh
+    required List<File?> files, // BE yêu cầu đúng 2 ảnh
   }) async {
     final url = Uri.parse("${host}api/CaySam/AddCaySam");
     final prefs = await SharedPreferences.getInstance();
@@ -31,19 +32,22 @@ extension APIExtension on API {
     request.headers.addAll({
       ...headerSvkt1,
       "AuthenticateToken": user?.authenticateToken ?? "",
-      "FuncsTagActive": user?.funcsTagActives.firstWhere(
-            (x) => x.tenController.toLowerCase() == "caysam",
-        orElse: () => FuncTagActive(
-          tenController: "",
-          tenActions: "",
-          funcsTagActive: "",
-        ),
-      ).funcsTagActive ?? "",
+      "FuncsTagActive": user?.funcsTagActives
+              .firstWhere(
+                (x) => x.tenController.toLowerCase() == "caysam",
+                orElse: () => FuncTagActive(
+                  tenController: "",
+                  tenActions: "",
+                  funcsTagActive: "",
+                ),
+              )
+              .funcsTagActive ??
+          "",
     });
-    print(jsonEncode(data));
+    AppConfig.printEx(jsonEncode(data));
     request.fields['modelJson'] = jsonEncode(data);
     for (var file in files) {
-      if(file != null){
+      if (file != null) {
         final fileBytes = await file.readAsBytes();
         final fileName = file.path.split('/').last;
         request.files.add(
@@ -53,21 +57,19 @@ extension APIExtension on API {
             filename: fileName,
           ),
         );
-      }else{
-        print("❌ Lỗi: ảnh");
+      } else {
+        AppConfig.printEx("❌ Lỗi: ảnh");
       }
     }
     final response = await request.send();
     final respStr = await response.stream.bytesToString();
     if (response.statusCode == 200) {
-
       final jsonRes = jsonDecode(respStr);
       return ApiResponse<CaySamModel>.fromJson(
         jsonRes,
-            (json) => CaySamModel.fromJson(json),
+        (json) => CaySamModel.fromJson(json),
       );
-
-    }else if (response.statusCode == 429) {
+    } else if (response.statusCode == 429) {
       final context = navigatorKey.currentContext;
       if (context != null) {
         showDialog(
@@ -114,7 +116,6 @@ extension APIExtension on API {
                     ),
                     textAlign: TextAlign.center,
                   ),
-
                   const SizedBox(height: 12),
                   Text(
                     "Bạn thao tác quá nhanh. Vui lòng thử lại sau 30 giây.",
@@ -156,14 +157,15 @@ extension APIExtension on API {
       }
       return null;
     } else {
-      print("❌ Lỗi: ${response.statusCode} - $respStr");
+      AppConfig.printEx("❌ Lỗi: ${response.statusCode} - $respStr");
       return null;
     }
   }
+
   Future<ApiResponse<CaySamModel>?> editCaySam({
-    required String id,                  // id cần chỉnh sửa
-    required Map<String, dynamic> data,   // modelJson
-    required List<File?> files,           // tối đa 2 ảnh (hoặc tùy BE)
+    required String id, // id cần chỉnh sửa
+    required Map<String, dynamic> data, // modelJson
+    required List<File?> files, // tối đa 2 ảnh (hoặc tùy BE)
   }) async {
     final url = Uri.parse("${host}api/CaySam/EditCaySam/${id}");
     final prefs = await SharedPreferences.getInstance();
@@ -177,16 +179,19 @@ extension APIExtension on API {
     request.headers.addAll({
       ...headerSvkt1,
       "AuthenticateToken": user?.authenticateToken ?? "",
-      "FuncsTagActive": user?.funcsTagActives.firstWhere(
-            (x) => x.tenController.toLowerCase() == "caysam",
-        orElse: () => FuncTagActive(
-          tenController: "",
-          tenActions: "",
-          funcsTagActive: "",
-        ),
-      ).funcsTagActive ?? "",
+      "FuncsTagActive": user?.funcsTagActives
+              .firstWhere(
+                (x) => x.tenController.toLowerCase() == "caysam",
+                orElse: () => FuncTagActive(
+                  tenController: "",
+                  tenActions: "",
+                  funcsTagActive: "",
+                ),
+              )
+              .funcsTagActive ??
+          "",
     });
-    print(jsonEncode(data));
+    AppConfig.printEx(jsonEncode(data));
     // body dạng multipart/form-data
     request.fields['modelJson'] = jsonEncode(data);
 
@@ -203,7 +208,7 @@ extension APIExtension on API {
           ),
         );
       } else {
-        print("❌ Lỗi: ảnh null");
+        AppConfig.printEx("❌ Lỗi: ảnh null");
       }
     }
 
@@ -214,9 +219,9 @@ extension APIExtension on API {
       final jsonRes = jsonDecode(respStr);
       return ApiResponse<CaySamModel>.fromJson(
         jsonRes,
-            (json) => CaySamModel.fromJson(json),
+        (json) => CaySamModel.fromJson(json),
       );
-    }else if (response.statusCode == 429) {
+    } else if (response.statusCode == 429) {
       final context = navigatorKey.currentContext;
       if (context != null) {
         showDialog(
@@ -263,7 +268,6 @@ extension APIExtension on API {
                     ),
                     textAlign: TextAlign.center,
                   ),
-
                   const SizedBox(height: 12),
                   Text(
                     "Bạn thao tác quá nhanh. Vui lòng thử lại sau 30 giây.",
@@ -305,13 +309,14 @@ extension APIExtension on API {
       }
       return null;
     } else {
-      print("❌ Lỗi: ${response.statusCode} - $respStr");
+      AppConfig.printEx("❌ Lỗi: ${response.statusCode} - $respStr");
       return null;
     }
   }
+
   Future<ApiResponse<CaySamNhatKy>?> addNhatKys({
     required Map<String, dynamic> data, // modelJson
-    required List<File?> files,          // BE yêu cầu đúng 2 ảnh
+    required List<File?> files, // BE yêu cầu đúng 2 ảnh
   }) async {
     final url = Uri.parse("${host}api/CaySam/AddNhatKyByCaySamIds");
     final prefs = await SharedPreferences.getInstance();
@@ -324,19 +329,22 @@ extension APIExtension on API {
     request.headers.addAll({
       ...headerSvkt1,
       "AuthenticateToken": user?.authenticateToken ?? "",
-      "FuncsTagActive": user?.funcsTagActives.firstWhere(
-            (x) => x.tenController.toLowerCase() == "caysam",
-        orElse: () => FuncTagActive(
-          tenController: "",
-          tenActions: "",
-          funcsTagActive: "",
-        ),
-      ).funcsTagActive ?? "",
+      "FuncsTagActive": user?.funcsTagActives
+              .firstWhere(
+                (x) => x.tenController.toLowerCase() == "caysam",
+                orElse: () => FuncTagActive(
+                  tenController: "",
+                  tenActions: "",
+                  funcsTagActive: "",
+                ),
+              )
+              .funcsTagActive ??
+          "",
     });
-    print(jsonEncode(data));
+    AppConfig.printEx(jsonEncode(data));
     request.fields['modelJson'] = jsonEncode(data);
     for (var file in files) {
-      if(file != null){
+      if (file != null) {
         final fileBytes = await file.readAsBytes();
         final fileName = file.path.split('/').last;
         request.files.add(
@@ -346,20 +354,16 @@ extension APIExtension on API {
             filename: fileName,
           ),
         );
-      }else{
-        print("❌ Lỗi: ảnh");
+      } else {
+        AppConfig.printEx("❌ Lỗi: ảnh");
       }
     }
     final response = await request.send();
     final respStr = await response.stream.bytesToString();
     if (response.statusCode == 200) {
-
       final jsonRes = jsonDecode(respStr);
-      return ApiResponse<CaySamNhatKy>.fromJsonNoModel(
-        jsonRes
-      );
-
-    }else if (response.statusCode == 429) {
+      return ApiResponse<CaySamNhatKy>.fromJsonNoModel(jsonRes);
+    } else if (response.statusCode == 429) {
       final context = navigatorKey.currentContext;
       if (context != null) {
         showDialog(
@@ -406,7 +410,6 @@ extension APIExtension on API {
                     ),
                     textAlign: TextAlign.center,
                   ),
-
                   const SizedBox(height: 12),
                   Text(
                     "Bạn thao tác quá nhanh. Vui lòng thử lại sau 30 giây.",
@@ -448,11 +451,13 @@ extension APIExtension on API {
       }
       return null;
     } else {
-      print("❌ Lỗi: ${response.statusCode} - $respStr");
+      AppConfig.printEx("❌ Lỗi: ${response.statusCode} - $respStr");
       return null;
     }
   }
-  Future<List<CaySamNhatKy>> getNhatKysbyid(String id,{bool isRetry = false}) async {
+
+  Future<List<CaySamNhatKy>> getNhatKysbyid(String id,
+      {bool isRetry = false}) async {
     String linkURL = "${host}api/CaySam/GetNhatKyByCaySamId/$id";
     final uri = Uri.parse(linkURL);
 
@@ -468,24 +473,27 @@ extension APIExtension on API {
       final headers = {
         ...headerSvkt1,
         "AuthenticateToken": user?.authenticateToken ?? "",
-        "FuncsTagActive": user?.funcsTagActives.firstWhere(
-              (x) => x.tenController.toLowerCase() == "caysam",
-          orElse: () => FuncTagActive(
-            tenController: "",
-            tenActions: "",
-            funcsTagActive: "",
-          ),
-        ).funcsTagActive ?? "",
+        "FuncsTagActive": user?.funcsTagActives
+                .firstWhere(
+                  (x) => x.tenController.toLowerCase() == "caysam",
+                  orElse: () => FuncTagActive(
+                    tenController: "",
+                    tenActions: "",
+                    funcsTagActive: "",
+                  ),
+                )
+                .funcsTagActive ??
+            "",
       };
       final response = await http.get(uri, headers: headers);
       if (response.statusCode == 200) {
         Map<String, dynamic> responseJson = jsonDecode(response.body);
         final data = ApiResponse<CaySamNhatKy>.fromJson(
           responseJson,
-              (json) => CaySamNhatKy.fromJson(json),
+          (json) => CaySamNhatKy.fromJson(json),
         );
         return data.items ?? []; // ✅ trả về list
-      }else if (response.statusCode == 429) {
+      } else if (response.statusCode == 429) {
         final context = navigatorKey.currentContext;
         if (context != null) {
           showDialog(
@@ -532,7 +540,6 @@ extension APIExtension on API {
                       ),
                       textAlign: TextAlign.center,
                     ),
-
                     const SizedBox(height: 12),
                     Text(
                       "Bạn thao tác quá nhanh. Vui lòng thử lại sau 30 giây.",
@@ -573,31 +580,31 @@ extension APIExtension on API {
           );
         }
         return [];
-      }else if (response.statusCode == 401) {
+      } else if (response.statusCode == 401) {
         if (!isRetry) {
           var newUser = await await AuthService.getStoredUser();
           if (newUser != null) {
-            return await getNhatKysbyid(id,isRetry: true);
+            return await getNhatKysbyid(id, isRetry: true);
           } else {
             return [];
           }
         } else {
           return [];
         }
-      }
-      else {
-        print("Lỗi API nk: ${response.statusCode} - ${response.body}");
+      } else {
+        AppConfig.printEx(
+            "Lỗi API nk: ${response.statusCode} - ${response.body}");
         return [];
       }
     } catch (e) {
-      print("Exception khi gọi API: $e");
+      AppConfig.printEx("Exception khi gọi API: $e");
       return [];
     }
   }
 
   Future<ApiResponse<CaySamModel>?> addNhatKy({
     required Map<String, dynamic> data, // modelJson
-    required List<File?> files,          // BE yêu cầu đúng 2 ảnh
+    required List<File?> files, // BE yêu cầu đúng 2 ảnh
   }) async {
     final url = Uri.parse("${host}api/CaySam/AddNhatKyByCaySamId");
     final prefs = await SharedPreferences.getInstance();
@@ -610,19 +617,22 @@ extension APIExtension on API {
     request.headers.addAll({
       ...headerSvkt1,
       "AuthenticateToken": user?.authenticateToken ?? "",
-      "FuncsTagActive": user?.funcsTagActives.firstWhere(
-            (x) => x.tenController.toLowerCase() == "caysam",
-        orElse: () => FuncTagActive(
-          tenController: "",
-          tenActions: "",
-          funcsTagActive: "",
-        ),
-      ).funcsTagActive ?? "",
+      "FuncsTagActive": user?.funcsTagActives
+              .firstWhere(
+                (x) => x.tenController.toLowerCase() == "caysam",
+                orElse: () => FuncTagActive(
+                  tenController: "",
+                  tenActions: "",
+                  funcsTagActive: "",
+                ),
+              )
+              .funcsTagActive ??
+          "",
     });
-    print(jsonEncode(data));
+    AppConfig.printEx(jsonEncode(data));
     request.fields['modelJson'] = jsonEncode(data);
     for (var file in files) {
-      if(file != null){
+      if (file != null) {
         final fileBytes = await file.readAsBytes();
         final fileName = file.path.split('/').last;
         request.files.add(
@@ -632,21 +642,19 @@ extension APIExtension on API {
             filename: fileName,
           ),
         );
-      }else{
-        print("❌ Lỗi: ảnh");
+      } else {
+        AppConfig.printEx("❌ Lỗi: ảnh");
       }
     }
     final response = await request.send();
     final respStr = await response.stream.bytesToString();
     if (response.statusCode == 200) {
-
       final jsonRes = jsonDecode(respStr);
       return ApiResponse<CaySamModel>.fromJson(
         jsonRes,
-            (json) => CaySamModel.fromJson(json),
+        (json) => CaySamModel.fromJson(json),
       );
-
-    }else if (response.statusCode == 429) {
+    } else if (response.statusCode == 429) {
       final context = navigatorKey.currentContext;
       if (context != null) {
         showDialog(
@@ -693,7 +701,6 @@ extension APIExtension on API {
                     ),
                     textAlign: TextAlign.center,
                   ),
-
                   const SizedBox(height: 12),
                   Text(
                     "Bạn thao tác quá nhanh. Vui lòng thử lại sau 30 giây.",
@@ -735,17 +742,18 @@ extension APIExtension on API {
       }
       return null;
     } else {
-      print("❌ Lỗi: ${response.statusCode} - $respStr");
+      AppConfig.printEx("❌ Lỗi: ${response.statusCode} - $respStr");
       return null;
     }
   }
+
   Future<ApiResponse<String>?> updateLoSamChiTietByLoSamId({
     required int id,
     required Map<String, dynamic> data,
   }) async {
     final url = Uri.parse(
       "${host}api/VuonTrong/UpdateLoSamChiTietByLoSamId/$id"
-          "?modelJson=${Uri.encodeComponent(jsonEncode(data))}",
+      "?modelJson=${Uri.encodeComponent(jsonEncode(data))}",
     );
 
     final prefs = await SharedPreferences.getInstance();
@@ -758,14 +766,17 @@ extension APIExtension on API {
     final headers = {
       ...headerSvkt1,
       "AuthenticateToken": user?.authenticateToken ?? "",
-      "FuncsTagActive": user?.funcsTagActives.firstWhere(
-            (x) => x.tenController.toLowerCase() == "vuontrong",
-        orElse: () => FuncTagActive(
-          tenController: "",
-          tenActions: "",
-          funcsTagActive: "",
-        ),
-      ).funcsTagActive ?? "",
+      "FuncsTagActive": user?.funcsTagActives
+              .firstWhere(
+                (x) => x.tenController.toLowerCase() == "vuontrong",
+                orElse: () => FuncTagActive(
+                  tenController: "",
+                  tenActions: "",
+                  funcsTagActive: "",
+                ),
+              )
+              .funcsTagActive ??
+          "",
     };
 
     try {
@@ -777,9 +788,9 @@ extension APIExtension on API {
 
         return ApiResponse<String>.fromJson(
           respJson,
-              (json) => json.toString(), // vì API trả về text/plain hoặc string
+          (json) => json.toString(), // vì API trả về text/plain hoặc string
         );
-      }else if (response.statusCode == 429) {
+      } else if (response.statusCode == 429) {
         final context = navigatorKey.currentContext;
         if (context != null) {
           showDialog(
@@ -826,7 +837,6 @@ extension APIExtension on API {
                       ),
                       textAlign: TextAlign.center,
                     ),
-
                     const SizedBox(height: 12),
                     Text(
                       "Bạn thao tác quá nhanh. Vui lòng thử lại sau 30 giây.",
@@ -868,18 +878,19 @@ extension APIExtension on API {
         }
         return null;
       } else {
-        print("❌ Lỗi: ${response.statusCode} - ${response.body}");
+        AppConfig.printEx("❌ Lỗi: ${response.statusCode} - ${response.body}");
         final respJson = jsonDecode(response.body);
         return ApiResponse<String>.fromJson(
           respJson,
-              (json) => json.toString(),
+          (json) => json.toString(),
         );
       }
     } catch (e) {
-      print("❌ Exception: $e");
+      AppConfig.printEx("❌ Exception: $e");
       return null;
     }
   }
+
   Future<ApiResponse<CaySamModel>?> ListCaySamRatYeu() async {
     final url = Uri.parse("${host}api/CaySam/ListCaySamRatYeu");
 
@@ -894,14 +905,17 @@ extension APIExtension on API {
       final headers = {
         ...headerSvkt1,
         "AuthenticateToken": user?.authenticateToken ?? "",
-        "FuncsTagActive": user?.funcsTagActives.firstWhere(
-              (x) => x.tenController.toLowerCase() == "caysam",
-          orElse: () => FuncTagActive(
-            tenController: "",
-            tenActions: "",
-            funcsTagActive: "",
-          ),
-        ).funcsTagActive ?? "",
+        "FuncsTagActive": user?.funcsTagActives
+                .firstWhere(
+                  (x) => x.tenController.toLowerCase() == "caysam",
+                  orElse: () => FuncTagActive(
+                    tenController: "",
+                    tenActions: "",
+                    funcsTagActive: "",
+                  ),
+                )
+                .funcsTagActive ??
+            "",
       };
 
       final response = await http.get(url, headers: headers);
@@ -911,12 +925,12 @@ extension APIExtension on API {
 
         final data = ApiResponse<CaySamModel>.fromJson(
           responseJson,
-              (json) => CaySamModel.fromJson(json),
+          (json) => CaySamModel.fromJson(json),
         );
 
-        print("✅ Tổng số cây yếu: ${data.items?.length ?? 0}");
+        AppConfig.printEx("✅ Tổng số cây yếu: ${data.items?.length ?? 0}");
         return data;
-      }else if (response.statusCode == 429) {
+      } else if (response.statusCode == 429) {
         final context = navigatorKey.currentContext;
         if (context != null) {
           showDialog(
@@ -963,7 +977,6 @@ extension APIExtension on API {
                       ),
                       textAlign: TextAlign.center,
                     ),
-
                     const SizedBox(height: 12),
                     Text(
                       "Bạn thao tác quá nhanh. Vui lòng thử lại sau 30 giây.",
@@ -1005,7 +1018,8 @@ extension APIExtension on API {
         }
         return null;
       } else {
-        print("❌ Lỗi API: ${response.statusCode} - ${response.body}");
+        AppConfig.printEx(
+            "❌ Lỗi API: ${response.statusCode} - ${response.body}");
         return ApiResponse<CaySamModel>(
           messCode: MessCode.Unknown,
           typeRp: "error",
@@ -1015,7 +1029,7 @@ extension APIExtension on API {
         );
       }
     } catch (e) {
-      print("❌ Exception khi gọi API: $e");
+      AppConfig.printEx("❌ Exception khi gọi API: $e");
       return ApiResponse<CaySamModel>(
         messCode: MessCode.Unknown,
         typeRp: "error",
@@ -1025,15 +1039,15 @@ extension APIExtension on API {
       );
     }
   }
-  Future<ApiResponse<CaySamModel>?> listCaySam({
-    String? status,
-    int? rowCount,
-    int? skip,
-    int? top,
-    List<String>? orderBy,
-    List<String>? searchBy,
-    bool isRetry = false
-  }) async {
+
+  Future<ApiResponse<CaySamModel>?> listCaySam(
+      {String? status,
+      int? rowCount,
+      int? skip,
+      int? top,
+      List<String>? orderBy,
+      List<String>? searchBy,
+      bool isRetry = false}) async {
     String linkURL = "${host}api/CaySam/ListCaySam";
     final uri = Uri.parse(linkURL).replace(queryParameters: {
       if (status != null) 'Status': status,
@@ -1056,14 +1070,17 @@ extension APIExtension on API {
       final headers = {
         ...headerSvkt1,
         "AuthenticateToken": user?.authenticateToken ?? "",
-        "FuncsTagActive": user?.funcsTagActives.firstWhere(
-              (x) => x.tenController.toLowerCase() == "caysam",
-          orElse: () => FuncTagActive(
-            tenController: "",
-            tenActions: "",
-            funcsTagActive: "",
-          ),
-        ).funcsTagActive ?? "",
+        "FuncsTagActive": user?.funcsTagActives
+                .firstWhere(
+                  (x) => x.tenController.toLowerCase() == "caysam",
+                  orElse: () => FuncTagActive(
+                    tenController: "",
+                    tenActions: "",
+                    funcsTagActive: "",
+                  ),
+                )
+                .funcsTagActive ??
+            "",
       };
 
       final response = await http.get(uri, headers: headers);
@@ -1072,10 +1089,10 @@ extension APIExtension on API {
 
         final data = ApiResponse<CaySamModel>.fromJson(
           responseJson,
-              (json) => CaySamModel.fromJson(json),
+          (json) => CaySamModel.fromJson(json),
         );
         return data;
-      }else if (response.statusCode == 429) {
+      } else if (response.statusCode == 429) {
         final context = navigatorKey.currentContext;
         if (context != null) {
           showDialog(
@@ -1122,7 +1139,6 @@ extension APIExtension on API {
                       ),
                       textAlign: TextAlign.center,
                     ),
-
                     const SizedBox(height: 12),
                     Text(
                       "Bạn thao tác quá nhanh. Vui lòng thử lại sau 30 giây.",
@@ -1163,7 +1179,7 @@ extension APIExtension on API {
           );
         }
         return null;
-      }else if (response.statusCode == 401) {
+      } else if (response.statusCode == 401) {
         if (!isRetry) {
           var newUser = await await AuthService.getStoredUser();
           if (newUser != null) {
@@ -1174,17 +1190,18 @@ extension APIExtension on API {
         } else {
           return null;
         }
-      }
-      else {
-        print("Lỗi API cs: ${response.statusCode} - ${response.body}");
+      } else {
+        AppConfig.printEx(
+            "Lỗi API cs: ${response.statusCode} - ${response.body}");
         return null;
       }
     } catch (e) {
-      print("Exception khi gọi API: $e");
+      AppConfig.printEx("Exception khi gọi API: $e");
       return null;
     }
   }
-  Future<CaySamModel?> getCaySamById(String? id,{bool isRetry = false}) async {
+
+  Future<CaySamModel?> getCaySamById(String? id, {bool isRetry = false}) async {
     // ✅ THAY ĐỔI: Cập nhật endpoint API với ID được truyền vào
     String linkURL = "${host}api/CaySam/GetCaySamById/$id";
     final uri = Uri.parse(linkURL);
@@ -1204,35 +1221,33 @@ extension APIExtension on API {
         ...headerSvkt1,
         "AuthenticateToken": user?.authenticateToken ?? "",
         "FuncsTagActive": user?.funcsTagActives
-            .firstWhere(
-              (x) => x.tenController.toLowerCase() == "caysam",
-          orElse: () =>
-              FuncTagActive(
-                tenController: "",
-                tenActions: "",
-                funcsTagActive: "",
-              ),
-        )
-            .funcsTagActive ?? "",
+                .firstWhere(
+                  (x) => x.tenController.toLowerCase() == "caysam",
+                  orElse: () => FuncTagActive(
+                    tenController: "",
+                    tenActions: "",
+                    funcsTagActive: "",
+                  ),
+                )
+                .funcsTagActive ??
+            "",
       };
 
       // Giữ nguyên logic gọi API
       final response = await http.get(uri, headers: headers);
 
       if (response.statusCode == 200) {
-
         Map<String, dynamic> responseJson = jsonDecode(response.body);
         final data = ApiResponse<CaySamModel>.fromJson(
           responseJson,
-              (json) => CaySamModel.fromJson(json),
+          (json) => CaySamModel.fromJson(json),
         );
-        if(data.messCode == MessCode.IsOK){
+        if (data.messCode == MessCode.IsOK) {
           return data.oneItem;
-        }else{
+        } else {
           return null;
         }
-
-      }else if (response.statusCode == 429) {
+      } else if (response.statusCode == 429) {
         final context = navigatorKey.currentContext;
         if (context != null) {
           showDialog(
@@ -1279,7 +1294,6 @@ extension APIExtension on API {
                       ),
                       textAlign: TextAlign.center,
                     ),
-
                     const SizedBox(height: 12),
                     Text(
                       "Bạn thao tác quá nhanh. Vui lòng thử lại sau 30 giây.",
@@ -1320,35 +1334,36 @@ extension APIExtension on API {
           );
         }
         return null;
-      }else if (response.statusCode == 401) {
+      } else if (response.statusCode == 401) {
         if (!isRetry) {
           var newUser = await await AuthService.getStoredUser();
           if (newUser != null) {
-            return await getCaySamById(id,isRetry: true);
+            return await getCaySamById(id, isRetry: true);
           } else {
             return null;
           }
         } else {
           return null;
         }
-      }
-      else {
+      } else {
         // Giữ nguyên logic xử lý lỗi
-        print(
+        AppConfig.printEx(
             "Lỗi API getCaySamById: ${response.statusCode} - ${response.body}");
         return null;
       }
     } catch (e) {
       // Giữ nguyên logic xử lý exception
-      print("Exception khi gọi API getCaySamById: $e");
+      AppConfig.printEx("Exception khi gọi API getCaySamById: $e");
       return null;
     }
   }
+
   Future<ApiResponse<CaySamModel>?> updateNFCCaySam({
     required String id,
-    required String serialNumber,                  // id cần chỉnh sửa
+    required String serialNumber, // id cần chỉnh sửa
   }) async {
-    final url = Uri.parse("${host}api/CaySam/UpdateNFCCaySam/${id}&${serialNumber}");
+    final url =
+        Uri.parse("${host}api/CaySam/UpdateNFCCaySam/${id}&${serialNumber}");
     final prefs = await SharedPreferences.getInstance();
     final userJson = prefs.getString("ginseng_user");
     Kttoken? user;
@@ -1360,14 +1375,17 @@ extension APIExtension on API {
     request.headers.addAll({
       ...headerSvkt1,
       "AuthenticateToken": user?.authenticateToken ?? "",
-      "FuncsTagActive": user?.funcsTagActives.firstWhere(
-            (x) => x.tenController.toLowerCase() == "caysam",
-        orElse: () => FuncTagActive(
-          tenController: "",
-          tenActions: "",
-          funcsTagActive: "",
-        ),
-      ).funcsTagActive ?? "",
+      "FuncsTagActive": user?.funcsTagActives
+              .firstWhere(
+                (x) => x.tenController.toLowerCase() == "caysam",
+                orElse: () => FuncTagActive(
+                  tenController: "",
+                  tenActions: "",
+                  funcsTagActive: "",
+                ),
+              )
+              .funcsTagActive ??
+          "",
     });
 
     final response = await request.send();
@@ -1377,9 +1395,9 @@ extension APIExtension on API {
       final jsonRes = jsonDecode(respStr);
       return ApiResponse<CaySamModel>.fromJson(
         jsonRes,
-            (json) => CaySamModel.fromJson(json),
+        (json) => CaySamModel.fromJson(json),
       );
-    }else if (response.statusCode == 429) {
+    } else if (response.statusCode == 429) {
       final context = navigatorKey.currentContext;
       if (context != null) {
         showDialog(
@@ -1426,7 +1444,6 @@ extension APIExtension on API {
                     ),
                     textAlign: TextAlign.center,
                   ),
-
                   const SizedBox(height: 12),
                   Text(
                     "Bạn thao tác quá nhanh. Vui lòng thử lại sau 30 giây.",
@@ -1468,12 +1485,13 @@ extension APIExtension on API {
       }
       return null;
     } else {
-      print("❌ Lỗi: ${response.statusCode} - $respStr");
+      AppConfig.printEx("❌ Lỗi: ${response.statusCode} - $respStr");
       return null;
     }
   }
+
   Future<ApiResponse<CaySamModel>?> CheckNFCCaySam({
-    required String serialNumber,                  // id cần chỉnh sửa
+    required String serialNumber, // id cần chỉnh sửa
   }) async {
     final url = Uri.parse("${host}api/CaySam/CheckNFCCaySam/${serialNumber}");
     final prefs = await SharedPreferences.getInstance();
@@ -1487,14 +1505,17 @@ extension APIExtension on API {
     request.headers.addAll({
       ...headerSvkt1,
       "AuthenticateToken": user?.authenticateToken ?? "",
-      "FuncsTagActive": user?.funcsTagActives.firstWhere(
-            (x) => x.tenController.toLowerCase() == "caysam",
-        orElse: () => FuncTagActive(
-          tenController: "",
-          tenActions: "",
-          funcsTagActive: "",
-        ),
-      ).funcsTagActive ?? "",
+      "FuncsTagActive": user?.funcsTagActives
+              .firstWhere(
+                (x) => x.tenController.toLowerCase() == "caysam",
+                orElse: () => FuncTagActive(
+                  tenController: "",
+                  tenActions: "",
+                  funcsTagActive: "",
+                ),
+              )
+              .funcsTagActive ??
+          "",
     });
 
     final response = await request.send();
@@ -1504,9 +1525,9 @@ extension APIExtension on API {
       final jsonRes = jsonDecode(respStr);
       return ApiResponse<CaySamModel>.fromJson(
         jsonRes,
-            (json) => CaySamModel.fromJson(json),
+        (json) => CaySamModel.fromJson(json),
       );
-    }else if (response.statusCode == 429) {
+    } else if (response.statusCode == 429) {
       final context = navigatorKey.currentContext;
       if (context != null) {
         showDialog(
@@ -1553,7 +1574,6 @@ extension APIExtension on API {
                     ),
                     textAlign: TextAlign.center,
                   ),
-
                   const SizedBox(height: 12),
                   Text(
                     "Bạn thao tác quá nhanh. Vui lòng thử lại sau 30 giây.",
@@ -1595,10 +1615,11 @@ extension APIExtension on API {
       }
       return null;
     } else {
-      print("❌ Lỗi: ${response.statusCode} - $respStr");
+      AppConfig.printEx("❌ Lỗi: ${response.statusCode} - $respStr");
       return null;
     }
   }
+
   Future<ApiResponse<CaySamDinhKem>?> addDinhKemFileCaySam({
     required Map<String, dynamic> data,
     required File? file,
@@ -1618,14 +1639,17 @@ extension APIExtension on API {
     request.headers.addAll({
       ...headerSvkt1,
       "AuthenticateToken": user?.authenticateToken ?? "",
-      "FuncsTagActive": user?.funcsTagActives.firstWhere(
-            (x) => x.tenController.toLowerCase() == "caysam",
-        orElse: () => FuncTagActive(
-          tenController: "",
-          tenActions: "",
-          funcsTagActive: "",
-        ),
-      ).funcsTagActive ?? "",
+      "FuncsTagActive": user?.funcsTagActives
+              .firstWhere(
+                (x) => x.tenController.toLowerCase() == "caysam",
+                orElse: () => FuncTagActive(
+                  tenController: "",
+                  tenActions: "",
+                  funcsTagActive: "",
+                ),
+              )
+              .funcsTagActive ??
+          "",
     });
     request.fields['modelJson'] = jsonEncode(data);
     if (file != null) {
@@ -1645,9 +1669,9 @@ extension APIExtension on API {
         final jsonRes = jsonDecode(respStr);
         return ApiResponse<CaySamDinhKem>.fromJson(
           jsonRes,
-              (json) => CaySamDinhKem.fromJson(json),
+          (json) => CaySamDinhKem.fromJson(json),
         );
-      }else if (response.statusCode == 429) {
+      } else if (response.statusCode == 429) {
         final context = navigatorKey.currentContext;
         if (context != null) {
           showDialog(
@@ -1694,7 +1718,6 @@ extension APIExtension on API {
                       ),
                       textAlign: TextAlign.center,
                     ),
-
                     const SizedBox(height: 12),
                     Text(
                       "Bạn thao tác quá nhanh. Vui lòng thử lại sau 30 giây.",
@@ -1736,16 +1759,20 @@ extension APIExtension on API {
         }
         return null;
       } else {
-        print("❌ Lỗi Server: ${response.statusCode} - $respStr");
+        AppConfig.printEx("❌ Lỗi Server: ${response.statusCode} - $respStr");
         return null;
       }
     } catch (e) {
-      print("❌ Lỗi kết nối: $e");
+      AppConfig.printEx("❌ Lỗi kết nối: $e");
       return null;
     }
   }
-  Future<ApiResponse<LoSamCameraModel>?> getOptionCameraByLoSamAndUser(String idLosam,{bool isRetry = false}) async {
-    final uri = Uri.parse("${host}api/CaySam/OptionCameraByLoSamAndUser?LoSamId=${idLosam}");
+
+  Future<ApiResponse<LoSamCameraModel>?> getOptionCameraByLoSamAndUser(
+      String idLosam,
+      {bool isRetry = false}) async {
+    final uri = Uri.parse(
+        "${host}api/CaySam/OptionCameraByLoSamAndUser?LoSamId=${idLosam}");
     try {
       final prefs = await SharedPreferences.getInstance();
       final userJson = prefs.getString("ginseng_user");
@@ -1756,23 +1783,26 @@ extension APIExtension on API {
       final headers = {
         ...headerSvkt1,
         "AuthenticateToken": user?.authenticateToken ?? "",
-        "FuncsTagActive": user?.funcsTagActives.firstWhere(
-              (x) => x.tenController.toLowerCase() == "caysam",
-          orElse: () => FuncTagActive(
-            tenController: "",
-            tenActions: "",
-            funcsTagActive: "",
-          ),
-        ).funcsTagActive ?? "",
+        "FuncsTagActive": user?.funcsTagActives
+                .firstWhere(
+                  (x) => x.tenController.toLowerCase() == "caysam",
+                  orElse: () => FuncTagActive(
+                    tenController: "",
+                    tenActions: "",
+                    funcsTagActive: "",
+                  ),
+                )
+                .funcsTagActive ??
+            "",
       };
       final response = await http.get(uri, headers: headers);
       if (response.statusCode == 200) {
         final responseJson = jsonDecode(response.body);
         return ApiResponse<LoSamCameraModel>.fromJson(
           responseJson,
-              (json) => LoSamCameraModel.fromJson(json),
+          (json) => LoSamCameraModel.fromJson(json),
         );
-      }else if (response.statusCode == 429) {
+      } else if (response.statusCode == 429) {
         final context = navigatorKey.currentContext;
         if (context != null) {
           showDialog(
@@ -1819,7 +1849,6 @@ extension APIExtension on API {
                       ),
                       textAlign: TextAlign.center,
                     ),
-
                     const SizedBox(height: 12),
                     Text(
                       "Bạn thao tác quá nhanh. Vui lòng thử lại sau 30 giây.",
@@ -1860,28 +1889,29 @@ extension APIExtension on API {
           );
         }
         return null;
-      }else if (response.statusCode == 401) {
+      } else if (response.statusCode == 401) {
         if (!isRetry) {
-          print("Gặp lỗi 401 -> Đang thử refresh token...");
+          AppConfig.printEx("Gặp lỗi 401 -> Đang thử refresh token...");
           var newUser = await await AuthService.getStoredUser();
           if (newUser != null) {
-            print("Refresh thành công -> Gọi lại API Dashboard lần 2.");
-            return await getOptionCameraByLoSamAndUser(idLosam,isRetry: true);
+            AppConfig.printEx(
+                "Refresh thành công -> Gọi lại API Dashboard lần 2.");
+            return await getOptionCameraByLoSamAndUser(idLosam, isRetry: true);
           } else {
-            print("Refresh thất bại -> Đăng xuất.");
+            AppConfig.printEx("Refresh thất bại -> Đăng xuất.");
             return null;
           }
         } else {
-          print("Đã retry nhưng vẫn lỗi 401 -> Dừng.");
+          AppConfig.printEx("Đã retry nhưng vẫn lỗi 401 -> Dừng.");
           return null;
         }
-      }
-      else {
-        print("Lỗi API db: ${response.statusCode} - ${response.body}");
+      } else {
+        AppConfig.printEx(
+            "Lỗi API db: ${response.statusCode} - ${response.body}");
         return null;
       }
     } catch (e) {
-      print("Exception khi gọi API: $e");
+      AppConfig.printEx("Exception khi gọi API: $e");
       return null;
     }
   }

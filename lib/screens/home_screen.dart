@@ -30,6 +30,8 @@ import '../widgets/access_denied.dart';
 import '../widgets/protected_route.dart';
 import '../widgets/user_profile.dart';
 
+import '/app_config.dart';
+
 class HomeScreen extends StatefulWidget {
   final int? tabcurrent;
   final bool shouldShowDialog;
@@ -84,12 +86,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         );
       case NavTab.plants:
         return PlantManagementViewScreen(key: plantScreenKey);
-    // case NavTab.diary:
-    //   return ProtectedRoute(
-    //     requiredPermission: Permission.updateDiary,
-    //     fallback: AccessDenied(feature: 'Nhật ký'),
-    //     child: DiaryManagementScreen(),
-    //   );
+      // case NavTab.diary:
+      //   return ProtectedRoute(
+      //     requiredPermission: Permission.updateDiary,
+      //     fallback: AccessDenied(feature: 'Nhật ký'),
+      //     child: DiaryManagementScreen(),
+      //   );
       /*case NavTab.environment:
         return ProtectedRoute(
           requiredPermission: Permission.viewEnvironment,
@@ -105,8 +107,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     }
   }
 
-
-  void _handleAddPlantSubmit(Map<String, dynamic> plantData, List<File?> image,String? caysamid) {
+  void _handleAddPlantSubmit(
+      Map<String, dynamic> plantData, List<File?> image, String? caysamid) {
     setState(() {
       _showAddPlantForm = false;
     });
@@ -121,24 +123,23 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     //   _initDeepLinkListener();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-        if (mounted) {
-          _setupSignalRListener(); // <-- Bây giờ mới gọi
-        }
+      if (mounted) {
+        _setupSignalRListener(); // <-- Bây giờ mới gọi
+      }
       if (widget.shouldShowDialog) {
         plantScreenKey.currentState?.Selectlo(widget.zone);
       }
     });
     // _phantomService.verifyWalletConnection().catchError((e) {
-    //   print("Lỗi kết nối Phantom: $e");
+    //   AppConfig.printEx("Lỗi kết nối Phantom: $e");
     //   ScaffoldMessenger.of(context).showSnackBar(
     //     const SnackBar(content: Text("Lỗi: Không tìm thấy ứng dụng Phantom Wallet")),
     //   );
     // });
 
-
     // (3) ĐÃ THAY THẾ: Gọi hàm khởi tạo SignalR
-
   }
+
   void _setupSignalRListener() async {
     try {
       await signalRService.initSignalR();
@@ -157,7 +158,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
         OverlaySupportEntry? entry;
 
-        entry = showOverlayNotification((context) {
+        entry = showOverlayNotification(
+          (context) {
             return GestureDetector(
               onTap: () async {
                 entry?.dismiss();
@@ -165,7 +167,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 if (model != null) {
                   navigatorKey.currentState?.push(
                     MaterialPageRoute(
-                      builder: (context) => PlantDetailScreen(plant: model, onBack: () => Navigator.pop(context)),
+                      builder: (context) => PlantDetailScreen(
+                          plant: model, onBack: () => Navigator.pop(context)),
                     ),
                   );
                 }
@@ -173,7 +176,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               child: Material(
                 color: Colors.transparent,
                 child: Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 50),
+                  margin:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 50),
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     color: Colors.white,
@@ -194,9 +198,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Text(title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                            Text(title,
+                                style: TextStyle(
+                                    fontWeight: FontWeight.bold, fontSize: 16)),
                             SizedBox(height: 4),
-                            Text(body, style: TextStyle(color: Colors.black87, fontSize: 14)),
+                            Text(body,
+                                style: TextStyle(
+                                    color: Colors.black87, fontSize: 14)),
                           ],
                         ),
                       ),
@@ -212,7 +220,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
       // (2) NHƯNG BẠN BỊ THIẾU KHỐI 'CATCH' NÀY
     } catch (e) {
-      print("Lỗi nghiêm trọng khi khởi tạo SignalR: $e");
+      AppConfig.printEx("Lỗi nghiêm trọng khi khởi tạo SignalR: $e");
     }
   }
 
@@ -229,6 +237,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   Future<void> _startManualNfcScan(BuildContext context) async {
     NfcService.startNfcSession(context);
   }
+
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
@@ -294,7 +303,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
 // Bước 1: Gom tất cả các quyền của User thành 1 danh sách List<UserRole>
         final List<UserRole> userRoles = maVaiTros
-            .map((v) => RoleUtils.toUserRole(v.maVaiTro)) // convert id → UserRole
+            .map((v) =>
+                RoleUtils.toUserRole(v.maVaiTro)) // convert id → UserRole
             .whereType<UserRole>() // bỏ null
             .toList();
 
@@ -394,9 +404,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   ),
                 ),
               ),
-
               SizedBox(width: 2),
-
               Padding(
                 padding: EdgeInsets.only(right: 4),
                 child: UserProfile(),
@@ -404,7 +412,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             ],
           ),
           //body: _getScreenForTab(_currentTab),
-          body: LazyIndexedStack( // <--- Đổi thành widget này
+          body: LazyIndexedStack(
+            // <--- Đổi thành widget này
             index: _currentTab.index,
             children: [
               // Tab 1: Dashboard (Vẫn giữ AutomaticKeepAliveClientMixin bên trong nó nhé)
@@ -426,57 +435,60 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
           bottomNavigationBar: availableTabs.isNotEmpty
               ? Container(
-            // Không dùng margin để nó dính sát cạnh dưới
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(20 * scale)),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05), // Bóng rất nhẹ
-                  blurRadius: 10,
-                  offset: const Offset(0, -5), // Đẩy bóng lên TRÊN để tách biệt nội dung
-                ),
-              ],
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.vertical(top: Radius.circular(20 * scale)),
-              child: BottomNavigationBar(
-                type: BottomNavigationBarType.fixed,
-                currentIndex: _getValidTabIndex(availableTabs),
-                backgroundColor: Colors.white,
-                elevation: 0, // Tắt bóng mặc định
+                  // Không dùng margin để nó dính sát cạnh dưới
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius:
+                        BorderRadius.vertical(top: Radius.circular(20 * scale)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05), // Bóng rất nhẹ
+                        blurRadius: 10,
+                        offset: const Offset(
+                            0, -5), // Đẩy bóng lên TRÊN để tách biệt nội dung
+                      ),
+                    ],
+                  ),
+                  child: ClipRRect(
+                    borderRadius:
+                        BorderRadius.vertical(top: Radius.circular(20 * scale)),
+                    child: BottomNavigationBar(
+                      type: BottomNavigationBarType.fixed,
+                      currentIndex: _getValidTabIndex(availableTabs),
+                      backgroundColor: Colors.white,
+                      elevation: 0, // Tắt bóng mặc định
 
-                onTap: (index) {
-                  if (index >= 0 && index < availableTabs.length) {
-                    // HapticFeedback.selectionClick(); // Bỏ rung nếu không thích
-                    setState(() {
-                      _currentTab = availableTabs[index].id;
-                    });
-                  }
-                },
+                      onTap: (index) {
+                        if (index >= 0 && index < availableTabs.length) {
+                          // HapticFeedback.selectionClick(); // Bỏ rung nếu không thích
+                          setState(() {
+                            _currentTab = availableTabs[index].id;
+                          });
+                        }
+                      },
 
-                // --- STYLE ---
-                // Màu khi chọn
-                selectedItemColor: Theme.of(context).primaryColor,
-                // Màu khi chưa chọn (đậm hơn chút cho rõ)
-                unselectedItemColor: Colors.grey.shade500,
+                      // --- STYLE ---
+                      // Màu khi chọn
+                      selectedItemColor: Theme.of(context).primaryColor,
+                      // Màu khi chưa chọn (đậm hơn chút cho rõ)
+                      unselectedItemColor: Colors.grey.shade500,
 
-                selectedLabelStyle: TextStyle(
-                  fontSize: 12 * scale, // Chữ to hơn một chút cho rõ ràng
-                  fontWeight: FontWeight.w700,
-                  height: 1.5,
-                ),
-                unselectedLabelStyle: TextStyle(
-                  fontSize: 12 * scale,
-                  fontWeight: FontWeight.w500,
-                  height: 1.5,
-                ),
+                      selectedLabelStyle: TextStyle(
+                        fontSize: 12 * scale, // Chữ to hơn một chút cho rõ ràng
+                        fontWeight: FontWeight.w700,
+                        height: 1.5,
+                      ),
+                      unselectedLabelStyle: TextStyle(
+                        fontSize: 12 * scale,
+                        fontWeight: FontWeight.w500,
+                        height: 1.5,
+                      ),
 
-                items: _buildBottomNavItems(availableTabs),
-              ),
-            ),
-          )
-              : null,// Hide bottom nav completely if no tabs available
+                      items: _buildBottomNavItems(availableTabs),
+                    ),
+                  ),
+                )
+              : null, // Hide bottom nav completely if no tabs available
         );
       },
     );

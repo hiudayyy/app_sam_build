@@ -7,12 +7,15 @@ import '../models/user.dart';
 import '../widgets/protected_route.dart';
 import 'batch_diary_update_screen.dart';
 
+import '/app_config.dart';
+
 class DiaryManagementScreen extends StatefulWidget {
   @override
   _DiaryManagementScreenState createState() => _DiaryManagementScreenState();
 }
 
-class _DiaryManagementScreenState extends State<DiaryManagementScreen> with TickerProviderStateMixin {
+class _DiaryManagementScreenState extends State<DiaryManagementScreen>
+    with TickerProviderStateMixin {
   TabController? _tabController;
   String _searchTerm = '';
   String _statusFilter = 'all';
@@ -32,7 +35,7 @@ class _DiaryManagementScreenState extends State<DiaryManagementScreen> with Tick
   void _initializeDiaryEntries() {
     _diaryEntries = MockData.mockDiary.map((diary) {
       final plant = MockData.mockPlants.firstWhere(
-            (p) => p.nhatKyId == diary.id,
+        (p) => p.nhatKyId == diary.id,
         orElse: () => CaySam.empty(),
       );
 
@@ -49,13 +52,15 @@ class _DiaryManagementScreenState extends State<DiaryManagementScreen> with Tick
     }).toList();
   }
 
-
   List<DiaryEntry> get _filteredEntries {
     return _diaryEntries.where((entry) {
       if (entry.plant == null) return false;
 
       final matchesSearch = _searchTerm.isEmpty ||
-          (entry.plant!.tenCay?.toLowerCase().contains(_searchTerm.toLowerCase()) ?? false) ||
+          (entry.plant!.tenCay
+                  ?.toLowerCase()
+                  .contains(_searchTerm.toLowerCase()) ??
+              false) ||
           entry.plant!.id.toLowerCase().contains(_searchTerm.toLowerCase());
 
       bool matchesStatus = true;
@@ -74,6 +79,7 @@ class _DiaryManagementScreenState extends State<DiaryManagementScreen> with Tick
       return matchesSearch && matchesStatus;
     }).toList();
   }
+
   void _handleBatchUpdate() {
     Navigator.of(context).push(
       MaterialPageRoute(
@@ -87,6 +93,7 @@ class _DiaryManagementScreenState extends State<DiaryManagementScreen> with Tick
       ),
     );
   }
+
   /*void _handleBatchUpdate() {
     setState(() {
       _selectedPlantsForUpdate = _filteredEntries.map((e) => e.plant?.id ?? '').where((id) => id.isNotEmpty).toList();
@@ -95,7 +102,7 @@ class _DiaryManagementScreenState extends State<DiaryManagementScreen> with Tick
   }
 */
   void _handleBatchSubmit(Map<String, dynamic> data) {
-    print('Batch diary update: $data');
+    AppConfig.printEx('Batch diary update: $data');
     setState(() {
       _showBatchForm = false;
       _selectedPlantsForUpdate.clear();
@@ -137,7 +144,7 @@ class _DiaryManagementScreenState extends State<DiaryManagementScreen> with Tick
     // Show individual edit form
     if (_showIndividualEdit != null) {
       final entry = _diaryEntries.firstWhere(
-            (e) => e.diary.id == _showIndividualEdit,
+        (e) => e.diary.id == _showIndividualEdit,
         orElse: () => _diaryEntries.first,
       );
       return _buildIndividualEditForm(entry);
@@ -180,11 +187,17 @@ class _DiaryManagementScreenState extends State<DiaryManagementScreen> with Tick
                           children: [
                             Text(
                               'Quản lý Nhật ký',
-                              style: TextStyle(fontSize: MediaQuery.of(context).size.width * 0.04, fontWeight: FontWeight.bold),
+                              style: TextStyle(
+                                  fontSize:
+                                      MediaQuery.of(context).size.width * 0.04,
+                                  fontWeight: FontWeight.bold),
                             ),
                             Text(
                               'Theo dõi và cập nhật tình trạng cây sâm định kỳ',
-                              style: TextStyle(fontSize: MediaQuery.of(context).size.width * 0.03, color: Colors.grey.shade600),
+                              style: TextStyle(
+                                  fontSize:
+                                      MediaQuery.of(context).size.width * 0.03,
+                                  color: Colors.grey.shade600),
                             ),
                           ],
                         ),
@@ -250,8 +263,10 @@ class _DiaryManagementScreenState extends State<DiaryManagementScreen> with Tick
 
   Widget _buildStatsCards() {
     final totalTrees = _diaryEntries.length;
-    final healthyTrees = _diaryEntries.where((e) => e.diary.diemSucKhoe >= 4).length;
-    final warningTrees = _diaryEntries.where((e) => e.diary.diemSucKhoe < 4).length;
+    final healthyTrees =
+        _diaryEntries.where((e) => e.diary.diemSucKhoe >= 4).length;
+    final warningTrees =
+        _diaryEntries.where((e) => e.diary.diemSucKhoe < 4).length;
     final needsReview = _diaryEntries.where((e) => e.needsReview).length;
 
     return Row(
@@ -345,98 +360,107 @@ class _DiaryManagementScreenState extends State<DiaryManagementScreen> with Tick
 
   Widget _buildSearchAndFilter() {
     return Container(
-      padding: EdgeInsets.all(MediaQuery.of(context).size.width * 0.035),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          TextField(
-            style: TextStyle(
-              fontSize: MediaQuery.of(context).size.width * 0.04, // 1.8% chiều cao màn hình
+        padding: EdgeInsets.all(MediaQuery.of(context).size.width * 0.035),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(8),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
             ),
-            decoration: InputDecoration(
-              hintText: 'Tìm kiếm cây...',
-              hintStyle: TextStyle(
-                fontSize: MediaQuery.of(context).size.width * 0.04,
+          ],
+        ),
+        child: Column(
+          children: [
+            TextField(
+              style: TextStyle(
+                fontSize: MediaQuery.of(context).size.width *
+                    0.04, // 1.8% chiều cao màn hình
               ),
-              prefixIcon: Icon(Icons.search,
-                size: MediaQuery.of(context).size.width * 0.04,
+              decoration: InputDecoration(
+                hintText: 'Tìm kiếm cây...',
+                hintStyle: TextStyle(
+                  fontSize: MediaQuery.of(context).size.width * 0.04,
+                ),
+                prefixIcon: Icon(
+                  Icons.search,
+                  size: MediaQuery.of(context).size.width * 0.04,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide(color: Colors.grey.shade300),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide(color: Colors.green.shade600),
+                ),
               ),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide(color: Colors.grey.shade300),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide(color: Colors.green.shade600),
-              ),
+              onChanged: (value) {
+                setState(() {
+                  _searchTerm = value;
+                });
+              },
             ),
-            onChanged: (value) {
-              setState(() {
-                _searchTerm = value;
-              });
-            },
-          ),
-          SizedBox(height: 12),
-          DropdownButtonFormField<String>(
-            value: _statusFilter,
-            decoration: InputDecoration(
-              labelText: 'Lọc theo trạng thái',
-              labelStyle: TextStyle(
-                fontSize: MediaQuery.of(context).size.width * 0.04,
+            SizedBox(height: 12),
+            DropdownButtonFormField<String>(
+              value: _statusFilter,
+              decoration: InputDecoration(
+                labelText: 'Lọc theo trạng thái',
+                labelStyle: TextStyle(
+                  fontSize: MediaQuery.of(context).size.width * 0.04,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide(color: Colors.grey.shade300),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide(color: Colors.green.shade600),
+                ),
               ),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide(color: Colors.grey.shade300),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide(color: Colors.green.shade600),
-              ),
+              items: [
+                DropdownMenuItem(
+                  value: 'all',
+                  child: Text(
+                    'Tất cả',
+                    style: TextStyle(
+                        fontSize: MediaQuery.of(context).size.width * 0.04),
+                  ),
+                ),
+                DropdownMenuItem(
+                  value: 'needs-review',
+                  child: Text(
+                    'Cần cập nhật',
+                    style: TextStyle(
+                        fontSize: MediaQuery.of(context).size.width * 0.04),
+                  ),
+                ),
+                DropdownMenuItem(
+                  value: 'healthy',
+                  child: Text(
+                    'Khỏe mạnh',
+                    style: TextStyle(
+                        fontSize: MediaQuery.of(context).size.width * 0.04),
+                  ),
+                ),
+                DropdownMenuItem(
+                  value: 'warning',
+                  child: Text(
+                    'Cần theo dõi',
+                    style: TextStyle(
+                        fontSize: MediaQuery.of(context).size.width * 0.04),
+                  ),
+                ),
+              ],
+              onChanged: (value) {
+                setState(() {
+                  _statusFilter = value ?? 'all';
+                });
+              },
             ),
-            items: [
-              DropdownMenuItem(
-                value: 'all',
-                child: Text('Tất cả',
-                  style: TextStyle(fontSize: MediaQuery.of(context).size.width * 0.04),
-                ),
-              ),
-              DropdownMenuItem(
-                value: 'needs-review',
-                child: Text('Cần cập nhật',
-                  style: TextStyle(fontSize: MediaQuery.of(context).size.width * 0.04),
-                ),
-              ),
-              DropdownMenuItem(
-                value: 'healthy',
-                child: Text('Khỏe mạnh',
-                  style: TextStyle(fontSize: MediaQuery.of(context).size.width * 0.04),
-                ),
-              ),
-              DropdownMenuItem(
-                value: 'warning',
-                child: Text('Cần theo dõi',
-                  style: TextStyle(fontSize: MediaQuery.of(context).size.width * 0.04),
-                ),
-              ),
-            ],
-            onChanged: (value) {
-              setState(() {
-                _statusFilter = value ?? 'all';
-              });
-            },
-          ),
-        ],
-      )
-    );
+          ],
+        ));
   }
 
   Widget _buildDiaryEntriesList() {
@@ -487,7 +511,9 @@ class _DiaryManagementScreenState extends State<DiaryManagementScreen> with Tick
                 Expanded(
                   child: Text(
                     entry.plant?.tenCay ?? '',
-                    style: TextStyle(fontWeight: FontWeight.w500,fontSize: MediaQuery.of(context).size.width * 0.035),
+                    style: TextStyle(
+                        fontWeight: FontWeight.w500,
+                        fontSize: MediaQuery.of(context).size.width * 0.035),
                   ),
                 ),
                 Container(
@@ -498,7 +524,9 @@ class _DiaryManagementScreenState extends State<DiaryManagementScreen> with Tick
                   ),
                   child: Text(
                     entry.plant?.id ?? '',
-                    style: TextStyle(fontSize: MediaQuery.of(context).size.width * 0.027, color: Colors.grey.shade600),
+                    style: TextStyle(
+                        fontSize: MediaQuery.of(context).size.width * 0.027,
+                        color: Colors.grey.shade600),
                   ),
                 ),
                 if (entry.needsReview)
@@ -511,7 +539,9 @@ class _DiaryManagementScreenState extends State<DiaryManagementScreen> with Tick
                     ),
                     child: Text(
                       'Cần cập nhật',
-                      style: TextStyle(fontSize: MediaQuery.of(context).size.width * 0.027, color: Colors.orange.shade800),
+                      style: TextStyle(
+                          fontSize: MediaQuery.of(context).size.width * 0.027,
+                          color: Colors.orange.shade800),
                     ),
                   ),
               ],
@@ -524,16 +554,25 @@ class _DiaryManagementScreenState extends State<DiaryManagementScreen> with Tick
                   children: [
                     Text(
                       'Số lá: ',
-                      style: TextStyle(color: Colors.grey.shade600, fontSize: MediaQuery.of(context).size.width * 0.03,),
+                      style: TextStyle(
+                        color: Colors.grey.shade600,
+                        fontSize: MediaQuery.of(context).size.width * 0.03,
+                      ),
                     ),
                     Text(
                       '${entry.diary.soLa}',
-                      style: TextStyle(fontWeight: FontWeight.w500, fontSize: MediaQuery.of(context).size.width * 0.03,),
+                      style: TextStyle(
+                        fontWeight: FontWeight.w500,
+                        fontSize: MediaQuery.of(context).size.width * 0.03,
+                      ),
                     ),
                     SizedBox(width: 16),
                     Text(
                       'Sức khỏe: ',
-                      style: TextStyle(color: Colors.grey.shade600, fontSize: MediaQuery.of(context).size.width * 0.03,),
+                      style: TextStyle(
+                        color: Colors.grey.shade600,
+                        fontSize: MediaQuery.of(context).size.width * 0.03,
+                      ),
                     ),
                     Container(
                       padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
@@ -557,25 +596,36 @@ class _DiaryManagementScreenState extends State<DiaryManagementScreen> with Tick
                   children: [
                     Text(
                       'Cập nhật: ',
-                      style: TextStyle(color: Colors.grey.shade600, fontSize: MediaQuery.of(context).size.width * 0.03,),
+                      style: TextStyle(
+                        color: Colors.grey.shade600,
+                        fontSize: MediaQuery.of(context).size.width * 0.03,
+                      ),
                     ),
                     Text(
-                      entry.diary.ngayGhi != null && entry.diary.ngayGhi!.isNotEmpty
-                          ? DateFormat('dd/MM/yyyy')
-                          .format(DateTime.parse(entry.diary.ngayGhi!).toLocal())
+                      entry.diary.ngayGhi != null &&
+                              entry.diary.ngayGhi!.isNotEmpty
+                          ? DateFormat('dd/MM/yyyy').format(
+                              DateTime.parse(entry.diary.ngayGhi!).toLocal())
                           : "",
                       style: TextStyle(
                         fontSize: MediaQuery.of(context).size.width * 0.03,
                       ),
                     ),
-                    SizedBox(width: MediaQuery.of(context).size.width * 0.03,),
+                    SizedBox(
+                      width: MediaQuery.of(context).size.width * 0.03,
+                    ),
                     Text(
                       'Vị trí: ',
-                      style: TextStyle(color: Colors.grey.shade600, fontSize: MediaQuery.of(context).size.width * 0.03,),
+                      style: TextStyle(
+                        color: Colors.grey.shade600,
+                        fontSize: MediaQuery.of(context).size.width * 0.03,
+                      ),
                     ),
                     Text(
                       entry.plant?.viTri ?? '',
-                      style: TextStyle(fontSize: MediaQuery.of(context).size.width * 0.03,),
+                      style: TextStyle(
+                        fontSize: MediaQuery.of(context).size.width * 0.03,
+                      ),
                     ),
                   ],
                 ),
@@ -675,7 +725,8 @@ class _DiaryManagementScreenState extends State<DiaryManagementScreen> with Tick
                     SizedBox(width: 8),
                     Text(
                       'Chỉnh sửa riêng lẻ',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      style:
+                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                     ),
                   ],
                 ),
@@ -708,8 +759,10 @@ class _DiaryManagementScreenState extends State<DiaryManagementScreen> with Tick
                   child: ListTile(
                     title: Text(entry.plant?.tenCay ?? ''),
                     subtitle: Text(entry.plant?.id ?? ''),
-                    trailing: Icon(Icons.chevron_right, color: Colors.grey.shade400),
-                    onTap: () => _handleIndividualEdit(entry.diary.id.toString()),
+                    trailing:
+                        Icon(Icons.chevron_right, color: Colors.grey.shade400),
+                    onTap: () =>
+                        _handleIndividualEdit(entry.diary.id.toString()),
                   ),
                 );
               },
@@ -737,7 +790,7 @@ class _DiaryManagementScreenState extends State<DiaryManagementScreen> with Tick
     return IndividualEditForm(
       entry: entry,
       onSubmit: (data) {
-        print('Individual diary update: $data');
+        AppConfig.printEx('Individual diary update: $data');
         setState(() {
           _showIndividualEdit = null;
         });
@@ -811,7 +864,6 @@ class _BatchUpdateFormState extends State<BatchUpdateForm> {
 
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
       backgroundColor: Color(0xFFF8F9FA),
       appBar: AppBar(

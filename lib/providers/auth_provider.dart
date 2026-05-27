@@ -20,6 +20,8 @@ import '../screens/login_screen.dart';
 import '../services/auth_service.dart';
 import '../services/signalr_service.dart';
 
+import '/app_config.dart';
+
 class AuthProvider extends ChangeNotifier {
   final api = API();
   UserModel? _usermodel;
@@ -37,7 +39,8 @@ class AuthProvider extends ChangeNotifier {
   FirebaseAuth get _auth => FirebaseAuth.instance;
   GoogleSignIn get _googleSignIn => GoogleSignIn.instance;
   bool _isGoogleSignInInitialized = false;
-  final String _serverClientId = "525482222879-48iplli6p73kap7go2dbk4iuv56js9ep.apps.googleusercontent.com";
+  final String _serverClientId =
+      "525482222879-48iplli6p73kap7go2dbk4iuv56js9ep.apps.googleusercontent.com";
   Future<void> _ensureGoogleSignInInitialized() async {
     if (!_isGoogleSignInInitialized) {
       try {
@@ -46,23 +49,23 @@ class AuthProvider extends ChangeNotifier {
         );
         _isGoogleSignInInitialized = true;
       } catch (e) {
-        print("Lỗi cấu hình khởi tạo Google Sign-In: $e");
+        AppConfig.printEx("Lỗi cấu hình khởi tạo Google Sign-In: $e");
       }
     }
   }
-
-
 
   Future<void> updateUserAfterEdit(Kttoken updatedTokenData) async {
     try {
       _usermodel = updatedTokenData.htTaiKhoan;
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('ginseng_user', jsonEncode(updatedTokenData.toJson()));
+      await prefs.setString(
+          'ginseng_user', jsonEncode(updatedTokenData.toJson()));
       notifyListeners();
     } catch (e) {
-      print("Lỗi khi cập nhật local user: $e");
+      AppConfig.printEx("Lỗi khi cập nhật local user: $e");
     }
   }
+
   Future<void> _checkStoredUser() async {
     try {
       _isLoading = true;
@@ -86,7 +89,8 @@ class AuthProvider extends ChangeNotifier {
 
     try {
       await _ensureGoogleSignInInitialized();
-      final GoogleSignInAccount? googleUser = await _googleSignIn.authenticate();
+      final GoogleSignInAccount? googleUser =
+          await _googleSignIn.authenticate();
 
       if (googleUser == null) {
         _error = "Bạn đã hủy đăng nhập.";
@@ -94,7 +98,8 @@ class AuthProvider extends ChangeNotifier {
         notifyListeners();
         return false;
       }
-      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
       final String? idToken = googleAuth.idToken;
       if (idToken == null) {
         _error = "Không lấy được Token từ Google.";
@@ -107,7 +112,7 @@ class AuthProvider extends ChangeNotifier {
         idToken: idToken,
         deviceToken: deviceToken ?? "",
       );
-      print("mess code ${user?.message}");
+      AppConfig.printEx("mess code ${user?.message}");
       if (user == null) {
         _error = "Lỗi kết nối hoặc lỗi server (Response null)";
         _usermodel = null;
@@ -128,26 +133,24 @@ class AuthProvider extends ChangeNotifier {
         notifyListeners();
         return false; // Đánh dấu thất bại
       }
-
     } catch (e) {
-      print("Lỗi: $e");
+      AppConfig.printEx("Lỗi: $e");
       _error = "Sự cố kết nối hệ thống.";
       _isLoading = false;
       notifyListeners();
       return false;
-    }
-    finally {
+    } finally {
       _isLoading = false;
       notifyListeners();
     }
   }
+
   Future<bool> loginWithApple() async {
     _isLoading = true;
     _error = null;
     notifyListeners();
 
     try {
-
       final credential = await SignInWithApple.getAppleIDCredential(
         scopes: [
           AppleIDAuthorizationScopes.email,
@@ -190,9 +193,8 @@ class AuthProvider extends ChangeNotifier {
         notifyListeners();
         return false;
       }
-
     } catch (e) {
-      print("Lỗi Apple Login: $e");
+      AppConfig.printEx("Lỗi Apple Login: $e");
       if (e.toString().contains('canceled')) {
         _error = "Bạn đã hủy đăng nhập.";
       } else {
@@ -206,6 +208,7 @@ class AuthProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
+
   Future<bool> login(LoginModel credentials) async {
     try {
       _isLoading = true;
@@ -245,6 +248,7 @@ class AuthProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
+
   // Future<void> resetTokenAu(Kttoken credentials) async {
   //   try {
   //     _isLoading = true;
@@ -292,12 +296,10 @@ class AuthProvider extends ChangeNotifier {
       // 2. Kiểm tra MessCode
       if (response.messCode == MessCode.IsOK) {
         _usermodel = response.oneItem?.htTaiKhoan;
-
       } else {
         _error = response.message;
         _usermodel = null;
       }
-
     } catch (e) {
       // 4. Phân loại lỗi Exception
       if (e is SocketException) {
@@ -314,6 +316,7 @@ class AuthProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
+
   Future<void> logout() async {
     // 1. Ép error bằng null ngay lập tức để UI không hiện lỗi cũ
     _error = null;
@@ -329,12 +332,12 @@ class AuthProvider extends ChangeNotifier {
           try {
             await api.Logout(user);
           } catch (apiError) {
-            print("API Logout failed (Ignored): $apiError");
+            AppConfig.printEx("API Logout failed (Ignored): $apiError");
           }
         }
       }
     } catch (e) {
-      print("Local Logout error: $e");
+      AppConfig.printEx("Local Logout error: $e");
     } finally {
       // 2. Dọn dẹp sạch sẽ
       try {
@@ -350,7 +353,8 @@ class AuthProvider extends ChangeNotifier {
       notifyListeners();
       navigatorKey.currentState?.pushAndRemoveUntil(
         MaterialPageRoute(builder: (context) => LoginScreen()),
-            (Route<dynamic> route) => false, // false nghĩa là xóa hết các trang trước đó
+        (Route<dynamic> route) =>
+            false, // false nghĩa là xóa hết các trang trước đó
       );
     }
   }
@@ -361,18 +365,18 @@ class AuthProvider extends ChangeNotifier {
       var item = await api.register(credentials);
       _usermodel = null;
       _error = null;
-      if(item?.message != "OK"){
+      if (item?.message != "OK") {
         return item?.message;
-      }else{
+      } else {
         return _error = null;
       }
     } catch (e) {
       _error = e.toString();
       notifyListeners();
       return _error;
-
     }
   }
+
   bool hasRole(UserRole role) {
     return AuthService.hasRolemodel(_kttoken, role);
   }

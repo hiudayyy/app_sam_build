@@ -7,6 +7,8 @@ import '../models/kttoken.dart';
 import '../models/message_enum.dart';
 import '../models/user.dart';
 
+import '/app_config.dart';
+
 class AuthService {
   static const String _userKey = 'ginseng_user';
   final api = API();
@@ -81,47 +83,50 @@ class AuthService {
       if (expiredStr.isNotEmpty) {
         final expired = parseCustomDate(expiredStr); // Hàm date của bạn
         if (expired != null && DateTime.now().isAfter(expired)) {
-          print("Token hết hạn, đang gọi API reset...");
+          AppConfig.printEx("Token hết hạn, đang gọi API reset...");
           final newData = await api.resetToken(userWrapper);
           if (newData != null && newData.messCode == MessCode.IsOK) {
             final Kttoken? newKttoken = newData.oneItem;
             if (newKttoken != null) {
               String newUserJson = jsonEncode(newKttoken.toJson());
               await prefs.setString(_userKey, newUserJson);
-              print("Làm mới token thành công.");
+              AppConfig.printEx("Làm mới token thành công.");
               return newKttoken.htTaiKhoan;
             }
           }
-          print("Làm mới token thất bại -> Logout.");
+          AppConfig.printEx("Làm mới token thất bại -> Logout.");
           await prefs.remove(_userKey);
           return null;
         }
       }
       return userWrapper.htTaiKhoan;
-
     } catch (e) {
-      print("Lỗi khi lấy user stored: $e");
+      AppConfig.printEx("Lỗi khi lấy user stored: $e");
       // Nếu lỗi format JSON hoặc lỗi khác thì xóa luôn cho sạch
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(_userKey);
       return null;
     }
   }
+
   static bool hasRole(User? user, UserRole role) {
     return user?.role == role;
   }
+
   static bool hasRolemodel(Kttoken? user, UserRole role) {
-    return user?.htTaiKhoan.htPhanQuyenTaiKhoans.any((x) => x.maVaiTro == role) ?? false;
+    return user?.htTaiKhoan.htPhanQuyenTaiKhoans
+            .any((x) => x.maVaiTro == role) ??
+        false;
   }
 }
 
 DateTime? parseCustomDate(String input) {
   if (input.length != 14) return null;
   return DateTime(
-    int.parse(input.substring(0, 4)),   // yyyy
-    int.parse(input.substring(4, 6)),   // MM
-    int.parse(input.substring(6, 8)),   // dd
-    int.parse(input.substring(8, 10)),  // HH
+    int.parse(input.substring(0, 4)), // yyyy
+    int.parse(input.substring(4, 6)), // MM
+    int.parse(input.substring(6, 8)), // dd
+    int.parse(input.substring(8, 10)), // HH
     int.parse(input.substring(10, 12)), // mm
     int.parse(input.substring(12, 14)), // ss
   );

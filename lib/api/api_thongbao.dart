@@ -9,16 +9,17 @@ import '../models/thongbao_model.dart';
 import '../services/auth_service.dart';
 import 'api.dart';
 
+import '/app_config.dart';
+
 extension APIExtension on API {
-  Future<ApiResponse<ThongBaoModel>?> listThongBao({
-    String? status,
-    int? rowCount,
-    int? skip,
-    int? top,
-    List<String>? orderBy,
-    List<String>? searchBy,
-    bool isRetry = false
-  }) async {
+  Future<ApiResponse<ThongBaoModel>?> listThongBao(
+      {String? status,
+      int? rowCount,
+      int? skip,
+      int? top,
+      List<String>? orderBy,
+      List<String>? searchBy,
+      bool isRetry = false}) async {
     String linkURL = "${host}api/ThongBao/ListThongBao";
 
     final uri = Uri.parse(linkURL).replace(queryParameters: {
@@ -42,14 +43,17 @@ extension APIExtension on API {
       final headers = {
         ...headerSvkt1,
         "AuthenticateToken": user?.authenticateToken ?? "",
-        "FuncsTagActive": user?.funcsTagActives.firstWhere(
-              (x) => x.tenController.toLowerCase() == "thongbao",
-          orElse: () => FuncTagActive(
-            tenController: "",
-            tenActions: "",
-            funcsTagActive: "",
-          ),
-        ).funcsTagActive ?? "",
+        "FuncsTagActive": user?.funcsTagActives
+                .firstWhere(
+                  (x) => x.tenController.toLowerCase() == "thongbao",
+                  orElse: () => FuncTagActive(
+                    tenController: "",
+                    tenActions: "",
+                    funcsTagActive: "",
+                  ),
+                )
+                .funcsTagActive ??
+            "",
       };
 
       final response = await http.get(uri, headers: headers);
@@ -58,10 +62,10 @@ extension APIExtension on API {
         Map<String, dynamic> responseJson = jsonDecode(response.body);
         final data = ApiResponse<ThongBaoModel>.fromJson(
           responseJson,
-              (json) => ThongBaoModel.fromJson(json),
+          (json) => ThongBaoModel.fromJson(json),
         );
         return data;
-      }else if (response.statusCode == 429) {
+      } else if (response.statusCode == 429) {
         final context = navigatorKey.currentContext;
         if (context != null) {
           showDialog(
@@ -108,7 +112,6 @@ extension APIExtension on API {
                       ),
                       textAlign: TextAlign.center,
                     ),
-
                     const SizedBox(height: 12),
                     Text(
                       "Bạn thao tác quá nhanh. Vui lòng thử lại sau 30 giây.",
@@ -149,7 +152,7 @@ extension APIExtension on API {
           );
         }
         return null;
-      }else if (response.statusCode == 401) {
+      } else if (response.statusCode == 401) {
         if (!isRetry) {
           var newUser = await await AuthService.getStoredUser();
           if (newUser != null) {
@@ -160,16 +163,17 @@ extension APIExtension on API {
         } else {
           return null;
         }
-      }
-      else {
-        print("Lỗi API listThongBao: ${response.statusCode} - ${response.body}");
+      } else {
+        AppConfig.printEx(
+            "Lỗi API listThongBao: ${response.statusCode} - ${response.body}");
         return null;
       }
     } catch (e) {
-      print("Exception khi gọi API listThongBao: $e");
+      AppConfig.printEx("Exception khi gọi API listThongBao: $e");
       return null;
     }
   }
+
   Future<bool> seenThongBao(int id) async {
     // ✅ Xây dựng URL với ID được truyền vào đường dẫn
     String linkURL = "${host}api/ThongBao/SeenThongBao/$id";
@@ -188,19 +192,22 @@ extension APIExtension on API {
       final headers = {
         ...headerSvkt1,
         "AuthenticateToken": user?.authenticateToken ?? "",
-        "FuncsTagActive": user?.funcsTagActives.firstWhere(
-              (x) => x.tenController.toLowerCase() == "thongbao",
-          orElse: () => FuncTagActive(
-            tenController: "",
-            tenActions: "",
-            funcsTagActive: "",
-          ),
-        ).funcsTagActive ?? "",
+        "FuncsTagActive": user?.funcsTagActives
+                .firstWhere(
+                  (x) => x.tenController.toLowerCase() == "thongbao",
+                  orElse: () => FuncTagActive(
+                    tenController: "",
+                    tenActions: "",
+                    funcsTagActive: "",
+                  ),
+                )
+                .funcsTagActive ??
+            "",
       };
       final response = await http.get(uri, headers: headers);
       if (response.statusCode == 200) {
         return true;
-      }else if (response.statusCode == 429) {
+      } else if (response.statusCode == 429) {
         final context = navigatorKey.currentContext;
         if (context != null) {
           showDialog(
@@ -247,7 +254,6 @@ extension APIExtension on API {
                       ),
                       textAlign: TextAlign.center,
                     ),
-
                     const SizedBox(height: 12),
                     Text(
                       "Bạn thao tác quá nhanh. Vui lòng thử lại sau 30 giây.",
@@ -288,19 +294,20 @@ extension APIExtension on API {
           );
         }
         return false;
-      }
-      else {
-        print("Lỗi API seenThongBao: ${response.statusCode} - ${response.body}");
+      } else {
+        AppConfig.printEx(
+            "Lỗi API seenThongBao: ${response.statusCode} - ${response.body}");
         return false;
       }
     } catch (e) {
       // Xử lý lỗi kết nối hoặc các exception khác
-      print("Exception khi gọi API seenThongBao: $e");
+      AppConfig.printEx("Exception khi gọi API seenThongBao: $e");
       return false;
     }
   }
 
-  Future<ApiResponse<ThongBaoModel>?> seenThongBaoAll({bool isRetry = false}) async {
+  Future<ApiResponse<ThongBaoModel>?> seenThongBaoAll(
+      {bool isRetry = false}) async {
     String linkURL = "${host}api/ThongBao/SeenThongBaoAll";
 
     final uri = Uri.parse(linkURL);
@@ -316,14 +323,17 @@ extension APIExtension on API {
       final headers = {
         ...headerSvkt1,
         "AuthenticateToken": user?.authenticateToken ?? "",
-        "FuncsTagActive": user?.funcsTagActives.firstWhere(
-              (x) => x.tenController.toLowerCase() == "thongbao",
-          orElse: () => FuncTagActive(
-            tenController: "",
-            tenActions: "",
-            funcsTagActive: "",
-          ),
-        ).funcsTagActive ?? "",
+        "FuncsTagActive": user?.funcsTagActives
+                .firstWhere(
+                  (x) => x.tenController.toLowerCase() == "thongbao",
+                  orElse: () => FuncTagActive(
+                    tenController: "",
+                    tenActions: "",
+                    funcsTagActive: "",
+                  ),
+                )
+                .funcsTagActive ??
+            "",
       };
 
       final response = await http.get(uri, headers: headers);
@@ -332,10 +342,10 @@ extension APIExtension on API {
         Map<String, dynamic> responseJson = jsonDecode(response.body);
         final data = ApiResponse<ThongBaoModel>.fromJson(
           responseJson,
-              (json) => ThongBaoModel.fromJson(json),
+          (json) => ThongBaoModel.fromJson(json),
         );
         return data;
-      }else if (response.statusCode == 429) {
+      } else if (response.statusCode == 429) {
         final context = navigatorKey.currentContext;
         if (context != null) {
           showDialog(
@@ -382,7 +392,6 @@ extension APIExtension on API {
                       ),
                       textAlign: TextAlign.center,
                     ),
-
                     const SizedBox(height: 12),
                     Text(
                       "Bạn thao tác quá nhanh. Vui lòng thử lại sau 30 giây.",
@@ -423,7 +432,7 @@ extension APIExtension on API {
           );
         }
         return null;
-      }else if (response.statusCode == 401) {
+      } else if (response.statusCode == 401) {
         if (!isRetry) {
           var newUser = await await AuthService.getStoredUser();
           if (newUser != null) {
@@ -434,13 +443,13 @@ extension APIExtension on API {
         } else {
           return null;
         }
-      }
-      else {
-        print("Lỗi API Sennalltb: ${response.statusCode} - ${response.body}");
+      } else {
+        AppConfig.printEx(
+            "Lỗi API Sennalltb: ${response.statusCode} - ${response.body}");
         return null;
       }
     } catch (e) {
-      print("Exception khi gọi API Seenalltb: $e");
+      AppConfig.printEx("Exception khi gọi API Seenalltb: $e");
       return null;
     }
   }

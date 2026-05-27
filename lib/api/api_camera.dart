@@ -8,9 +8,11 @@ import '../models/kttoken.dart';
 import '../models/vuontrong/losamcamera_model.dart';
 import 'api.dart';
 
-extension APIExtension on API {
+import '/app_config.dart';
 
-  Future<CameraStreamResponse?> startStreamCamera(LoSamCameraModel camera) async {
+extension APIExtension on API {
+  Future<CameraStreamResponse?> startStreamCamera(
+      LoSamCameraModel camera) async {
     final linkURL = "${host}api/Camera/StartStreamCamera";
     final uri = Uri.parse(linkURL);
     try {
@@ -25,14 +27,17 @@ extension APIExtension on API {
       final headers = {
         ...headerSvkt1,
         "AuthenticateToken": user?.authenticateToken ?? "",
-        "FuncsTagActive": user?.funcsTagActives.firstWhere(
-              (x) => x.tenController.toLowerCase() == "camera",
-          orElse: () => FuncTagActive(
-            tenController: "",
-            tenActions: "",
-            funcsTagActive: "",
-          ),
-        ).funcsTagActive ?? "",
+        "FuncsTagActive": user?.funcsTagActives
+                .firstWhere(
+                  (x) => x.tenController.toLowerCase() == "camera",
+                  orElse: () => FuncTagActive(
+                    tenController: "",
+                    tenActions: "",
+                    funcsTagActive: "",
+                  ),
+                )
+                .funcsTagActive ??
+            "",
         "Content-Type": "application/json",
       };
 
@@ -40,21 +45,21 @@ extension APIExtension on API {
         "id": camera.id,
         "loSamId": camera.loSamId,
         "loSamLoaiCameraId": camera.loSamLoaiCameraId,
-        "ipCamera":camera.ipCamera,
+        "ipCamera": camera.ipCamera,
         "rtsp": camera.rtsp,
         "onvifCamera": camera.onvifCamera,
         "userName": camera.userName,
         "password": camera.password,
         "trangThai": camera.trangThai,
-        "action":camera.action
+        "action": camera.action
       });
-      // print(body);
+      // AppConfig.printEx(body);
       final response = await http.post(uri, headers: headers, body: body);
 
       if (response.statusCode == 200) {
         final responseJson = jsonDecode(response.body);
         return CameraStreamResponse.fromJson(responseJson);
-      }else if (response.statusCode == 429) {
+      } else if (response.statusCode == 429) {
         final context = navigatorKey.currentContext;
         if (context != null) {
           showDialog(
@@ -101,7 +106,6 @@ extension APIExtension on API {
                       ),
                       textAlign: TextAlign.center,
                     ),
-
                     const SizedBox(height: 12),
                     Text(
                       "Bạn thao tác quá nhanh. Vui lòng thử lại sau 30 giây.",
@@ -143,14 +147,16 @@ extension APIExtension on API {
         }
         return null;
       } else {
-        print("❌ Lỗi API: ${response.statusCode} - ${response.body}");
+        AppConfig.printEx(
+            "❌ Lỗi API: ${response.statusCode} - ${response.body}");
         return null;
       }
     } catch (e) {
-      print("❌ Exception khi gọi API: $e");
+      AppConfig.printEx("❌ Exception khi gọi API: $e");
       return null;
     }
   }
+
   Future<CameraResponse?> MoveStreamCamera(LoSamCameraModel camera) async {
     final linkURL = "${host}api/Camera/move";
     final uri = Uri.parse(linkURL);
@@ -167,14 +173,17 @@ extension APIExtension on API {
       final headers = {
         ...headerSvkt1,
         "AuthenticateToken": user?.authenticateToken ?? "",
-        "FuncsTagActive": user?.funcsTagActives.firstWhere(
-              (x) => x.tenController.toLowerCase() == "camera",
-          orElse: () => FuncTagActive(
-            tenController: "",
-            tenActions: "",
-            funcsTagActive: "",
-          ),
-        ).funcsTagActive ?? "",
+        "FuncsTagActive": user?.funcsTagActives
+                .firstWhere(
+                  (x) => x.tenController.toLowerCase() == "camera",
+                  orElse: () => FuncTagActive(
+                    tenController: "",
+                    tenActions: "",
+                    funcsTagActive: "",
+                  ),
+                )
+                .funcsTagActive ??
+            "",
         "Content-Type": "application/json",
       };
 
@@ -182,21 +191,21 @@ extension APIExtension on API {
         "id": camera.id,
         "loSamId": camera.loSamId,
         "loSamLoaiCameraId": camera.loSamLoaiCameraId,
-        "ipCamera":camera.ipCamera,
+        "ipCamera": camera.ipCamera,
         "rtsp": camera.rtsp,
         "onvifCamera": camera.onvifCamera,
         "userName": camera.userName,
         "password": camera.password,
         "trangThai": camera.trangThai,
-        "action":camera.action
+        "action": camera.action
       });
-      // print(body);
+      // AppConfig.printEx(body);
       final response = await http.post(uri, headers: headers, body: body);
 
       if (response.statusCode == 200) {
         final responseJson = jsonDecode(response.body);
         return CameraResponse.fromJson(responseJson);
-      }else if (response.statusCode == 429) {
+      } else if (response.statusCode == 429) {
         final context = navigatorKey.currentContext;
         if (context != null) {
           showDialog(
@@ -243,7 +252,6 @@ extension APIExtension on API {
                       ),
                       textAlign: TextAlign.center,
                     ),
-
                     const SizedBox(height: 12),
                     Text(
                       "Bạn thao tác quá nhanh. Vui lòng thử lại sau 30 giây.",
@@ -285,14 +293,13 @@ extension APIExtension on API {
         }
         return null;
       } else {
-        print("❌ Lỗi API: ${response.statusCode} - ${response.body}");
+        AppConfig.printEx(
+            "❌ Lỗi API: ${response.statusCode} - ${response.body}");
         return null;
       }
     } catch (e) {
-      print("❌ Exception khi gọi API: $e");
+      AppConfig.printEx("❌ Exception khi gọi API: $e");
       return null;
     }
   }
-
-
 }

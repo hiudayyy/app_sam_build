@@ -38,6 +38,8 @@ import '../widgets/listlosam.dart';
 import '../widgets/notification_panel.dart';
 import 'home_screen.dart';
 
+import '/app_config.dart';
+
 class DashboardScreen extends StatefulWidget {
   final List<CaySam> plants;
 
@@ -112,9 +114,10 @@ class _DashboardScreenState extends State<DashboardScreen>
         });
       }
     } catch (e) {
-      print("Lỗi tải thời tiết: $e");
+      AppConfig.printEx("Lỗi tải thời tiết: $e");
     }
   }
+
   double calculateAreaInHectares(List<LatLng> points) {
     if (points.length < 3) return 0.0;
     final double lat0 = points[0].latitude;
@@ -141,9 +144,11 @@ class _DashboardScreenState extends State<DashboardScreen>
     if (code >= 1) return "⛅";
     return "☀";
   }
+
   Widget _buildForecastCard(dynamic daily, int index) {
     DateTime dateObj = DateTime.parse(daily['time'][index]);
-    String dayStr = "${dateObj.day.toString().padLeft(2, '0')}/${dateObj.month.toString().padLeft(2, '0')}";
+    String dayStr =
+        "${dateObj.day.toString().padLeft(2, '0')}/${dateObj.month.toString().padLeft(2, '0')}";
     String icon = _getWeatherIcon(daily['weather_code'][index]);
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
@@ -155,27 +160,20 @@ class _DashboardScreenState extends State<DashboardScreen>
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-              dayStr,
+          Text(dayStr,
               style: TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 11,
-                  color: Colors.grey.shade800
-              )
-          ),
+                  color: Colors.grey.shade800)),
           const SizedBox(height: 4),
-          Text(
-              icon,
-              style: const TextStyle(fontSize: 18)
-          ),
+          Text(icon, style: const TextStyle(fontSize: 18)),
           const SizedBox(height: 4),
           Text(
             "${daily['temperature_2m_min'][index].round()}°-${daily['temperature_2m_max'][index].round()}°",
             style: const TextStyle(
                 fontSize: 10,
                 fontWeight: FontWeight.bold,
-                color: Colors.black87
-            ),
+                color: Colors.black87),
           ),
           const SizedBox(height: 2),
           Row(
@@ -188,8 +186,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                 style: const TextStyle(
                     fontSize: 9,
                     color: Colors.blueAccent,
-                    fontWeight: FontWeight.w600
-                ),
+                    fontWeight: FontWeight.w600),
               ),
             ],
           ),
@@ -197,7 +194,6 @@ class _DashboardScreenState extends State<DashboardScreen>
       ),
     );
   }
-
 
   @override
   void initState() {
@@ -215,7 +211,7 @@ class _DashboardScreenState extends State<DashboardScreen>
       try {
         allDeviceData = allDeviceData_dynamic as SensorDeviceModel;
       } catch (e) {
-        print("❌ Lỗi ép kiểu stream: $e");
+        AppConfig.printEx("❌ Lỗi ép kiểu stream: $e");
         return;
       }
       if (allDeviceData != null) {
@@ -229,7 +225,7 @@ class _DashboardScreenState extends State<DashboardScreen>
         }
       }
     }, onError: (error) {
-      print("❌ Lỗi trên sensorStream: $error");
+      AppConfig.printEx("❌ Lỗi trên sensorStream: $error");
     });
   }
 
@@ -271,17 +267,16 @@ class _DashboardScreenState extends State<DashboardScreen>
         if (mounted) setState(() {});
       }
     } catch (e) {
-      print("Lỗi load user: $e");
+      AppConfig.printEx("Lỗi load user: $e");
     }
   }
-
 
   Future<void> _fetchDashboardStats() async {
     try {
       final res = await API().getDashBoardSam();
       if (mounted) setState(() => numbertotal = res?.oneItem);
     } catch (e) {
-      print("Lỗi Stats: $e");
+      AppConfig.printEx("Lỗi Stats: $e");
     }
   }
 
@@ -290,7 +285,7 @@ class _DashboardScreenState extends State<DashboardScreen>
       final res = await API().getDashBoardSucKhoe();
       if (mounted) setState(() => numbertotalSucKhoe = res?.oneItem);
     } catch (e) {
-      print("Lỗi Health: $e");
+      AppConfig.printEx("Lỗi Health: $e");
     }
   }
 
@@ -301,7 +296,7 @@ class _DashboardScreenState extends State<DashboardScreen>
         setState(() => tb = res?.items);
       }
     } catch (e) {
-      print("Lỗi Thông báo: $e");
+      AppConfig.printEx("Lỗi Thông báo: $e");
     }
   }
 
@@ -312,29 +307,27 @@ class _DashboardScreenState extends State<DashboardScreen>
       );
       if (mounted) setState(() => _listLoSam = res);
     } catch (e) {
-      print("Lỗi List Lô Sâm: $e");
+      AppConfig.printEx("Lỗi List Lô Sâm: $e");
     }
   }
+
   Future<void> _fetchListVuonsam() async {
     try {
       final apifarm = await API().listVuonTrong(status: 1, take: null, skip: 0);
       if (apifarm != null && apifarm.isNotEmpty) {
         if (mounted) {
           setState(() {
-            _center = LatLng(
-                apifarm.first.viTriCenterLat ?? 15.111,
-                apifarm.first.viTriCenterLng ?? 108.017
-            );
+            _center = LatLng(apifarm.first.viTriCenterLat ?? 15.111,
+                apifarm.first.viTriCenterLng ?? 108.017);
           });
           // Sau khi có _center mới đi tải thời tiết
           _fetchWeather();
         }
       }
     } catch (e) {
-      print("Lỗi List Lô Sâm: $e");
+      AppConfig.printEx("Lỗi List Lô Sâm: $e");
     }
   }
-
 
   Future<void> _fetchSensorData() async {
     try {
@@ -352,7 +345,7 @@ class _DashboardScreenState extends State<DashboardScreen>
         });
       }
     } catch (e) {
-      print("Lỗi Sensor: $e");
+      AppConfig.printEx("Lỗi Sensor: $e");
     }
   }
 
@@ -396,7 +389,7 @@ class _DashboardScreenState extends State<DashboardScreen>
         if (mounted) setState(() => _isLoadingBanner = false);
       }
     } catch (e) {
-      print("Lỗi Banner: $e");
+      AppConfig.printEx("Lỗi Banner: $e");
       if (mounted) setState(() => _isLoadingBanner = false);
     }
   }
@@ -412,7 +405,7 @@ class _DashboardScreenState extends State<DashboardScreen>
         });
       }
     } catch (e) {
-      print("Lỗi LoSamCanhBao: $e");
+      AppConfig.printEx("Lỗi LoSamCanhBao: $e");
       if (mounted) setState(() => _isLoadingCanhBao = false);
     }
   }
@@ -554,7 +547,8 @@ class _DashboardScreenState extends State<DashboardScreen>
               }
             }
           } catch (e) {
-            print('Lỗi phân tích JSON cho sensor ${sensor.sensorCode}: $e');
+            AppConfig.printEx(
+                'Lỗi phân tích JSON cho sensor ${sensor.sensorCode}: $e');
           }
         }
       }
@@ -635,19 +629,17 @@ class _DashboardScreenState extends State<DashboardScreen>
     );
   }
 
-
   Widget _buildMapLayer() {
     if (_currentMapLayer == 'topo') {
       return TileLayer(
-        key: const ValueKey(
-            'topo_layer'),
+        key: const ValueKey('topo_layer'),
         urlTemplate: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
         subdomains: const ['a', 'b', 'c'],
         maxNativeZoom: 17,
         maxZoom: 20,
         userAgentPackageName: 'com.huetechcoop.nftsam',
         errorTileCallback: (tile, error, stackTrace) {
-          debugPrint("Lỗi Topo Map: $error");
+          AppConfig.printEx("Lỗi Topo Map: $error");
         },
       );
     } else if (_currentMapLayer == 'googleSat') {
@@ -760,27 +752,33 @@ class _DashboardScreenState extends State<DashboardScreen>
                                 Text(
                                   "${current['temperature_2m']}°C",
                                   style: TextStyle(
-                                    fontSize: (20 * textScale).clamp(18.0, 28.0),
+                                    fontSize:
+                                        (20 * textScale).clamp(18.0, 28.0),
                                     fontWeight: FontWeight.bold,
                                     color: const Color(0xFF1565C0),
                                   ),
                                 ),
                                 const SizedBox(width: 8),
-
-                                Icon(Icons.air, size: (12 * textScale).clamp(10.0, 16.0), color: Colors.grey),
+                                Icon(Icons.air,
+                                    size: (12 * textScale).clamp(10.0, 16.0),
+                                    color: Colors.grey),
                                 const SizedBox(width: 2),
                                 Text(
                                   "${current['wind_speed_10m']} km/h",
-                                  style: TextStyle(fontSize: (10 * textScale).clamp(9.0, 14.0)),
+                                  style: TextStyle(
+                                      fontSize:
+                                          (10 * textScale).clamp(9.0, 14.0)),
                                 ),
-
                                 const SizedBox(width: 10),
-
-                                Icon(Icons.water_drop_outlined, size: (12 * textScale).clamp(10.0, 16.0), color: Colors.blue),
+                                Icon(Icons.water_drop_outlined,
+                                    size: (12 * textScale).clamp(10.0, 16.0),
+                                    color: Colors.blue),
                                 const SizedBox(width: 2),
                                 Text(
                                   "${current['precipitation']} mm",
-                                  style: TextStyle(fontSize: (10 * textScale).clamp(9.0, 14.0)),
+                                  style: TextStyle(
+                                      fontSize:
+                                          (10 * textScale).clamp(9.0, 14.0)),
                                 ),
                               ],
                             ),
@@ -788,7 +786,12 @@ class _DashboardScreenState extends State<DashboardScreen>
                         ],
                       ),
                     ),
-                    Icon(_isWeatherExpanded ? Icons.keyboard_arrow_down : Icons.keyboard_arrow_up, size: 20, color: Colors.blueGrey),
+                    Icon(
+                        _isWeatherExpanded
+                            ? Icons.keyboard_arrow_down
+                            : Icons.keyboard_arrow_up,
+                        size: 20,
+                        color: Colors.blueGrey),
                   ],
                 ),
                 if (_isWeatherExpanded) ...[
@@ -1339,94 +1342,92 @@ class _DashboardScreenState extends State<DashboardScreen>
                 ],
               ),
               const SizedBox(height: 16),
-              if(_center != null)
-              SizedBox(
-                height: MediaQuery.of(context).size.height * 0.45,
-                width: double.infinity,
-                child: Card(
-                  elevation: 6,
-                  shadowColor: Colors.black.withOpacity(0.4),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20)),
-                  clipBehavior:
-                      Clip.antiAlias,
-                  child: Stack(
-                    children: [
-                      FlutterMap(
-                        mapController: _mapController,
-                        options: MapOptions(
-                          initialCenter: _center  ?? LatLng(0,0),
-                          initialZoom: 13,
-                          minZoom: 5,
-                          maxZoom: 20,
-                          cameraConstraint: isInsideBounds
-                              ? CameraConstraint.contain(bounds: myBounds)
-                              : const CameraConstraint.unconstrained(),
-                        ),
-                        children: [
-                          _buildMapLayer(),
-                          StreamBuilder<MapEvent>(
-                            stream: _mapController.mapEventStream,
-                            builder: (context, snapshot) {
-                              final currentZoom = _mapController.camera.zoom;
-                              if (currentZoom < 14.0) {
-                                return MarkerLayer(
-                                  markers: [
-                                    Marker(
-                                      point: _center ?? LatLng(0,0),
-                                      width: 25,
-                                      height: 25,
-                                      alignment: Alignment.topCenter,
-                                      child: const Icon(
-                                        Icons.location_on,
-                                        color: Color(0xFFD50000),
-                                        size: 25,
+              if (_center != null)
+                SizedBox(
+                  height: MediaQuery.of(context).size.height * 0.45,
+                  width: double.infinity,
+                  child: Card(
+                    elevation: 6,
+                    shadowColor: Colors.black.withOpacity(0.4),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20)),
+                    clipBehavior: Clip.antiAlias,
+                    child: Stack(
+                      children: [
+                        FlutterMap(
+                          mapController: _mapController,
+                          options: MapOptions(
+                            initialCenter: _center ?? LatLng(0, 0),
+                            initialZoom: 13,
+                            minZoom: 5,
+                            maxZoom: 20,
+                            cameraConstraint: isInsideBounds
+                                ? CameraConstraint.contain(bounds: myBounds)
+                                : const CameraConstraint.unconstrained(),
+                          ),
+                          children: [
+                            _buildMapLayer(),
+                            StreamBuilder<MapEvent>(
+                              stream: _mapController.mapEventStream,
+                              builder: (context, snapshot) {
+                                final currentZoom = _mapController.camera.zoom;
+                                if (currentZoom < 14.0) {
+                                  return MarkerLayer(
+                                    markers: [
+                                      Marker(
+                                        point: _center ?? LatLng(0, 0),
+                                        width: 25,
+                                        height: 25,
+                                        alignment: Alignment.topCenter,
+                                        child: const Icon(
+                                          Icons.location_on,
+                                          color: Color(0xFFD50000),
+                                          size: 25,
+                                        ),
+                                      ),
+                                    ],
+                                  );
+                                }
+
+                                return PolygonLayer(
+                                  polygons: [
+                                    Polygon(
+                                      points: _loSamPoints,
+                                      color: Colors.white.withOpacity(0.15),
+                                      borderColor: const Color(0xFFD50000),
+                                      borderStrokeWidth: 3,
+                                      pattern: StrokePattern.dashed(
+                                        segments: [5, 5],
                                       ),
                                     ),
                                   ],
                                 );
-                              }
-
-                              return PolygonLayer(
-                                polygons: [
-                                  Polygon(
-                                    points: _loSamPoints,
-                                    color: Colors.white.withOpacity(0.15),
-                                    borderColor: const Color(0xFFD50000),
-                                    borderStrokeWidth: 3,
-                                    pattern: StrokePattern.dashed(
-                                      segments: [5, 5],
-                                    ),
-                                  ),
-                                ],
-                              );
-                            },
-                          ),
-                        ],
-                      ),
-                      Positioned(
-                        top: 16,
-                        right: 16,
-                        child: _buildLayerControl(),
-                      ),
-                      Positioned(
-                        top: 76,
-                        right: 16,
-                        child: _buildZoomControls(),
-                      ),
-                      Positioned(
-                        left: 10,
-                        right: 10,
-                        bottom:
-                            10,
-                        child: _isLoadingWeather
-                            ? _buildShimmerBox(height: 70)
-                            : _buildWeatherPanel(),
-                      ),
-                    ],
+                              },
+                            ),
+                          ],
+                        ),
+                        Positioned(
+                          top: 16,
+                          right: 16,
+                          child: _buildLayerControl(),
+                        ),
+                        Positioned(
+                          top: 76,
+                          right: 16,
+                          child: _buildZoomControls(),
+                        ),
+                        Positioned(
+                          left: 10,
+                          right: 10,
+                          bottom: 10,
+                          child: _isLoadingWeather
+                              ? _buildShimmerBox(height: 70)
+                              : _buildWeatherPanel(),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
               const SizedBox(height: 30),
             ],
           ),
@@ -1753,7 +1754,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                   ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                       content: Text('Lỗi tải dữ liệu lô: $e'),
                       backgroundColor: Colors.red));
-                  print("Lỗi khi gọi getLoSamById: $e");
+                  AppConfig.printEx("Lỗi khi gọi getLoSamById: $e");
                 }
               }
             },

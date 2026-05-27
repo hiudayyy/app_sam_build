@@ -9,6 +9,7 @@ import 'package:nftsam/api/api.dart';
 import 'package:nftsam/api/api_caysam.dart';
 import 'package:flutter/material.dart';
 
+import '/app_config.dart';
 // Import chính của thư viện
 import 'package:nfc_manager/nfc_manager.dart';
 // Nếu IDE báo lỗi không tìm thấy NdefFormatableAndroid, hãy bỏ comment dòng dưới:
@@ -31,7 +32,8 @@ class NfcWriterModal extends StatefulWidget {
 
 class _NfcWriterModalState extends State<NfcWriterModal> {
   NfcStatus _status = NfcStatus.scanning;
-  String _feedbackMessage = 'Đang chờ thẻ NFC...\nVui lòng đưa thẻ lại gần điện thoại.';
+  String _feedbackMessage =
+      'Đang chờ thẻ NFC...\nVui lòng đưa thẻ lại gần điện thoại.';
   bool _isSessionClosed = false;
 
   @override
@@ -55,15 +57,16 @@ class _NfcWriterModalState extends State<NfcWriterModal> {
   Future<void> _startNfcWriting() async {
     // Ver 4.1.0+: Dùng checkAvailability() thay vì isAvailable
 
-
     try {
       bool isAvailable = await NfcManager.instance.isAvailable();
       if (!isAvailable) {
-        _updateStatus(NfcStatus.error, 'NFC không được bật hoặc thiết bị không hỗ trợ.', '');
+        _updateStatus(NfcStatus.error,
+            'NFC không được bật hoặc thiết bị không hỗ trợ.', '');
         return;
       }
       NfcManager.instance.startSession(
-        alertMessageIos: "Đang xác thực thẻ...\nVui lòng GIỮ NGUYÊN điện thoại.",
+        alertMessageIos:
+            "Đang xác thực thẻ...\nVui lòng GIỮ NGUYÊN điện thoại.",
         onSessionErrorIos: (error) {
           _updateStatus(NfcStatus.error, "Đã hủy quét thẻ", "");
         },
@@ -71,10 +74,11 @@ class _NfcWriterModalState extends State<NfcWriterModal> {
           try {
             // --- BƯỚC 1: Lấy UID ---
             String uid = _getTagId(tag.data);
-            print(uid);
+            AppConfig.printEx(uid);
 
             // --- BƯỚC 2: Chuẩn bị dữ liệu ---
-            final String myLink = 'https://nft.samnghigia.com/caysam/${widget.plant.caySamId}';
+            final String myLink =
+                'https://nft.samnghigia.com/caysam/${widget.plant.caySamId}';
             final urirecord = _createNdefUriRecord(myLink);
             final message = NdefMessage(records: [urirecord]);
 
@@ -90,7 +94,7 @@ class _NfcWriterModalState extends State<NfcWriterModal> {
               final checkuid = await API().CheckNFCCaySam(serialNumber: uid);
               if (checkuid?.message == "Thẻ NFC đã tồn tại!") {
                 throw Exception('${checkuid?.message}');
-              }else{
+              } else {
                 await ndefObj.write(message: message);
                 await ndefObj.writeLock();
               }
@@ -107,15 +111,16 @@ class _NfcWriterModalState extends State<NfcWriterModal> {
               } else {
                 // Trên iOS, nếu ndefObj == null nghĩa là thẻ không tương thích hoặc chưa format NDEF.
                 // iOS CoreNFC rất kén thẻ chưa format.
-                throw Exception('Thẻ không đúng định dạng NDEF (Vui lòng thử thẻ khác).');
+                throw Exception(
+                    'Thẻ không đúng định dạng NDEF (Vui lòng thử thẻ khác).');
               }
             }
 
             // --- BƯỚC 4: Kết thúc ---
-            await _updateStatus(NfcStatus.success, 'Xác thực & Ghi thành công!', uid);
-
+            await _updateStatus(
+                NfcStatus.success, 'Xác thực & Ghi thành công!', uid);
           } catch (e) {
-            print(e);
+            AppConfig.printEx(e);
             await _updateStatus(NfcStatus.error, 'Lỗi: ${e.toString()}', '');
           }
         },
@@ -128,9 +133,11 @@ class _NfcWriterModalState extends State<NfcWriterModal> {
       });
     } catch (e) {
       if (e.toString().contains("not_supported")) {
-        await _updateStatus(NfcStatus.error, 'Thiết bị này không hỗ trợ NFC.', '');
-      }else if (e.toString().contains("NFC is not enabled")) {
-        await _updateStatus(NfcStatus.error, "Vui lòng bật NFC trong Cài đặt!", '');
+        await _updateStatus(
+            NfcStatus.error, 'Thiết bị này không hỗ trợ NFC.', '');
+      } else if (e.toString().contains("NFC is not enabled")) {
+        await _updateStatus(
+            NfcStatus.error, "Vui lòng bật NFC trong Cài đặt!", '');
       } else {
         await _updateStatus(NfcStatus.error, 'Lỗi hệ thống: $e', '');
       }
@@ -144,7 +151,14 @@ class _NfcWriterModalState extends State<NfcWriterModal> {
       if (rawData is Map) {
         final Map<String, dynamic> data = Map<String, dynamic>.from(rawData);
         const techKeys = [
-          'nfcA', 'mifare', 'mifareClassic', 'isodep', 'nfcB', 'nfcF', 'nfcV', 'iso15693'
+          'nfcA',
+          'mifare',
+          'mifareClassic',
+          'isodep',
+          'nfcB',
+          'nfcF',
+          'nfcV',
+          'iso15693'
         ];
 
         for (var key in techKeys) {
@@ -207,7 +221,7 @@ class _NfcWriterModalState extends State<NfcWriterModal> {
         }
       }
     } catch (e) {
-      print("Lỗi parse ID: $e");
+      AppConfig.printEx("Lỗi parse ID: $e");
       return "";
     }
 
@@ -222,14 +236,16 @@ class _NfcWriterModalState extends State<NfcWriterModal> {
     return "";
   }
 
-  Future<void> _updateStatus(NfcStatus status, String message, String uid) async {
+  Future<void> _updateStatus(
+      NfcStatus status, String message, String uid) async {
     _isSessionClosed = true;
     String? iosAlertMessage;
     String? iosErrorMessage;
 
     if (status == NfcStatus.success) {
       try {
-        final data = await API().updateNFCCaySam(id: widget.plant.caySamId, serialNumber: uid);
+        final data = await API()
+            .updateNFCCaySam(id: widget.plant.caySamId, serialNumber: uid);
         if (data?.messCode == MessCode.IsOK) {
           iosAlertMessage = "Ghi thẻ thành công!";
           if (mounted) {
@@ -263,10 +279,12 @@ class _NfcWriterModalState extends State<NfcWriterModal> {
     }
 
     if (Platform.isIOS) {
-      await NfcManager.instance.stopSession(
-        alertMessageIos: iosAlertMessage,
-        errorMessageIos: iosErrorMessage,
-      ).catchError((_) {});
+      await NfcManager.instance
+          .stopSession(
+            alertMessageIos: iosAlertMessage,
+            errorMessageIos: iosErrorMessage,
+          )
+          .catchError((_) {});
 
       if (mounted) Navigator.of(context).pop();
     } else {
@@ -325,7 +343,8 @@ class _NfcWriterModalState extends State<NfcWriterModal> {
             children: [
               Text(
                 _getTitle(),
-                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                style:
+                    const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
               IconButton(
                 icon: const Icon(Icons.close),
@@ -349,18 +368,26 @@ class _NfcWriterModalState extends State<NfcWriterModal> {
 
   String _getTitle() {
     switch (_status) {
-      case NfcStatus.scanning: return 'Sẵn sàng quét';
-      case NfcStatus.success: return 'Thành công!';
-      case NfcStatus.error: return 'Thất bại';
+      case NfcStatus.scanning:
+        return 'Sẵn sàng quét';
+      case NfcStatus.success:
+        return 'Thành công!';
+      case NfcStatus.error:
+        return 'Thất bại';
     }
   }
+
   Color _getColor() {
     switch (_status) {
-      case NfcStatus.scanning: return Colors.blue.shade700;
-      case NfcStatus.success: return Colors.green.shade700;
-      case NfcStatus.error: return Colors.red.shade700;
+      case NfcStatus.scanning:
+        return Colors.blue.shade700;
+      case NfcStatus.success:
+        return Colors.green.shade700;
+      case NfcStatus.error:
+        return Colors.red.shade700;
     }
   }
+
   Widget _buildStatusIndicator() {
     switch (_status) {
       case NfcStatus.scanning:
@@ -371,6 +398,7 @@ class _NfcWriterModalState extends State<NfcWriterModal> {
         return _buildAnimatedIcon(Icons.error, Colors.red.shade700);
     }
   }
+
   Widget _buildAnimatedIcon(IconData icon, Color color) {
     return Container(
       padding: const EdgeInsets.all(24),
