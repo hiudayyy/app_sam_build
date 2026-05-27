@@ -375,6 +375,36 @@ class _LoginScreenState extends State<LoginScreen> {
                               builder: (context, authProvider, child) {
                                 return Column(
                                   children: [
+                                    if (Platform.isIOS)
+                                      Container(
+                                        height: (height * 0.065).clamp(45.0, 55.0),
+                                        child: ElevatedButton(
+                                          onPressed: authProvider.isLoading ? null : _handleAppleLogin,
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: Colors.black, // Apple bắt buộc nút màu đen hoặc trắng
+                                            foregroundColor: Colors.white,
+                                            elevation: 0,
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius: BorderRadius.circular(16),
+                                            ),
+                                          ),
+                                          child: Row(
+                                            mainAxisAlignment: MainAxisAlignment.center,
+                                            children: [
+                                              Icon(Icons.apple, size: 28, color: Colors.white),
+                                              SizedBox(width: 8),
+                                              Text(
+                                                'Đăng nhập bằng Apple',
+                                                style: TextStyle(
+                                                  fontSize: (width * 0.04).clamp(14.0, 16.0),
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    SizedBox(height: 16),
                                     // Nút Google Sign In
                                     Container(
                                       height: (height * 0.065).clamp(45.0, 55.0),
@@ -413,38 +443,10 @@ class _LoginScreenState extends State<LoginScreen> {
                                       ),
                                     ),
 
-                                    SizedBox(height: 16), // Khoảng cách giữa 2 nút
+                                     // Khoảng cách giữa 2 nút
 
                                     // Nút Apple Sign In (Chỉ nên hiển thị trên iOS)
-                                    if (Platform.isIOS)
-                                      Container(
-                                        height: (height * 0.065).clamp(45.0, 55.0),
-                                        child: ElevatedButton(
-                                          onPressed: authProvider.isLoading ? null : _handleAppleLogin,
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor: Colors.black, // Apple bắt buộc nút màu đen hoặc trắng
-                                            foregroundColor: Colors.white,
-                                            elevation: 0,
-                                            shape: RoundedRectangleBorder(
-                                              borderRadius: BorderRadius.circular(16),
-                                            ),
-                                          ),
-                                          child: Row(
-                                            mainAxisAlignment: MainAxisAlignment.center,
-                                            children: [
-                                              Icon(Icons.apple, size: 28, color: Colors.white),
-                                              SizedBox(width: 8),
-                                              Text(
-                                                'Đăng nhập bằng Apple',
-                                                style: TextStyle(
-                                                  fontSize: (width * 0.04).clamp(14.0, 16.0),
-                                                  fontWeight: FontWeight.bold,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ),
+
                                   ],
                                 );
                               }

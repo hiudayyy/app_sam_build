@@ -172,7 +172,6 @@ class AuthProvider extends ChangeNotifier {
         authorizationCode: authorizationCode ?? "",
       );
 
-      print("mess code Apple ${user?.message}");
       if (user == null) {
         _error = "Lỗi kết nối hoặc lỗi server (Response null)";
         _usermodel = null;
