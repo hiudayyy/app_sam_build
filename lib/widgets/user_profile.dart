@@ -381,24 +381,27 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
 
     if (repose?.messCode == MessCode.IsOK) {
       if (!mounted) return;
-      // ScaffoldMessenger.of(context).showSnackBar(
-      //   const SnackBar(
-      //     content: Text('Đã yêu cầu xóa tài khoản thành công!'),
-      //     backgroundColor: Colors.red,
-      //   ),
-      // );
+       ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+           content: Text('Đã xóa tài khoản thành công!'),
+           backgroundColor: Colors.green,
+         ),
+       );
 
       Navigator.of(context).pop();
       Provider.of<AuthProvider>(context, listen: false).logout();
     } else {
       if (!mounted) return;
-      // ScaffoldMessenger.of(context).showSnackBar(
-      //   SnackBar(content: Text(repose?.message ?? 'Xóa tài khoản thất bại!')),
-      // );
+      Navigator.of(context).pop();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(repose?.message ?? 'Xóa tài khoản thất bại!'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
-  // SỬA ĐỔI TẠI ĐÂY: Đổi từ Khóa thành Xóa tài khoản
   void _showDeleteConfirmDialog() {
     final TextEditingController confirmController = TextEditingController();
 
@@ -406,7 +409,8 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (context, setState) {
-          final bool isConfirmed = confirmController.text == 'XÓA';
+          final String inputText = confirmController.text.trim().toUpperCase();
+          final bool isConfirmed = inputText == 'XÓA' || inputText == 'XOÁ';
 
           return AlertDialog(
             backgroundColor: Colors.white,
@@ -418,7 +422,6 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
                 Text('Xóa tài khoản', style: TextStyle(fontWeight: FontWeight.bold)),
               ],
             ),
-            // BỌC COLUMN BẰNG SingleChildScrollView TẠI ĐÂY
             content: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
