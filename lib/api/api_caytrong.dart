@@ -11,6 +11,8 @@ import '../models/vuontrong/vuontrong_model.dart';
 import '../services/auth_service.dart';
 import 'api.dart';
 
+import '/app_config.dart';
+
 extension APIExtension on API {
   Future<List<VuonTrongModel>?> listVuonTrong(
       {int? status, // 1: Sử dụng, 2: Tạm ngưng, 3: Không sử dụng
@@ -55,9 +57,9 @@ extension APIExtension on API {
           responseJson,
           (json) => VuonTrongModel.fromJson(json),
         );
-        print(data.items?.first.tenVuon);
+        AppConfig.printEx(data.items?.first.tenVuon);
         return data.items;
-      }else if (response.statusCode == 429) {
+      } else if (response.statusCode == 429) {
         final context = navigatorKey.currentContext;
         if (context != null) {
           showDialog(
@@ -104,7 +106,6 @@ extension APIExtension on API {
                       ),
                       textAlign: TextAlign.center,
                     ),
-
                     const SizedBox(height: 12),
                     Text(
                       "Bạn thao tác quá nhanh. Vui lòng thử lại sau 30 giây.",
@@ -157,11 +158,12 @@ extension APIExtension on API {
           return null;
         }
       } else {
-        print("Lỗi API vt: ${response.statusCode} - ${response.body}");
+        AppConfig.printEx(
+            "Lỗi API vt: ${response.statusCode} - ${response.body}");
         return null;
       }
     } catch (e) {
-      print("Exception khi gọi API: $e");
+      AppConfig.printEx("Exception khi gọi API: $e");
       return null;
     }
   }
@@ -212,7 +214,7 @@ extension APIExtension on API {
         );
 
         return data;
-      }else if (response.statusCode == 429) {
+      } else if (response.statusCode == 429) {
         final context = navigatorKey.currentContext;
         if (context != null) {
           showDialog(
@@ -259,7 +261,6 @@ extension APIExtension on API {
                       ),
                       textAlign: TextAlign.center,
                     ),
-
                     const SizedBox(height: 12),
                     Text(
                       "Bạn thao tác quá nhanh. Vui lòng thử lại sau 30 giây.",
@@ -301,11 +302,12 @@ extension APIExtension on API {
         }
         return null;
       } else {
-        print("❌ Lỗi API: ${response.statusCode} - ${response.body}");
+        AppConfig.printEx(
+            "❌ Lỗi API: ${response.statusCode} - ${response.body}");
         return null;
       }
     } catch (e) {
-      print("⚠️ Lỗi khi thêm vườn trồng: $e");
+      AppConfig.printEx("⚠️ Lỗi khi thêm vườn trồng: $e");
       return null;
     }
   }
@@ -358,7 +360,7 @@ extension APIExtension on API {
         );
 
         return data;
-      }else if (response.statusCode == 429) {
+      } else if (response.statusCode == 429) {
         final context = navigatorKey.currentContext;
         if (context != null) {
           showDialog(
@@ -405,7 +407,6 @@ extension APIExtension on API {
                       ),
                       textAlign: TextAlign.center,
                     ),
-
                     const SizedBox(height: 12),
                     Text(
                       "Bạn thao tác quá nhanh. Vui lòng thử lại sau 30 giây.",
@@ -447,11 +448,12 @@ extension APIExtension on API {
         }
         return null;
       } else {
-        print("❌ Lỗi API: ${response.statusCode} - ${response.body}");
+        AppConfig.printEx(
+            "❌ Lỗi API: ${response.statusCode} - ${response.body}");
         return null;
       }
     } catch (e) {
-      print("⚠️ Lỗi khi Chỉnh sửa vườn trồng: $e");
+      AppConfig.printEx("⚠️ Lỗi khi Chỉnh sửa vườn trồng: $e");
       return null;
     }
   }
@@ -555,7 +557,6 @@ extension APIExtension on API {
                       ),
                       textAlign: TextAlign.center,
                     ),
-
                     const SizedBox(height: 12),
                     Text(
                       "Bạn thao tác quá nhanh. Vui lòng thử lại sau 30 giây.",
@@ -597,11 +598,12 @@ extension APIExtension on API {
         }
         return null;
       } else {
-        print("Lỗi API ls: ${response.statusCode} - ${response.body}");
+        AppConfig.printEx(
+            "Lỗi API ls: ${response.statusCode} - ${response.body}");
         return null;
       }
     } catch (e) {
-      print("Exception khi gọi API: $e");
+      AppConfig.printEx("Exception khi gọi API: $e");
       return null;
     }
   }
@@ -659,7 +661,7 @@ extension APIExtension on API {
         jsonRes,
         (json) => LoSamModel.fromJson(json),
       );
-    }else if (response.statusCode == 429) {
+    } else if (response.statusCode == 429) {
       final context = navigatorKey.currentContext;
       if (context != null) {
         showDialog(
@@ -706,7 +708,6 @@ extension APIExtension on API {
                     ),
                     textAlign: TextAlign.center,
                   ),
-
                   const SizedBox(height: 12),
                   Text(
                     "Bạn thao tác quá nhanh. Vui lòng thử lại sau 30 giây.",
@@ -748,7 +749,7 @@ extension APIExtension on API {
       }
       return null;
     } else {
-      print("❌ Lỗi: ${response.statusCode} - $respStr");
+      AppConfig.printEx("❌ Lỗi: ${response.statusCode} - $respStr");
       return null;
     }
   }
@@ -807,7 +808,7 @@ extension APIExtension on API {
         jsonRes,
         (json) => LoSamModel.fromJson(json),
       );
-    }else if (response.statusCode == 429) {
+    } else if (response.statusCode == 429) {
       final context = navigatorKey.currentContext;
       if (context != null) {
         showDialog(
@@ -854,7 +855,6 @@ extension APIExtension on API {
                     ),
                     textAlign: TextAlign.center,
                   ),
-
                   const SizedBox(height: 12),
                   Text(
                     "Bạn thao tác quá nhanh. Vui lòng thử lại sau 30 giây.",
@@ -896,7 +896,7 @@ extension APIExtension on API {
       }
       return null;
     } else {
-      print("❌ Lỗi: ${response.statusCode} - $respStr");
+      AppConfig.printEx("❌ Lỗi: ${response.statusCode} - $respStr");
       return null;
     }
   }
@@ -938,7 +938,7 @@ extension APIExtension on API {
           (json) => LoSamModel.fromJson(json),
         );
         return data.oneItem;
-      }else if (response.statusCode == 429) {
+      } else if (response.statusCode == 429) {
         final context = navigatorKey.currentContext;
         if (context != null) {
           showDialog(
@@ -985,7 +985,6 @@ extension APIExtension on API {
                       ),
                       textAlign: TextAlign.center,
                     ),
-
                     const SizedBox(height: 12),
                     Text(
                       "Bạn thao tác quá nhanh. Vui lòng thử lại sau 30 giây.",
@@ -1027,11 +1026,12 @@ extension APIExtension on API {
         }
         return null;
       } else {
-        print("Lỗi API ls: ${response.statusCode} - ${response.body}");
+        AppConfig.printEx(
+            "Lỗi API ls: ${response.statusCode} - ${response.body}");
         return null;
       }
     } catch (e) {
-      print("Exception khi gọi API: $e");
+      AppConfig.printEx("Exception khi gọi API: $e");
       return null;
     }
   }
@@ -1069,7 +1069,7 @@ extension APIExtension on API {
           responseJson,
           (json) => CaySamUserModel.fromJson(json),
         );
-      }else if (response.statusCode == 429) {
+      } else if (response.statusCode == 429) {
         final context = navigatorKey.currentContext;
         if (context != null) {
           showDialog(
@@ -1116,7 +1116,6 @@ extension APIExtension on API {
                       ),
                       textAlign: TextAlign.center,
                     ),
-
                     const SizedBox(height: 12),
                     Text(
                       "Bạn thao tác quá nhanh. Vui lòng thử lại sau 30 giây.",
@@ -1158,11 +1157,12 @@ extension APIExtension on API {
         }
         return null;
       } else {
-        print("❌ Lỗi API: ${response.statusCode} - ${response.body}");
+        AppConfig.printEx(
+            "❌ Lỗi API: ${response.statusCode} - ${response.body}");
         return null;
       }
     } catch (e) {
-      print("❌ Exception khi gọi API: $e");
+      AppConfig.printEx("❌ Exception khi gọi API: $e");
       return null;
     }
   }
@@ -1219,7 +1219,7 @@ extension APIExtension on API {
           (json) => LoSamModel.fromJson(json),
         );
         return data.items;
-      }else if (response.statusCode == 429) {
+      } else if (response.statusCode == 429) {
         final context = navigatorKey.currentContext;
         if (context != null) {
           showDialog(
@@ -1266,7 +1266,6 @@ extension APIExtension on API {
                       ),
                       textAlign: TextAlign.center,
                     ),
-
                     const SizedBox(height: 12),
                     Text(
                       "Bạn thao tác quá nhanh. Vui lòng thử lại sau 30 giây.",
@@ -1308,11 +1307,12 @@ extension APIExtension on API {
         }
         return null;
       } else {
-        print("Lỗi API cb: ${response.statusCode} - ${response.body}");
+        AppConfig.printEx(
+            "Lỗi API cb: ${response.statusCode} - ${response.body}");
         return null;
       }
     } catch (e) {
-      print("Exception khi gọi API: $e");
+      AppConfig.printEx("Exception khi gọi API: $e");
       return null;
     }
   }

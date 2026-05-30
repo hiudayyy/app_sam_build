@@ -10,8 +10,11 @@ import '../models/vuontrong/sensor_model.dart';
 import '../services/auth_service.dart';
 import 'api.dart';
 
+import '/app_config.dart';
+
 extension APIExtension on API {
-  Future<ApiResponse<DashBoardtotal>?> getDashBoardSam({bool isRetry = false}) async {
+  Future<ApiResponse<DashBoardtotal>?> getDashBoardSam(
+      {bool isRetry = false}) async {
     final uri = Uri.parse("${host}api/DashBoard/DashBoardSam");
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -23,23 +26,26 @@ extension APIExtension on API {
       final headers = {
         ...headerSvkt1,
         "AuthenticateToken": user?.authenticateToken ?? "",
-        "FuncsTagActive": user?.funcsTagActives.firstWhere(
-              (x) => x.tenController.toLowerCase() == "dashboard",
-          orElse: () => FuncTagActive(
-            tenController: "",
-            tenActions: "",
-            funcsTagActive: "",
-          ),
-        ).funcsTagActive ?? "",
+        "FuncsTagActive": user?.funcsTagActives
+                .firstWhere(
+                  (x) => x.tenController.toLowerCase() == "dashboard",
+                  orElse: () => FuncTagActive(
+                    tenController: "",
+                    tenActions: "",
+                    funcsTagActive: "",
+                  ),
+                )
+                .funcsTagActive ??
+            "",
       };
       final response = await http.get(uri, headers: headers);
       if (response.statusCode == 200) {
         final responseJson = jsonDecode(response.body);
         return ApiResponse<DashBoardtotal>.fromJson(
           responseJson,
-              (json) => DashBoardtotal.fromJson(json),
+          (json) => DashBoardtotal.fromJson(json),
         );
-      }else if (response.statusCode == 429) {
+      } else if (response.statusCode == 429) {
         final context = navigatorKey.currentContext;
         if (context != null) {
           showDialog(
@@ -86,7 +92,6 @@ extension APIExtension on API {
                       ),
                       textAlign: TextAlign.center,
                     ),
-
                     const SizedBox(height: 12),
                     Text(
                       "Bạn thao tác quá nhanh. Vui lòng thử lại sau 30 giây.",
@@ -127,33 +132,36 @@ extension APIExtension on API {
           );
         }
         return null;
-      }else if (response.statusCode == 401) {
+      } else if (response.statusCode == 401) {
         if (!isRetry) {
-          print("Gặp lỗi 401 -> Đang thử refresh token...");
+          AppConfig.printEx("Gặp lỗi 401 -> Đang thử refresh token...");
           var newUser = await await AuthService.getStoredUser();
           if (newUser != null) {
-            print("Refresh thành công -> Gọi lại API Dashboard lần 2.");
+            AppConfig.printEx(
+                "Refresh thành công -> Gọi lại API Dashboard lần 2.");
             return await getDashBoardSam(isRetry: true);
           } else {
-            print("Refresh thất bại -> Đăng xuất.");
+            AppConfig.printEx("Refresh thất bại -> Đăng xuất.");
             return null;
           }
         } else {
           // Đã retry rồi mà vẫn 401 -> Token chết hẳn hoặc lỗi server
-          print("Đã retry nhưng vẫn lỗi 401 -> Dừng.");
+          AppConfig.printEx("Đã retry nhưng vẫn lỗi 401 -> Dừng.");
           return null;
         }
-      }
-      else {
-        print("Lỗi API db: ${response.statusCode} - ${response.body}");
+      } else {
+        AppConfig.printEx(
+            "Lỗi API db: ${response.statusCode} - ${response.body}");
         return null;
       }
     } catch (e) {
-      print("Exception khi gọi API: $e");
+      AppConfig.printEx("Exception khi gọi API: $e");
       return null;
     }
   }
-  Future<ApiResponse<DashBoardSucKhoe>?> getDashBoardSucKhoe({bool isRetry = false}) async {
+
+  Future<ApiResponse<DashBoardSucKhoe>?> getDashBoardSucKhoe(
+      {bool isRetry = false}) async {
     final uri = Uri.parse("${host}api/DashBoard/DashBoardSucKhoe");
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -165,14 +173,17 @@ extension APIExtension on API {
       final headers = {
         ...headerSvkt1,
         "AuthenticateToken": user?.authenticateToken ?? "",
-        "FuncsTagActive": user?.funcsTagActives.firstWhere(
-              (x) => x.tenController.toLowerCase() == "dashboard",
-          orElse: () => FuncTagActive(
-            tenController: "",
-            tenActions: "",
-            funcsTagActive: "",
-          ),
-        ).funcsTagActive ?? "",
+        "FuncsTagActive": user?.funcsTagActives
+                .firstWhere(
+                  (x) => x.tenController.toLowerCase() == "dashboard",
+                  orElse: () => FuncTagActive(
+                    tenController: "",
+                    tenActions: "",
+                    funcsTagActive: "",
+                  ),
+                )
+                .funcsTagActive ??
+            "",
       };
 
       final response = await http.get(uri, headers: headers);
@@ -180,9 +191,9 @@ extension APIExtension on API {
         final responseJson = jsonDecode(response.body);
         return ApiResponse<DashBoardSucKhoe>.fromJson(
           responseJson,
-              (json) => DashBoardSucKhoe.fromJson(json),
+          (json) => DashBoardSucKhoe.fromJson(json),
         );
-      }else if (response.statusCode == 429) {
+      } else if (response.statusCode == 429) {
         final context = navigatorKey.currentContext;
         if (context != null) {
           showDialog(
@@ -229,7 +240,6 @@ extension APIExtension on API {
                       ),
                       textAlign: TextAlign.center,
                     ),
-
                     const SizedBox(height: 12),
                     Text(
                       "Bạn thao tác quá nhanh. Vui lòng thử lại sau 30 giây.",
@@ -270,7 +280,7 @@ extension APIExtension on API {
           );
         }
         return null;
-      }else if (response.statusCode == 401) {
+      } else if (response.statusCode == 401) {
         if (!isRetry) {
           var newUser = await await AuthService.getStoredUser();
           if (newUser != null) {
@@ -281,17 +291,18 @@ extension APIExtension on API {
         } else {
           return null;
         }
-      }
-      else {
-        print("Lỗi API: ${response.statusCode} - ${response.body}");
+      } else {
+        AppConfig.printEx("Lỗi API: ${response.statusCode} - ${response.body}");
         return null;
       }
     } catch (e) {
-      print("Exception khi gọi API: $e");
+      AppConfig.printEx("Exception khi gọi API: $e");
       return null;
     }
   }
-  Future<ApiResponse<SensorDeviceModel>?> getDashBoardSensor({bool isRetry = false}) async {
+
+  Future<ApiResponse<SensorDeviceModel>?> getDashBoardSensor(
+      {bool isRetry = false}) async {
     final uri = Uri.parse("${host}api/DashBoard/DashBoardSensor");
 
     try {
@@ -304,23 +315,26 @@ extension APIExtension on API {
       final headers = {
         ...headerSvkt1,
         "AuthenticateToken": user?.authenticateToken ?? "",
-        "FuncsTagActive": user?.funcsTagActives.firstWhere(
-              (x) => x.tenController.toLowerCase() == "dashboard",
-          orElse: () => FuncTagActive(
-            tenController: "",
-            tenActions: "",
-            funcsTagActive: "",
-          ),
-        ).funcsTagActive ?? "",
+        "FuncsTagActive": user?.funcsTagActives
+                .firstWhere(
+                  (x) => x.tenController.toLowerCase() == "dashboard",
+                  orElse: () => FuncTagActive(
+                    tenController: "",
+                    tenActions: "",
+                    funcsTagActive: "",
+                  ),
+                )
+                .funcsTagActive ??
+            "",
       };
       final response = await http.get(uri, headers: headers);
       if (response.statusCode == 200) {
         final responseJson = jsonDecode(response.body);
         return ApiResponse<SensorDeviceModel>.fromJson(
           responseJson,
-              (json) => SensorDeviceModel.fromJson(json),
+          (json) => SensorDeviceModel.fromJson(json),
         );
-      }else if (response.statusCode == 429) {
+      } else if (response.statusCode == 429) {
         final context = navigatorKey.currentContext;
         if (context != null) {
           showDialog(
@@ -407,7 +421,7 @@ extension APIExtension on API {
           );
         }
         return null;
-      }else if (response.statusCode == 401) {
+      } else if (response.statusCode == 401) {
         if (!isRetry) {
           var newUser = await await AuthService.getStoredUser();
           if (newUser != null) {
@@ -418,13 +432,13 @@ extension APIExtension on API {
         } else {
           return null;
         }
-      }
-      else {
-        print("Lỗi API db: ${response.statusCode} - ${response.body}");
+      } else {
+        AppConfig.printEx(
+            "Lỗi API db: ${response.statusCode} - ${response.body}");
         return null;
       }
     } catch (e) {
-      print("Exception khi gọi API: $e");
+      AppConfig.printEx("Exception khi gọi API: $e");
       return null;
     }
   }

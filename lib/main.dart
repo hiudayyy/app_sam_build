@@ -5,6 +5,7 @@ import 'package:home_widget/home_widget.dart';
 import 'package:http/http.dart' as http;
 import 'package:nftsam/api/api_caysam.dart';
 import 'package:nftsam/api/api_dashboard.dart';
+import '/app_config.dart';
 import 'package:nftsam/screens/plant_detail_screen.dart';
 import 'package:nftsam/services/http_override.dart';
 import 'package:nftsam/services/phantom_service.dart';
@@ -36,7 +37,8 @@ Future<void> _navigateToPlant(String plantId) async {
     if (model != null) {
       navigatorKey.currentState!.push(
         MaterialPageRoute(
-          builder: (context) => PlantDetailScreen(plant: model, onBack: () => Navigator.pop(context)),
+          builder: (context) => PlantDetailScreen(
+              plant: model, onBack: () => Navigator.pop(context)),
         ),
       );
     } else {
@@ -61,7 +63,8 @@ Future<void> onNotificationTapped(NotificationResponse response) async {
 
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
-  print("Thông báo nhận trong nền hoặc khi app bị tắt: ${message.notification?.title}");
+  AppConfig.printEx(
+      "Thông báo nhận trong nền hoặc khi app bị tắt: ${message.notification?.title}");
 }
 
 // =========================================================================
@@ -74,12 +77,14 @@ void myWidgetBackgroundWorker() {
       WidgetsFlutterBinding.ensureInitialized();
 
       // 1. Cập nhật thời tiết
-      final url = 'https://api.open-meteo.com/v1/forecast?latitude=15.111&longitude=108.017&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,weather_code&timezone=auto';
+      final url =
+          'https://api.open-meteo.com/v1/forecast?latitude=15.111&longitude=108.017&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,weather_code&timezone=auto';
       final response = await http.get(Uri.parse(url));
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         final daily = data['daily'];
-        await HomeWidget.saveWidgetData<String>('temp_range', "${daily['temperature_2m_min'][0].round()}° - ${daily['temperature_2m_max'][0].round()}°");
+        await HomeWidget.saveWidgetData<String>('temp_range',
+            "${daily['temperature_2m_min'][0].round()}° - ${daily['temperature_2m_max'][0].round()}°");
       }
 
       // 2. Cập nhật API Sâm Ngọc Linh
@@ -87,29 +92,30 @@ void myWidgetBackgroundWorker() {
         final statRes = await API().getDashBoardSam();
         if (statRes?.oneItem != null) {
           String total = statRes!.oneItem!.totalCaySam.toString();
-          await HomeWidget.saveWidgetData<String>('total_plants', "Tổng số cây: $total");
+          await HomeWidget.saveWidgetData<String>(
+              'total_plants', "Tổng số cây: $total");
         }
         final healthRes = await API().getDashBoardSucKhoe();
         if (healthRes?.oneItem != null) {
-          double healthPercentage = healthRes!.oneItem!.HealthPercentage?.toDouble() ?? 0.0;
+          double healthPercentage =
+              healthRes!.oneItem!.HealthPercentage?.toDouble() ?? 0.0;
           String score = (5 * (healthPercentage / 100)).toStringAsFixed(2);
-          await HomeWidget.saveWidgetData<String>('health_score', "Tình trạng: $score/5");
+          await HomeWidget.saveWidgetData<String>(
+              'health_score', "Tình trạng: $score/5");
         }
       } catch (e) {
-        print("Lỗi API Sâm: $e");
+        AppConfig.printEx("Lỗi API Sâm: $e");
       }
 
       // 3. Gọi Native cập nhật
       await HomeWidget.updateWidget(name: 'MyWidgetProvider');
-
     } catch (err) {
-      print("Lỗi Workmanager: $err");
+      AppConfig.printEx("Lỗi Workmanager: $err");
     }
     return Future.value(true);
   });
 }
 // =========================================================================
-
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -132,10 +138,9 @@ Future<void> main() async {
   );
 
   // KHỞI TẠO WORKMANAGER BẰNG HÀM MỚI Ở TRÊN
-  Workmanager().initialize(
-      myWidgetBackgroundWorker,
+  Workmanager().initialize(myWidgetBackgroundWorker,
       isInDebugMode: true // Khi nào đẩy lên CH Play nhớ đổi thành false
-  );
+      );
 
   // Đăng ký Task (Lưu ý: Dù bạn để seconds: 10, Android vẫn sẽ tự động ép thành 15 phút 1 lần để tiết kiệm pin)
   Workmanager().registerPeriodicTask(
@@ -170,7 +175,7 @@ class MyApp extends StatefulWidget {
 
 class MyAppState extends State<MyApp> {
   final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
-  FlutterLocalNotificationsPlugin();
+      FlutterLocalNotificationsPlugin();
 
   String? _pendingPlantIdFromTerminated;
 
@@ -185,8 +190,8 @@ class MyAppState extends State<MyApp> {
       AndroidNotification? android = message.notification?.android;
       final String? plantId = message.data['id'];
       if (notification != null && android != null) {
-        print("Nhận thông báo: ${notification.title}");
-        print("ID Cây nhận được: $plantId");
+        AppConfig.printEx("Nhận thông báo: ${notification.title}");
+        AppConfig.printEx("ID Cây nhận được: $plantId");
         flutterLocalNotificationsPlugin.show(
           notification.hashCode,
           notification.title,
@@ -207,7 +212,7 @@ class MyAppState extends State<MyApp> {
     handleInitialMessage();
 
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-      print("Ứng dụng mở từ thông báo (Background)!");
+      AppConfig.printEx("Ứng dụng mở từ thông báo (Background)!");
       final String? plantId = message.data['id'];
       if (plantId != null && plantId.isNotEmpty) {
         _navigateToPlant(plantId);
@@ -218,12 +223,15 @@ class MyAppState extends State<MyApp> {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
       void checkAndNavigate() {
-        if (authProvider.isAuthenticated && _pendingPlantIdFromTerminated != null) {
-          print("Đã xác thực, đang điều hướng từ trạng thái tắt...");
+        if (authProvider.isAuthenticated &&
+            _pendingPlantIdFromTerminated != null) {
+          AppConfig.printEx(
+              "Đã xác thực, đang điều hướng từ trạng thái tắt...");
           _navigateToPlant(_pendingPlantIdFromTerminated!);
           _pendingPlantIdFromTerminated = null;
         }
       }
+
       authProvider.addListener(checkAndNavigate);
       checkAndNavigate();
     });
@@ -231,24 +239,26 @@ class MyAppState extends State<MyApp> {
 
   void requestNotificationPermission() async {
     if (await Permission.notification.request().isGranted) {
-      print("Đã cấp quyền thông báo!");
+      AppConfig.printEx("Đã cấp quyền thông báo!");
     }
   }
 
   void setupLocalNotifications() async {
     final NotificationAppLaunchDetails? notificationAppLaunchDetails =
-    await flutterLocalNotificationsPlugin.getNotificationAppLaunchDetails();
+        await flutterLocalNotificationsPlugin.getNotificationAppLaunchDetails();
 
     String? initialPayload;
     if (notificationAppLaunchDetails?.didNotificationLaunchApp ?? false) {
-      initialPayload = notificationAppLaunchDetails!.notificationResponse?.payload;
-      print("App được khởi chạy từ thông báo. Payload: $initialPayload");
+      initialPayload =
+          notificationAppLaunchDetails!.notificationResponse?.payload;
+      AppConfig.printEx(
+          "App được khởi chạy từ thông báo. Payload: $initialPayload");
       if (initialPayload != null && initialPayload.isNotEmpty) {
         _pendingPlantIdFromTerminated = initialPayload;
       }
     }
     const AndroidInitializationSettings androidSettings =
-    AndroidInitializationSettings('@mipmap/ic_launcher');
+        AndroidInitializationSettings('@mipmap/ic_launcher');
 
     const AndroidNotificationChannel channel = AndroidNotificationChannel(
       'high_importance_channel',
@@ -261,24 +271,22 @@ class MyAppState extends State<MyApp> {
       android: androidSettings,
     );
 
-    await flutterLocalNotificationsPlugin.initialize(
-        initSettings,
+    await flutterLocalNotificationsPlugin.initialize(initSettings,
         onDidReceiveNotificationResponse: onNotificationTapped,
-        onDidReceiveBackgroundNotificationResponse: onNotificationTapped
-    );
+        onDidReceiveBackgroundNotificationResponse: onNotificationTapped);
 
     await flutterLocalNotificationsPlugin
         .resolvePlatformSpecificImplementation<
-        AndroidFlutterLocalNotificationsPlugin>()
+            AndroidFlutterLocalNotificationsPlugin>()
         ?.createNotificationChannel(channel);
   }
 
   void handleInitialMessage() async {
     RemoteMessage? initialMessage =
-    await FirebaseMessaging.instance.getInitialMessage();
+        await FirebaseMessaging.instance.getInitialMessage();
 
     if (initialMessage != null) {
-      print("handleInitialMesssage (FCM)");
+      AppConfig.printEx("handleInitialMesssage (FCM)");
       final String? plantId = initialMessage.data['id'];
       if (plantId != null && plantId.isNotEmpty) {
         _pendingPlantIdFromTerminated = plantId;

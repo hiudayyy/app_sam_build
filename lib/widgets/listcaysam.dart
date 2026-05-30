@@ -8,6 +8,8 @@ import '../models/vuontrong/caysam_model.dart';
 import '../api/api_caysam.dart';
 import '../screens/plant_detail_screen.dart'; // import nơi có hàm listCaySam
 
+import '/app_config.dart';
+
 class DanhSachCaySamPage extends StatefulWidget {
   const DanhSachCaySamPage({super.key});
 
@@ -118,7 +120,7 @@ class _DanhSachCaySamPageState extends State<DanhSachCaySamPage> {
       if (mounted) {
         setState(() => _isLoading = false);
       }
-      print("Lỗi tải danh sách: $e");
+      AppConfig.printEx("Lỗi tải danh sách: $e");
     }
   }
 

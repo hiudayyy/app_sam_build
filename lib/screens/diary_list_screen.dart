@@ -11,6 +11,8 @@ import '../models/nhat_ky.dart';
 import '../models/vuontrong/caysam_model.dart';
 import '../widgets/fullscreenimageviewer.dart';
 
+import '/app_config.dart';
+
 // Class chứa thông tin hiển thị sensor
 class SensorDisplayInfo {
   final String temp;
@@ -55,11 +57,19 @@ class _DiaryListScreenState extends State<DiaryListScreen> {
 
   // Health point colors
   static const Map<int, Map<String, dynamic>> healthColors = {
-    1: {'color': Color(0xFFE53935), 'label': 'Rất yếu', 'bg': Color(0xFFFFEBEE)},
+    1: {
+      'color': Color(0xFFE53935),
+      'label': 'Rất yếu',
+      'bg': Color(0xFFFFEBEE)
+    },
     2: {'color': Color(0xFFFB8C00), 'label': 'Yếu', 'bg': Color(0xFFFFF3E0)},
     3: {'color': Color(0xFFFDD835), 'label': 'TB', 'bg': Color(0xFFFFFDE7)},
     4: {'color': Color(0xFF1E88E5), 'label': 'Tốt', 'bg': Color(0xFFE3F2FD)},
-    5: {'color': Color(0xFF43A047), 'label': 'Rất tốt', 'bg': Color(0xFFE8F5E8)},
+    5: {
+      'color': Color(0xFF43A047),
+      'label': 'Rất tốt',
+      'bg': Color(0xFFE8F5E8)
+    },
   };
 
   @override
@@ -97,7 +107,7 @@ class _DiaryListScreenState extends State<DiaryListScreen> {
           }
         }
       } catch (e) {
-        print('Error parsing sensor JSON: $e');
+        AppConfig.printEx('Error parsing sensor JSON: $e');
       }
     }
 
@@ -132,7 +142,6 @@ class _DiaryListScreenState extends State<DiaryListScreen> {
     }
   }
 
-
   @override
   Widget build(BuildContext context) {
     double screenWidth = MediaQuery.of(context).size.width;
@@ -161,15 +170,18 @@ class _DiaryListScreenState extends State<DiaryListScreen> {
                   bottomRight: Radius.circular(24 * scale),
                 ),
                 boxShadow: [
-                  BoxShadow(color: Colors.green.withOpacity(0.3), blurRadius: 10, offset: const Offset(0, 4))
-                ]
-            ),
+                  BoxShadow(
+                      color: Colors.green.withOpacity(0.3),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4))
+                ]),
             child: Column(
               children: [
                 Row(
                   children: [
                     IconButton(
-                      icon: Icon(Icons.arrow_back, color: Colors.white, size: 24 * scale),
+                      icon: Icon(Icons.arrow_back,
+                          color: Colors.white, size: 24 * scale),
                       onPressed: widget.onBack,
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
@@ -178,26 +190,38 @@ class _DiaryListScreenState extends State<DiaryListScreen> {
                     Expanded(
                       child: Text(
                         'Nhật ký sinh trưởng',
-                        style: TextStyle(fontSize: 18 * scale, fontWeight: FontWeight.bold, color: Colors.white),
+                        style: TextStyle(
+                            fontSize: 18 * scale,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white),
                       ),
                     ),
                     GestureDetector(
                       onTap: () => setState(() => showImages = !showImages),
                       child: Container(
-                        padding: EdgeInsets.symmetric(horizontal: 10 * scale, vertical: 6 * scale),
+                        padding: EdgeInsets.symmetric(
+                            horizontal: 10 * scale, vertical: 6 * scale),
                         decoration: BoxDecoration(
                           color: Colors.white.withOpacity(0.2),
                           borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: Colors.white.withOpacity(0.4)),
+                          border:
+                              Border.all(color: Colors.white.withOpacity(0.4)),
                         ),
                         child: Row(
                           children: [
-                            Icon(showImages ? Icons.visibility_off : Icons.visibility,
-                                color: Colors.white, size: 14 * scale),
+                            Icon(
+                                showImages
+                                    ? Icons.visibility_off
+                                    : Icons.visibility,
+                                color: Colors.white,
+                                size: 14 * scale),
                             SizedBox(width: 4 * scale),
                             Text(
-                              showImages ? 'Ẩn ảnh':'Hiện ảnh',
-                              style: TextStyle(color: Colors.white, fontSize: 12 * scale, fontWeight: FontWeight.w500),
+                              showImages ? 'Ẩn ảnh' : 'Hiện ảnh',
+                              style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12 * scale,
+                                  fontWeight: FontWeight.w500),
                             ),
                           ],
                         ),
@@ -210,16 +234,24 @@ class _DiaryListScreenState extends State<DiaryListScreen> {
                   children: [
                     Container(
                       padding: EdgeInsets.all(8 * scale),
-                      decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), shape: BoxShape.circle),
-                      child: Icon(Icons.qr_code, color: Colors.white, size: 20 * scale),
+                      decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          shape: BoxShape.circle),
+                      child: Icon(Icons.qr_code,
+                          color: Colors.white, size: 20 * scale),
                     ),
                     SizedBox(width: 12 * scale),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(widget.plant.maCaySam ?? "N/A",
-                            style: TextStyle(color: Colors.white, fontSize: 16 * scale, fontWeight: FontWeight.w800)),
-                        const Text("Mã định danh", style: TextStyle(color: Colors.white70, fontSize: 12)),
+                            style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 16 * scale,
+                                fontWeight: FontWeight.w800)),
+                        const Text("Mã định danh",
+                            style:
+                                TextStyle(color: Colors.white70, fontSize: 12)),
                       ],
                     ),
                   ],
@@ -233,7 +265,8 @@ class _DiaryListScreenState extends State<DiaryListScreen> {
             child: FutureBuilder<List<CaySamNhatKy>>(
               future: _diaryFuture,
               builder: (context, snapshot) {
-                if (snapshot.hasError) return const Center(child: Text("Lỗi tải dữ liệu"));
+                if (snapshot.hasError)
+                  return const Center(child: Text("Lỗi tải dữ liệu"));
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
                 }
@@ -242,14 +275,18 @@ class _DiaryListScreenState extends State<DiaryListScreen> {
 
                 final totalEntries = diaryEntries.length;
                 final avgHealth = diaryEntries.isNotEmpty
-                    ? (diaryEntries.fold<double>(0.0, (sum, entry) => sum + entry.diemSucKhoe) / totalEntries)
+                    ? (diaryEntries.fold<double>(
+                            0.0, (sum, entry) => sum + entry.diemSucKhoe) /
+                        totalEntries)
                     : 0.0;
                 final healthTrend = diaryEntries.length >= 2
-                    ? getHealthTrend(diaryEntries[0].diemSucKhoe, diaryEntries[1].diemSucKhoe)
+                    ? getHealthTrend(diaryEntries[0].diemSucKhoe,
+                        diaryEntries[1].diemSucKhoe)
                     : null;
 
                 return SingleChildScrollView(
-                  padding: EdgeInsets.fromLTRB(16 * scale, 20 * scale, 16 * scale, 30 * scale),
+                  padding: EdgeInsets.fromLTRB(
+                      16 * scale, 20 * scale, 16 * scale, 30 * scale),
                   child: Column(
                     children: [
                       // --- SUMMARY CARD ---
@@ -260,22 +297,42 @@ class _DiaryListScreenState extends State<DiaryListScreen> {
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(16 * scale),
                           boxShadow: [
-                            BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 15, offset: const Offset(0, 5))
+                            BoxShadow(
+                                color: Colors.black.withOpacity(0.06),
+                                blurRadius: 15,
+                                offset: const Offset(0, 5))
                           ],
                         ),
                         child: Row(
                           children: [
-                            _buildSummaryItem(Icons.folder_copy_outlined, "$totalEntries", "Bản ghi", Colors.blue, scale),
-                            Container(width: 1, height: 40 * scale, color: Colors.grey.shade200),
-                            _buildSummaryItem(Icons.star_rounded, avgHealth.toStringAsFixed(1), "Điểm TB", Colors.orange, scale),
-                            Container(width: 1, height: 40 * scale, color: Colors.grey.shade200),
+                            _buildSummaryItem(Icons.folder_copy_outlined,
+                                "$totalEntries", "Bản ghi", Colors.blue, scale),
+                            Container(
+                                width: 1,
+                                height: 40 * scale,
+                                color: Colors.grey.shade200),
                             _buildSummaryItem(
-                                healthTrend == 'up' ? Icons.trending_up : Icons.trending_down,
-                                healthTrend == 'up' ? "Tốt lên" : (healthTrend == 'down' ? "Giảm" : "--"),
+                                Icons.star_rounded,
+                                avgHealth.toStringAsFixed(1),
+                                "Điểm TB",
+                                Colors.orange,
+                                scale),
+                            Container(
+                                width: 1,
+                                height: 40 * scale,
+                                color: Colors.grey.shade200),
+                            _buildSummaryItem(
+                                healthTrend == 'up'
+                                    ? Icons.trending_up
+                                    : Icons.trending_down,
+                                healthTrend == 'up'
+                                    ? "Tốt lên"
+                                    : (healthTrend == 'down' ? "Giảm" : "--"),
                                 "Xu hướng",
-                                healthTrend == 'up' ? Colors.green : Colors.grey,
-                                scale
-                            ),
+                                healthTrend == 'up'
+                                    ? Colors.green
+                                    : Colors.grey,
+                                scale),
                           ],
                         ),
                       ),
@@ -291,14 +348,19 @@ class _DiaryListScreenState extends State<DiaryListScreen> {
                           itemCount: diaryEntries.length,
                           itemBuilder: (context, index) {
                             final entry = diaryEntries[index];
-                            final healthInfo = healthColors[entry.diemSucKhoe] ?? healthColors[5]!;
-                            final bool isLast = index == diaryEntries.length - 1;
+                            final healthInfo =
+                                healthColors[entry.diemSucKhoe] ??
+                                    healthColors[5]!;
+                            final bool isLast =
+                                index == diaryEntries.length - 1;
 
                             // --- [FIX AN TOÀN] Lấy sensor đầu tiên ---
-                            final sensorList = entry.caySamNhatKy_SensorReadings;
-                            final firstSensor = (sensorList != null && sensorList.isNotEmpty)
-                                ? sensorList.first
-                                : null;
+                            final sensorList =
+                                entry.caySamNhatKy_SensorReadings;
+                            final firstSensor =
+                                (sensorList != null && sensorList.isNotEmpty)
+                                    ? sensorList.first
+                                    : null;
 
                             return IntrinsicHeight(
                               child: Row(
@@ -309,17 +371,31 @@ class _DiaryListScreenState extends State<DiaryListScreen> {
                                     children: [
                                       Container(
                                         width: 50 * scale,
-                                        margin: EdgeInsets.only(bottom: 4 * scale),
+                                        margin:
+                                            EdgeInsets.only(bottom: 4 * scale),
                                         child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.end,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.end,
                                           children: [
                                             Text(
-                                              entry.ngayGhi != null ? DateFormat('dd').format(DateTime.parse(entry.ngayGhi!)) : '',
-                                              style: TextStyle(fontSize: 18 * scale, fontWeight: FontWeight.bold, color: Colors.black87),
+                                              entry.ngayGhi != null
+                                                  ? DateFormat('dd').format(
+                                                      DateTime.parse(
+                                                          entry.ngayGhi!))
+                                                  : '',
+                                              style: TextStyle(
+                                                  fontSize: 18 * scale,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Colors.black87),
                                             ),
                                             Text(
-                                              entry.ngayGhi != null ? "Thg ${DateFormat('MM').format(DateTime.parse(entry.ngayGhi!))}" : '',
-                                              style: TextStyle(fontSize: 11 * scale, fontWeight: FontWeight.w500, color: Colors.grey[600]),
+                                              entry.ngayGhi != null
+                                                  ? "Thg ${DateFormat('MM').format(DateTime.parse(entry.ngayGhi!))}"
+                                                  : '',
+                                              style: TextStyle(
+                                                  fontSize: 11 * scale,
+                                                  fontWeight: FontWeight.w500,
+                                                  color: Colors.grey[600]),
                                             ),
                                           ],
                                         ),
@@ -333,20 +409,32 @@ class _DiaryListScreenState extends State<DiaryListScreen> {
                                     child: Column(
                                       children: [
                                         Container(
-                                          margin: EdgeInsets.only(top: 4 * scale),
-                                          width: 12 * scale, height: 12 * scale,
+                                          margin:
+                                              EdgeInsets.only(top: 4 * scale),
+                                          width: 12 * scale,
+                                          height: 12 * scale,
                                           decoration: BoxDecoration(
                                               color: Colors.white,
-                                              border: Border.all(color: healthInfo['color'] as Color, width: 2.5),
+                                              border: Border.all(
+                                                  color: healthInfo['color']
+                                                      as Color,
+                                                  width: 2.5),
                                               shape: BoxShape.circle,
-                                              boxShadow: [BoxShadow(color: (healthInfo['color'] as Color).withOpacity(0.3), blurRadius: 4)]
-                                          ),
+                                              boxShadow: [
+                                                BoxShadow(
+                                                    color: (healthInfo['color']
+                                                            as Color)
+                                                        .withOpacity(0.3),
+                                                    blurRadius: 4)
+                                              ]),
                                         ),
                                         if (!isLast)
                                           Expanded(
                                             child: Container(
                                               width: 2,
-                                              margin: const EdgeInsets.symmetric(vertical: 4),
+                                              margin:
+                                                  const EdgeInsets.symmetric(
+                                                      vertical: 4),
                                               color: Colors.grey.shade300,
                                             ),
                                           )
@@ -357,16 +445,23 @@ class _DiaryListScreenState extends State<DiaryListScreen> {
                                   // 3. Nội dung Card
                                   Expanded(
                                     child: Container(
-                                      margin: EdgeInsets.only(bottom: 20 * scale),
+                                      margin:
+                                          EdgeInsets.only(bottom: 20 * scale),
                                       decoration: BoxDecoration(
                                         color: Colors.white,
-                                        borderRadius: BorderRadius.circular(12 * scale),
+                                        borderRadius:
+                                            BorderRadius.circular(12 * scale),
                                         boxShadow: [
-                                          BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 6, offset: const Offset(0, 3))
+                                          BoxShadow(
+                                              color: Colors.black
+                                                  .withOpacity(0.04),
+                                              blurRadius: 6,
+                                              offset: const Offset(0, 3))
                                         ],
                                       ),
                                       child: ClipRRect(
-                                        borderRadius: BorderRadius.circular(12 * scale),
+                                        borderRadius:
+                                            BorderRadius.circular(12 * scale),
                                         child: IntrinsicHeight(
                                           child: Row(
                                             children: [
@@ -378,94 +473,219 @@ class _DiaryListScreenState extends State<DiaryListScreen> {
                                               // Content
                                               Expanded(
                                                 child: Padding(
-                                                  padding: EdgeInsets.all(12 * scale),
+                                                  padding: EdgeInsets.all(
+                                                      12 * scale),
                                                   child: Column(
-                                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                                    crossAxisAlignment:
+                                                        CrossAxisAlignment
+                                                            .start,
                                                     children: [
                                                       // Header card
                                                       Row(
-                                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                        mainAxisAlignment:
+                                                            MainAxisAlignment
+                                                                .spaceBetween,
                                                         children: [
                                                           Text(
-                                                            formatRelativeDate(entry.ngayGhi),
-                                                            style: TextStyle(fontSize: 11 * scale, fontStyle: FontStyle.italic, color: Colors.grey[500]),
+                                                            formatRelativeDate(
+                                                                entry.ngayGhi),
+                                                            style: TextStyle(
+                                                                fontSize:
+                                                                    11 * scale,
+                                                                fontStyle:
+                                                                    FontStyle
+                                                                        .italic,
+                                                                color: Colors
+                                                                    .grey[500]),
                                                           ),
                                                           Container(
-                                                            padding: EdgeInsets.symmetric(horizontal: 8 * scale, vertical: 2 * scale),
-                                                            decoration: BoxDecoration(
-                                                              color: (healthInfo['color'] as Color).withOpacity(0.1),
-                                                              borderRadius: BorderRadius.circular(4),
+                                                            padding: EdgeInsets
+                                                                .symmetric(
+                                                                    horizontal:
+                                                                        8 *
+                                                                            scale,
+                                                                    vertical: 2 *
+                                                                        scale),
+                                                            decoration:
+                                                                BoxDecoration(
+                                                              color: (healthInfo[
+                                                                          'color']
+                                                                      as Color)
+                                                                  .withOpacity(
+                                                                      0.1),
+                                                              borderRadius:
+                                                                  BorderRadius
+                                                                      .circular(
+                                                                          4),
                                                             ),
                                                             child: Text(
                                                               "${healthInfo['label']}",
-                                                              style: TextStyle(fontSize: 10 * scale, fontWeight: FontWeight.bold, color: healthInfo['color']),
+                                                              style: TextStyle(
+                                                                  fontSize: 10 *
+                                                                      scale,
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .bold,
+                                                                  color: healthInfo[
+                                                                      'color']),
                                                             ),
                                                           )
                                                         ],
                                                       ),
-                                                      SizedBox(height: 8 * scale),
+                                                      SizedBox(
+                                                          height: 8 * scale),
 
                                                       // Stats (Sức khỏe / Số lá)
                                                       Row(
                                                         children: [
-                                                          Icon(Icons.eco, size: 14 * scale, color: Colors.green),
-                                                          SizedBox(width: 4 * scale),
-                                                          Text("${entry.soLa} lá", style: TextStyle(fontSize: 13 * scale, fontWeight: FontWeight.w600)),
-                                                          SizedBox(width: 16 * scale),
-                                                          Icon(Icons.favorite, size: 14 * scale, color: Colors.redAccent),
-                                                          SizedBox(width: 4 * scale),
-                                                          Text("${entry.diemSucKhoe}/5 điểm", style: TextStyle(fontSize: 13 * scale, fontWeight: FontWeight.w600)),
+                                                          Icon(Icons.eco,
+                                                              size: 14 * scale,
+                                                              color:
+                                                                  Colors.green),
+                                                          SizedBox(
+                                                              width: 4 * scale),
+                                                          Text(
+                                                              "${entry.soLa} lá",
+                                                              style: TextStyle(
+                                                                  fontSize: 13 *
+                                                                      scale,
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .w600)),
+                                                          SizedBox(
+                                                              width:
+                                                                  16 * scale),
+                                                          Icon(Icons.favorite,
+                                                              size: 14 * scale,
+                                                              color: Colors
+                                                                  .redAccent),
+                                                          SizedBox(
+                                                              width: 4 * scale),
+                                                          Text(
+                                                              "${entry.diemSucKhoe}/5 điểm",
+                                                              style: TextStyle(
+                                                                  fontSize: 13 *
+                                                                      scale,
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .w600)),
                                                         ],
                                                       ),
 
                                                       // --- [MỚI - ĐÃ SỬA LỖI] PHẦN HIỂN THỊ SENSOR ---
                                                       if (firstSensor != null &&
-                                                          ((firstSensor.nhietDo ?? 0) != 0 ||
-                                                              (firstSensor.doAmKK ?? 0) != 0 ||
-                                                              (firstSensor.doAmDat ?? 0) != 0))
-                                                        _buildSensorInfo(firstSensor, scale),
+                                                          ((firstSensor
+                                                                          .nhietDo ??
+                                                                      0) !=
+                                                                  0 ||
+                                                              (firstSensor.doAmKK ??
+                                                                      0) !=
+                                                                  0 ||
+                                                              (firstSensor.doAmDat ??
+                                                                      0) !=
+                                                                  0))
+                                                        _buildSensorInfo(
+                                                            firstSensor, scale),
 
-                                                      SizedBox(height: 8 * scale),
-                                                      Divider(height: 1, color: Colors.grey.shade200),
-                                                      SizedBox(height: 8 * scale),
+                                                      SizedBox(
+                                                          height: 8 * scale),
+                                                      Divider(
+                                                          height: 1,
+                                                          color: Colors
+                                                              .grey.shade200),
+                                                      SizedBox(
+                                                          height: 8 * scale),
 
                                                       // Ghi chú
-                                                      if (entry.ghiChu != null && entry.ghiChu!.isNotEmpty)
+                                                      if (entry.ghiChu !=
+                                                              null &&
+                                                          entry.ghiChu!
+                                                              .isNotEmpty)
                                                         Container(
-                                                          width: double.infinity,
-                                                          padding: EdgeInsets.all(8 * scale),
-                                                          margin: EdgeInsets.only(bottom: 12 * scale),
-                                                          decoration: BoxDecoration(
-                                                            color: Colors.grey[50],
-                                                            borderRadius: BorderRadius.circular(6 * scale),
+                                                          width:
+                                                              double.infinity,
+                                                          padding:
+                                                              EdgeInsets.all(
+                                                                  8 * scale),
+                                                          margin:
+                                                              EdgeInsets.only(
+                                                                  bottom: 12 *
+                                                                      scale),
+                                                          decoration:
+                                                              BoxDecoration(
+                                                            color:
+                                                                Colors.grey[50],
+                                                            borderRadius:
+                                                                BorderRadius
+                                                                    .circular(6 *
+                                                                        scale),
                                                           ),
                                                           child: Column(
-                                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                                            crossAxisAlignment:
+                                                                CrossAxisAlignment
+                                                                    .start,
                                                             children: [
                                                               Text("Ghi chú:",
-                                                                  style: TextStyle(fontSize: 11 * scale, fontWeight: FontWeight.bold, color: Colors.grey[700])),
-                                                              SizedBox(height: 2 * scale),
+                                                                  style: TextStyle(
+                                                                      fontSize: 11 *
+                                                                          scale,
+                                                                      fontWeight:
+                                                                          FontWeight
+                                                                              .bold,
+                                                                      color: Colors
+                                                                              .grey[
+                                                                          700])),
+                                                              SizedBox(
+                                                                  height: 2 *
+                                                                      scale),
                                                               Text(
                                                                 entry.ghiChu!,
-                                                                style: TextStyle(fontSize: 12 * scale, color: Colors.black87),
+                                                                style: TextStyle(
+                                                                    fontSize: 12 *
+                                                                        scale,
+                                                                    color: Colors
+                                                                        .black87),
                                                               ),
                                                             ],
                                                           ),
                                                         ),
 
                                                       // HÌNH ẢNH
-                                                      if (showImages && (entry.hinhAnhTongQuan != null || entry.hinhAnhChiTiet != null)) ...[
+                                                      if (showImages &&
+                                                          (entry.hinhAnhTongQuan !=
+                                                                  null ||
+                                                              entry.hinhAnhChiTiet !=
+                                                                  null)) ...[
                                                         Row(
-                                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                                          crossAxisAlignment:
+                                                              CrossAxisAlignment
+                                                                  .start,
                                                           children: [
-                                                            if (entry.hinhAnhTongQuan != null)
-                                                              _buildThumbImage(context, entry.hinhAnhTongQuan!, "Hình ảnh tổng quan", scale),
-
-                                                            if (entry.hinhAnhTongQuan != null && entry.hinhAnhChiTiet != null)
-                                                              SizedBox(width: 8 * scale),
-
-                                                            if (entry.hinhAnhChiTiet != null)
-                                                              _buildThumbImage(context, entry.hinhAnhChiTiet!, "Hình ảnh chi tiết", scale),
+                                                            if (entry
+                                                                    .hinhAnhTongQuan !=
+                                                                null)
+                                                              _buildThumbImage(
+                                                                  context,
+                                                                  entry
+                                                                      .hinhAnhTongQuan!,
+                                                                  "Hình ảnh tổng quan",
+                                                                  scale),
+                                                            if (entry.hinhAnhTongQuan !=
+                                                                    null &&
+                                                                entry.hinhAnhChiTiet !=
+                                                                    null)
+                                                              SizedBox(
+                                                                  width: 8 *
+                                                                      scale),
+                                                            if (entry
+                                                                    .hinhAnhChiTiet !=
+                                                                null)
+                                                              _buildThumbImage(
+                                                                  context,
+                                                                  entry
+                                                                      .hinhAnhChiTiet!,
+                                                                  "Hình ảnh chi tiết",
+                                                                  scale),
                                                           ],
                                                         )
                                                       ]
@@ -518,47 +738,59 @@ class _DiaryListScreenState extends State<DiaryListScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _buildMiniSensorItem(Icons.thermostat_rounded, getValue(info.nhietDo, "°C"), Colors.orange, scale),
-          _buildMiniSensorItem(Icons.water_drop_rounded, getValue(info.doAmKK, "%"), Colors.blue, scale),
-          _buildMiniSensorItem(Icons.grass_rounded, getValue(info.doAmDat, "%"), Colors.brown, scale),
-          _buildMiniSensorItem(Icons.opacity_rounded, getValue(info.diemSuong, "°C"), Colors.cyan, scale),
+          _buildMiniSensorItem(Icons.thermostat_rounded,
+              getValue(info.nhietDo, "°C"), Colors.orange, scale),
+          _buildMiniSensorItem(Icons.water_drop_rounded,
+              getValue(info.doAmKK, "%"), Colors.blue, scale),
+          _buildMiniSensorItem(Icons.grass_rounded, getValue(info.doAmDat, "%"),
+              Colors.brown, scale),
+          _buildMiniSensorItem(Icons.opacity_rounded,
+              getValue(info.diemSuong, "°C"), Colors.cyan, scale),
         ],
       ),
     );
   }
 
-  Widget _buildMiniSensorItem(IconData icon, String value, Color color, double scale) {
+  Widget _buildMiniSensorItem(
+      IconData icon, String value, Color color, double scale) {
     return Column(
       children: [
         Icon(icon, size: 16 * scale, color: color),
         SizedBox(height: 2 * scale),
-        Text(
-            value,
+        Text(value,
             style: TextStyle(
                 fontSize: 10 * scale,
                 fontWeight: FontWeight.w700,
-                color: Colors.blueGrey.shade700
-            )
-        )
+                color: Colors.blueGrey.shade700))
       ],
     );
   }
   // -----------------------------------------------------------
 
-  Widget _buildSummaryItem(IconData icon, String value, String label, Color color, double scale) {
+  Widget _buildSummaryItem(
+      IconData icon, String value, String label, Color color, double scale) {
     return Expanded(
       child: Column(
         children: [
           Icon(icon, color: color, size: 22 * scale),
           SizedBox(height: 4 * scale),
-          Text(value, style: TextStyle(fontSize: 16 * scale, fontWeight: FontWeight.bold, color: Colors.black87)),
-          Text(label, style: TextStyle(fontSize: 10 * scale, color: Colors.grey[500], fontWeight: FontWeight.w500)),
+          Text(value,
+              style: TextStyle(
+                  fontSize: 16 * scale,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87)),
+          Text(label,
+              style: TextStyle(
+                  fontSize: 10 * scale,
+                  color: Colors.grey[500],
+                  fontWeight: FontWeight.w500)),
         ],
       ),
     );
   }
 
-  Widget _buildThumbImage(BuildContext context, String url, String label, double scale) {
+  Widget _buildThumbImage(
+      BuildContext context, String url, String label, double scale) {
     return Expanded(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -570,12 +802,14 @@ class _DiaryListScreenState extends State<DiaryListScreen> {
               style: TextStyle(
                   fontSize: 11 * scale,
                   color: Colors.grey[600],
-                  fontWeight: FontWeight.w500
-              ),
+                  fontWeight: FontWeight.w500),
             ),
           ),
           GestureDetector(
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => FullScreenImageViewer(imageUrl: url))),
+            onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (_) => FullScreenImageViewer(imageUrl: url))),
             child: Hero(
               tag: url,
               child: Container(
@@ -583,7 +817,12 @@ class _DiaryListScreenState extends State<DiaryListScreen> {
                 width: double.infinity,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(8 * scale),
-                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 4, offset: Offset(0, 2))],
+                  boxShadow: [
+                    BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 4,
+                        offset: Offset(0, 2))
+                  ],
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(8 * scale),
@@ -614,9 +853,11 @@ class _DiaryListScreenState extends State<DiaryListScreen> {
       child: Column(
         children: [
           SizedBox(height: 40 * scale),
-          Icon(Icons.notes_rounded, size: 60 * scale, color: Colors.grey.shade300),
+          Icon(Icons.notes_rounded,
+              size: 60 * scale, color: Colors.grey.shade300),
           SizedBox(height: 10 * scale),
-          Text("Chưa có nhật ký nào", style: TextStyle(color: Colors.grey, fontSize: 14 * scale)),
+          Text("Chưa có nhật ký nào",
+              style: TextStyle(color: Colors.grey, fontSize: 14 * scale)),
         ],
       ),
     );

@@ -12,6 +12,8 @@ import '../models/kttoken.dart';
 import '../models/vuontrong/losam_model.dart';
 import '../models/vuontrong/losamcamera_model.dart';
 
+import '/app_config.dart';
+
 class CameraConfig {
   double angle;
   int range;
@@ -50,7 +52,8 @@ class CameraViewWithGrid extends StatefulWidget {
   _CameraViewWithGridState createState() => _CameraViewWithGridState();
 }
 
-class _CameraViewWithGridState extends State<CameraViewWithGrid> with SingleTickerProviderStateMixin {
+class _CameraViewWithGridState extends State<CameraViewWithGrid>
+    with SingleTickerProviderStateMixin {
   LoSamCameraModel? selectedCamera;
   CameraStreamResponse? resCamera;
   bool isPlaying = true;
@@ -146,7 +149,8 @@ class _CameraViewWithGridState extends State<CameraViewWithGrid> with SingleTick
       return;
     }
 
-    final newController = VideoPlayerController.networkUrl(Uri.parse(urlcamera!));
+    final newController =
+        VideoPlayerController.networkUrl(Uri.parse(urlcamera!));
 
     newController.addListener(() {
       if (newController.value.hasError && mounted) {
@@ -237,7 +241,8 @@ class _CameraViewWithGridState extends State<CameraViewWithGrid> with SingleTick
       // Thông báo tức thì cho người dùng
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("🚀 Đang gửi lệnh... Camera sẽ phản hồi sau 5-10 giây."),
+          content:
+              Text("🚀 Đang gửi lệnh... Camera sẽ phản hồi sau 5-10 giây."),
           duration: Duration(seconds: 3),
           behavior: SnackBarBehavior.floating,
         ),
@@ -250,9 +255,15 @@ class _CameraViewWithGridState extends State<CameraViewWithGrid> with SingleTick
 
       if (res != null && mounted) {
         setState(() {
-          double newAngle = res is Map ? (res['angle'] ?? cameraConfig.angle).toDouble() : (res.angle ?? cameraConfig.angle).toDouble();
-          int newRange = res is Map ? (res['range'] ?? cameraConfig.range).toInt() : (res.range ?? cameraConfig.range).toInt();
-          double newSpread = res is Map ? (res['spread'] ?? cameraConfig.spread).toDouble() : (res.spread ?? cameraConfig.spread).toDouble();
+          double newAngle = res is Map
+              ? (res['angle'] ?? cameraConfig.angle).toDouble()
+              : (res.angle ?? cameraConfig.angle).toDouble();
+          int newRange = res is Map
+              ? (res['range'] ?? cameraConfig.range).toInt()
+              : (res.range ?? cameraConfig.range).toInt();
+          double newSpread = res is Map
+              ? (res['spread'] ?? cameraConfig.spread).toDouble()
+              : (res.spread ?? cameraConfig.spread).toDouble();
 
           cameraConfig = cameraConfig.copyWith(
             angle: newAngle,
@@ -262,7 +273,7 @@ class _CameraViewWithGridState extends State<CameraViewWithGrid> with SingleTick
         });
       }
     } catch (e) {
-      debugPrint("❌ Lỗi MoveStreamCamera: $e");
+      AppConfig.printEx("❌ Lỗi MoveStreamCamera: $e");
     } finally {
       if (mounted) setState(() => isCommandSending = false);
     }
@@ -286,10 +297,10 @@ class _CameraViewWithGridState extends State<CameraViewWithGrid> with SingleTick
             child: isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : selectedCamera != null
-                ? _buildCameraViewWithGrid(selectedCamera!)
-                : widget.cameras.isEmpty
-                ? _buildNoCameraSelected()
-                : Container(),
+                    ? _buildCameraViewWithGrid(selectedCamera!)
+                    : widget.cameras.isEmpty
+                        ? _buildNoCameraSelected()
+                        : Container(),
           ),
           AnimatedPositioned(
             duration: const Duration(milliseconds: 300),
@@ -351,20 +362,23 @@ class _CameraViewWithGridState extends State<CameraViewWithGrid> with SingleTick
                       borderRadius: BorderRadius.circular(14),
                       gradient: isSelected
                           ? LinearGradient(
-                        colors: [Colors.green.shade600, Colors.green.shade400],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      )
+                              colors: [
+                                Colors.green.shade600,
+                                Colors.green.shade400
+                              ],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            )
                           : null,
                       color: isSelected ? null : Colors.grey.shade100,
                       boxShadow: isSelected
                           ? [
-                        BoxShadow(
-                          color: Colors.green.withOpacity(0.3),
-                          blurRadius: 8,
-                          offset: const Offset(0, 4),
-                        )
-                      ]
+                              BoxShadow(
+                                color: Colors.green.withOpacity(0.3),
+                                blurRadius: 8,
+                                offset: const Offset(0, 4),
+                              )
+                            ]
                           : [],
                     ),
                     child: Material(
@@ -382,7 +396,8 @@ class _CameraViewWithGridState extends State<CameraViewWithGrid> with SingleTick
                           StartCamera("");
                         },
                         child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 12),
                           child: Row(
                             children: [
                               Stack(
@@ -390,17 +405,22 @@ class _CameraViewWithGridState extends State<CameraViewWithGrid> with SingleTick
                                 children: [
                                   CircleAvatar(
                                     radius: 24,
-                                    backgroundColor: isSelected ? Colors.white.withOpacity(0.2) : Colors.white,
+                                    backgroundColor: isSelected
+                                        ? Colors.white.withOpacity(0.2)
+                                        : Colors.white,
                                     child: Icon(
                                       Icons.videocam_rounded,
-                                      color: isSelected ? Colors.white : Colors.green.shade700,
+                                      color: isSelected
+                                          ? Colors.white
+                                          : Colors.green.shade700,
                                       size: 26,
                                     ),
                                   ),
                                   Positioned(
                                     top: -2,
                                     right: -2,
-                                    child: _buildCompactStatusIndicator(camera.trangThai ?? 0),
+                                    child: _buildCompactStatusIndicator(
+                                        camera.trangThai ?? 0),
                                   ),
                                 ],
                               ),
@@ -410,11 +430,14 @@ class _CameraViewWithGridState extends State<CameraViewWithGrid> with SingleTick
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      camera.loSamLoaiCamera?.ten ?? "Camera không tên",
+                                      camera.loSamLoaiCamera?.ten ??
+                                          "Camera không tên",
                                       style: TextStyle(
                                         fontWeight: FontWeight.bold,
                                         fontSize: 16,
-                                        color: isSelected ? Colors.white : Colors.black87,
+                                        color: isSelected
+                                            ? Colors.white
+                                            : Colors.black87,
                                       ),
                                     ),
                                     const SizedBox(height: 4),
@@ -422,7 +445,9 @@ class _CameraViewWithGridState extends State<CameraViewWithGrid> with SingleTick
                                       "Vị trí: ${camera.loSam ?? "Chưa rõ"}",
                                       style: TextStyle(
                                         fontSize: 13,
-                                        color: isSelected ? Colors.white.withOpacity(0.8) : Colors.grey.shade600,
+                                        color: isSelected
+                                            ? Colors.white.withOpacity(0.8)
+                                            : Colors.grey.shade600,
                                       ),
                                     ),
                                   ],
@@ -457,14 +482,19 @@ class _CameraViewWithGridState extends State<CameraViewWithGrid> with SingleTick
   }
 
   Widget _buildCameraViewWithGrid(LoSamCameraModel camera) {
-    final isVideoReady = _controller != null && _controller!.value.isInitialized && !_isVideoError;
+    final isVideoReady = _controller != null &&
+        _controller!.value.isInitialized &&
+        !_isVideoError;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           "Giám sát & Điều khiển",
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold, fontSize: 18),
+          style: Theme.of(context)
+              .textTheme
+              .titleLarge
+              ?.copyWith(fontWeight: FontWeight.bold, fontSize: 18),
         ),
         const SizedBox(height: 16),
         Expanded(
@@ -473,7 +503,8 @@ class _CameraViewWithGridState extends State<CameraViewWithGrid> with SingleTick
               children: [
                 Card(
                   elevation: 2,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
                   clipBehavior: Clip.antiAlias,
                   child: AspectRatio(
                     aspectRatio: 16 / 10,
@@ -494,11 +525,15 @@ class _CameraViewWithGridState extends State<CameraViewWithGrid> with SingleTick
                                     child: Column(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
-                                        CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                                        CircularProgressIndicator(
+                                            color: Colors.white,
+                                            strokeWidth: 2),
                                         SizedBox(height: 12),
                                         Text(
                                           "Đang gửi lệnh... Vui lòng đợi",
-                                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                                          style: TextStyle(
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.bold),
                                         )
                                       ],
                                     ),
@@ -507,17 +542,34 @@ class _CameraViewWithGridState extends State<CameraViewWithGrid> with SingleTick
                               ),
 
                             AnimatedOpacity(
-                              opacity: _showControlsOverlay && isVideoReady ? 1.0 : 0.0,
+                              opacity: _showControlsOverlay && isVideoReady
+                                  ? 1.0
+                                  : 0.0,
                               duration: const Duration(milliseconds: 300),
                               child: IgnorePointer(
-                                ignoring: !(_showControlsOverlay && isVideoReady),
+                                ignoring:
+                                    !(_showControlsOverlay && isVideoReady),
                                 child: Stack(
                                   children: [
-                                    Container(color: Colors.black.withOpacity(0.2)),
-                                    if (user?.htTaiKhoan.htPhanQuyenTaiKhoans.any((pq) => pq.maVaiTro == "nft_admin") ?? false)
-                                      Positioned(bottom: 12, left: 12, child: _buildRedesignedCameraInfo()),
-                                    if (user?.htTaiKhoan.htPhanQuyenTaiKhoans.any((pq) => pq.maVaiTro == "nft_admin") ?? false)
-                                      Positioned(top: 0, bottom: 0, right: 12, child: _buildRedesignedPTZControls()),
+                                    Container(
+                                        color: Colors.black.withOpacity(0.2)),
+                                    if (user?.htTaiKhoan.htPhanQuyenTaiKhoans
+                                            .any((pq) =>
+                                                pq.maVaiTro == "nft_admin") ??
+                                        false)
+                                      Positioned(
+                                          bottom: 12,
+                                          left: 12,
+                                          child: _buildRedesignedCameraInfo()),
+                                    if (user?.htTaiKhoan.htPhanQuyenTaiKhoans
+                                            .any((pq) =>
+                                                pq.maVaiTro == "nft_admin") ??
+                                        false)
+                                      Positioned(
+                                          top: 0,
+                                          bottom: 0,
+                                          right: 12,
+                                          child: _buildRedesignedPTZControls()),
                                   ],
                                 ),
                               ),
@@ -532,7 +584,8 @@ class _CameraViewWithGridState extends State<CameraViewWithGrid> with SingleTick
                 // (Sơ đồ Lô sâm giữ nguyên...)
                 Card(
                   elevation: 2,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
                   clipBehavior: Clip.antiAlias,
                   child: Column(
                     children: [
@@ -540,9 +593,12 @@ class _CameraViewWithGridState extends State<CameraViewWithGrid> with SingleTick
                         padding: const EdgeInsets.all(12.0),
                         child: Row(
                           children: [
-                            Icon(Icons.map_outlined, color: Colors.green.shade700),
+                            Icon(Icons.map_outlined,
+                                color: Colors.green.shade700),
                             const SizedBox(width: 8),
-                            const Text("Sơ đồ Lô Sâm", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                            const Text("Sơ đồ Lô Sâm",
+                                style: TextStyle(
+                                    fontSize: 16, fontWeight: FontWeight.bold)),
                           ],
                         ),
                       ),
@@ -582,7 +638,10 @@ class _CameraViewWithGridState extends State<CameraViewWithGrid> with SingleTick
                                   height: 16,
                                   decoration: const BoxDecoration(
                                     shape: BoxShape.circle,
-                                    gradient: RadialGradient(colors: [Colors.red, Color(0xFFB71C1C)]),
+                                    gradient: RadialGradient(colors: [
+                                      Colors.red,
+                                      Color(0xFFB71C1C)
+                                    ]),
                                   ),
                                 ),
                               ),
@@ -618,30 +677,39 @@ class _CameraViewWithGridState extends State<CameraViewWithGrid> with SingleTick
               Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  _buildCircularPTZButton(Icons.zoom_in, () => handlePTZ('zoomIn')),
+                  _buildCircularPTZButton(
+                      Icons.zoom_in, () => handlePTZ('zoomIn')),
                   const SizedBox(height: 8),
-                  const Text("ZOOM", style: TextStyle(color: Colors.white70, fontSize: 10)),
+                  const Text("ZOOM",
+                      style: TextStyle(color: Colors.white70, fontSize: 10)),
                   const SizedBox(height: 8),
-                  _buildCircularPTZButton(Icons.zoom_out, () => handlePTZ('zoomOut')),
+                  _buildCircularPTZButton(
+                      Icons.zoom_out, () => handlePTZ('zoomOut')),
                 ],
               ),
               const SizedBox(width: 16),
               Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  _buildCircularPTZButton(Icons.keyboard_arrow_up, () => handlePTZ('up')),
+                  _buildCircularPTZButton(
+                      Icons.keyboard_arrow_up, () => handlePTZ('up')),
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      _buildCircularPTZButton(Icons.keyboard_arrow_left, () => handlePTZ('left')),
+                      _buildCircularPTZButton(
+                          Icons.keyboard_arrow_left, () => handlePTZ('left')),
                       const SizedBox(width: 8),
-                      _buildCircularPTZButton(Icons.settings_backup_restore, () => handlePTZ('reset'), isCenter: true),
+                      _buildCircularPTZButton(Icons.settings_backup_restore,
+                          () => handlePTZ('reset'),
+                          isCenter: true),
                       const SizedBox(width: 8),
-                      _buildCircularPTZButton(Icons.keyboard_arrow_right, () => handlePTZ('right')),
+                      _buildCircularPTZButton(
+                          Icons.keyboard_arrow_right, () => handlePTZ('right')),
                     ],
                   ),
                   const SizedBox(height: 8),
-                  _buildCircularPTZButton(Icons.keyboard_arrow_down, () => handlePTZ('down')),
+                  _buildCircularPTZButton(
+                      Icons.keyboard_arrow_down, () => handlePTZ('down')),
                 ],
               ),
             ],
@@ -662,7 +730,10 @@ class _CameraViewWithGridState extends State<CameraViewWithGrid> with SingleTick
               SizedBox(width: 6),
               Text(
                 "Phản hồi lệnh sau 5s-10s",
-                style: TextStyle(color: Colors.white70, fontSize: 11, fontStyle: FontStyle.italic),
+                style: TextStyle(
+                    color: Colors.white70,
+                    fontSize: 11,
+                    fontStyle: FontStyle.italic),
               ),
             ],
           ),
@@ -690,7 +761,8 @@ class _CameraViewWithGridState extends State<CameraViewWithGrid> with SingleTick
                 child: Center(
                   child: Text(
                     '$col${r + 1}',
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold, fontSize: 11),
                   ),
                 ),
               ),
@@ -727,7 +799,11 @@ class _CameraViewWithGridState extends State<CameraViewWithGrid> with SingleTick
             child: IconButton(
               icon: const Icon(Icons.fullscreen, color: Colors.white),
               onPressed: () {
-                Navigator.push(context, MaterialPageRoute(builder: (context) => FullscreenVideoPage(controller: _controller!)));
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) =>
+                            FullscreenVideoPage(controller: _controller!)));
               },
             ),
           ),
@@ -745,23 +821,29 @@ class _CameraViewWithGridState extends State<CameraViewWithGrid> with SingleTick
       ),
     );
   }
+
   Widget _buildNoCameraSelected() {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.videocam_off_outlined, size: 64, color: Colors.grey.shade400),
+          Icon(Icons.videocam_off_outlined,
+              size: 64, color: Colors.grey.shade400),
           const SizedBox(height: 16),
-          const Text('Không có camera khả dụng', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500)),
+          const Text('Không có camera khả dụng',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500)),
         ],
       ),
     );
   }
 
-  Widget _buildCircularPTZButton(IconData icon, VoidCallback onPressed, {bool isCenter = false}) {
+  Widget _buildCircularPTZButton(IconData icon, VoidCallback onPressed,
+      {bool isCenter = false}) {
     return CircleAvatar(
       radius: isCenter ? 22 : 25,
-      backgroundColor: isCenter ? Colors.white.withOpacity(0.3) : Colors.white.withOpacity(0.2),
+      backgroundColor: isCenter
+          ? Colors.white.withOpacity(0.3)
+          : Colors.white.withOpacity(0.2),
       child: IconButton(
         icon: Icon(icon),
         color: Colors.white,
@@ -774,17 +856,25 @@ class _CameraViewWithGridState extends State<CameraViewWithGrid> with SingleTick
   Widget _buildRedesignedCameraInfo() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(color: Colors.black.withOpacity(0.6), borderRadius: BorderRadius.circular(10)),
+      decoration: BoxDecoration(
+          color: Colors.black.withOpacity(0.6),
+          borderRadius: BorderRadius.circular(10)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(selectedCamera?.loSamLoaiCamera?.ten ?? "Camera", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+          Text(selectedCamera?.loSamLoaiCamera?.ten ?? "Camera",
+              style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14)),
           const Divider(color: Colors.white24, height: 10),
           Row(mainAxisSize: MainAxisSize.min, children: [
-            const Icon(Icons.rotate_90_degrees_ccw, size: 14, color: Colors.white70),
+            const Icon(Icons.rotate_90_degrees_ccw,
+                size: 14, color: Colors.white70),
             const SizedBox(width: 6),
-            Text('Góc quay: ${cameraConfig.angle.toStringAsFixed(0)}°', style: const TextStyle(color: Colors.white, fontSize: 12)),
+            Text('Góc quay: ${cameraConfig.angle.toStringAsFixed(0)}°',
+                style: const TextStyle(color: Colors.white, fontSize: 12)),
           ]),
         ],
       ),
@@ -798,7 +888,11 @@ class CameraConePainter extends CustomPainter {
   final double spread;
   final double pulseOpacity;
 
-  CameraConePainter({required this.angle, required this.range, required this.spread, required this.pulseOpacity});
+  CameraConePainter(
+      {required this.angle,
+      required this.range,
+      required this.spread,
+      required this.pulseOpacity});
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -843,8 +937,16 @@ class FullscreenVideoPage extends StatelessWidget {
       backgroundColor: Colors.black,
       body: Stack(
         children: [
-          Center(child: AspectRatio(aspectRatio: controller.value.aspectRatio, child: VideoPlayer(controller))),
-          Positioned(top: 32, left: 16, child: IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white), onPressed: () => Navigator.pop(context))),
+          Center(
+              child: AspectRatio(
+                  aspectRatio: controller.value.aspectRatio,
+                  child: VideoPlayer(controller))),
+          Positioned(
+              top: 32,
+              left: 16,
+              child: IconButton(
+                  icon: const Icon(Icons.arrow_back, color: Colors.white),
+                  onPressed: () => Navigator.pop(context))),
         ],
       ),
     );
