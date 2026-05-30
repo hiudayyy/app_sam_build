@@ -370,61 +370,106 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
 
     if (repose?.messCode == MessCode.IsOK) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Đã yêu cầu xóa tài khoản thành công!'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      // ScaffoldMessenger.of(context).showSnackBar(
+      //   const SnackBar(
+      //     content: Text('Đã yêu cầu xóa tài khoản thành công!'),
+      //     backgroundColor: Colors.red,
+      //   ),
+      // );
 
       Navigator.of(context).pop();
       Provider.of<AuthProvider>(context, listen: false).logout();
     } else {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(repose?.message ?? 'Xóa tài khoản thất bại!')),
-      );
+      // ScaffoldMessenger.of(context).showSnackBar(
+      //   SnackBar(content: Text(repose?.message ?? 'Xóa tài khoản thất bại!')),
+      // );
     }
   }
 
   // SỬA ĐỔI TẠI ĐÂY: Đổi từ Khóa thành Xóa tài khoản
   void _showDeleteConfirmDialog() {
+    final TextEditingController confirmController = TextEditingController();
+
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Row(
-          children: [
-            Icon(Icons.warning_rounded, color: Colors.red, size: 28),
-            SizedBox(width: 8),
-            Text('Xóa tài khoản', style: TextStyle(fontWeight: FontWeight.bold)),
-          ],
-        ),
-        content: const Text(
-          'Bạn có chắc chắn muốn xóa tài khoản này không? Mọi thông tin đăng nhập sẽ bị vô hiệu hóa và bạn không thể tự đăng nhập lại.',
-          style: TextStyle(fontSize: 15, color: Colors.black87, height: 1.4),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: Text('Hủy', style: TextStyle(color: Colors.grey.shade600, fontWeight: FontWeight.w600)),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.of(ctx).pop();
-              _handleDeleteAccount();
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
-              elevation: 0,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setState) {
+          final bool isConfirmed = confirmController.text == 'XÓA';
+
+          return AlertDialog(
+            backgroundColor: Colors.white,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            title: const Row(
+              children: [
+                Icon(Icons.warning_rounded, color: Colors.red, size: 28),
+                SizedBox(width: 8),
+                Text('Xóa tài khoản', style: TextStyle(fontWeight: FontWeight.bold)),
+              ],
             ),
-            child: const Text('Đồng ý xóa', style: TextStyle(fontWeight: FontWeight.bold)),
-          ),
-        ],
+            // BỌC COLUMN BẰNG SingleChildScrollView TẠI ĐÂY
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Bạn có chắc chắn muốn xóa tài khoản này không? Mọi thông tin đăng nhập sẽ bị vô hiệu hóa và bạn không thể tự đăng nhập lại.',
+                    style: TextStyle(fontSize: 15, color: Colors.black87, height: 1.4),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Vui lòng nhập chữ "XÓA" để xác nhận:',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.redAccent),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: confirmController,
+                    textCapitalization: TextCapitalization.characters,
+                    decoration: InputDecoration(
+                      hintText: 'XÓA',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: Colors.red, width: 2),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    ),
+                    onChanged: (value) {
+                      setState(() {});
+                    },
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: Text('Hủy', style: TextStyle(color: Colors.grey.shade600, fontWeight: FontWeight.w600)),
+              ),
+              ElevatedButton(
+                onPressed: isConfirmed
+                    ? () {
+                  Navigator.of(ctx).pop();
+                  _handleDeleteAccount();
+                }
+                    : null,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  foregroundColor: Colors.white,
+                  disabledBackgroundColor: Colors.red.shade200,
+                  disabledForegroundColor: Colors.white,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                ),
+                child: const Text('Đồng ý xóa', style: TextStyle(fontWeight: FontWeight.bold)),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
