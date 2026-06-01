@@ -10,7 +10,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../api/api.dart';
 import '../models/kttoken.dart';
 import '../models/message_enum.dart';
-import '../models/user_model.dart'; // Đảm bảo import đúng model của bạn
+import '../models/user_model.dart';
 import '../providers/auth_provider.dart';
 import '../services/phantom_service.dart';
 import 'app_info_dialog.dart';
@@ -43,47 +43,47 @@ class _UserProfileState extends State<UserProfile> {
     }
     _walletSubscription =
         _phantomService.walletStream.listen((newAddress) async {
-      if (!mounted) return;
-      if (newAddress != null && newAddress != _walletAddress) {
-        await API().ConectionWallet(AddressWallet: newAddress);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                const Icon(Icons.check_circle, color: Colors.white),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Text(
-                        "Kết nối ví thành công!",
-                        style: TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 14),
+          if (!mounted) return;
+          if (newAddress != null && newAddress != _walletAddress) {
+            await API().ConectionWallet(AddressWallet: newAddress);
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Row(
+                  children: [
+                    const Icon(Icons.check_circle, color: Colors.white),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Text(
+                            "Kết nối ví thành công!",
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 14),
+                          ),
+                          Text(
+                            _getShortAddress(newAddress),
+                            style: const TextStyle(fontSize: 12),
+                          ),
+                        ],
                       ),
-                      Text(
-                        _getShortAddress(newAddress),
-                        style: const TextStyle(fontSize: 12),
-                      ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-            backgroundColor: Colors.green.shade600, // Màu xanh thành công
-            behavior: SnackBarBehavior.floating, // Nổi lên trên cho đẹp
-            shape:
+                backgroundColor: Colors.green.shade600, // Màu xanh thành công
+                behavior: SnackBarBehavior.floating, // Nổi lên trên cho đẹp
+                shape:
                 RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            margin: const EdgeInsets.all(16),
-            duration: const Duration(seconds: 3),
-          ),
-        );
-      }
-      setState(() {
-        _walletAddress = newAddress;
-      });
-    });
+                margin: const EdgeInsets.all(16),
+                duration: const Duration(seconds: 3),
+              ),
+            );
+          }
+          setState(() {
+            _walletAddress = newAddress;
+          });
+        });
   }
 
   @override
@@ -141,7 +141,7 @@ class _UserProfileState extends State<UserProfile> {
         return PopupMenuButton<String>(
           offset: const Offset(0, 45),
           shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
 
           // --- XỬ LÝ SỰ KIỆN MENU ---
           onSelected: (value) {
@@ -154,7 +154,7 @@ class _UserProfileState extends State<UserProfile> {
                 );
                 break;
 
-              // --- CASE XỬ LÝ VÍ ---
+            // --- CASE XỬ LÝ VÍ ---
               case 'connect_wallet':
                 if (_walletAddress == null) {
                   // A. CHƯA KẾT NỐI -> GỌI HÀM CONNECT
@@ -222,7 +222,7 @@ class _UserProfileState extends State<UserProfile> {
                   Icon(
                     _walletAddress == null
                         ? Icons
-                            .account_balance_wallet_outlined // Icon Ví thường
+                        .account_balance_wallet_outlined // Icon Ví thường
                         : Icons.verified_user_rounded, // Icon Tick xanh/tím
                     size: 20,
                     color: _walletAddress == null
@@ -298,7 +298,7 @@ class _UserProfileState extends State<UserProfile> {
                   backgroundColor: Theme.of(context).primaryColor,
                   child: Text(
                     (user.tenTaiKhoan ?? '').trim().isNotEmpty
-                        ? user.tenTaiKhoan[0].toUpperCase()
+                        ? user.tenTaiKhoan![0].toUpperCase()
                         : '?',
                     style: const TextStyle(
                       color: Colors.white,
@@ -376,17 +376,16 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
   }
 
   Future<void> _handleDeleteAccount() async {
-    // SỬA ĐỔI TẠI ĐÂY: Gọi API Xóa tài khoản (Soft Delete)
     final repose = await API().deleteTaiKhoan();
 
     if (repose?.messCode == MessCode.IsOK) {
       if (!mounted) return;
-       ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-           content: Text('Đã xóa tài khoản thành công!'),
-           backgroundColor: Colors.green,
-         ),
-       );
+          content: Text('Đã xóa tài khoản thành công!'),
+          backgroundColor: Colors.green,
+        ),
+      );
 
       Navigator.of(context).pop();
       Provider.of<AuthProvider>(context, listen: false).logout();
@@ -409,8 +408,9 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (context, setState) {
+          // Xử lý chuỗi nhập vào để tương thích với các bàn phím iOS khác nhau
           final String inputText = confirmController.text.trim().toUpperCase();
-          final bool isConfirmed = inputText == 'XÓA' || inputText == 'XOÁ';
+          final bool isConfirmed = inputText == 'YES';
 
           return AlertDialog(
             backgroundColor: Colors.white,
@@ -433,7 +433,7 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
                   ),
                   const SizedBox(height: 16),
                   const Text(
-                    'Vui lòng nhập chữ "XÓA" để xác nhận:',
+                    'Vui lòng nhập chữ "YES" để xác nhận:',
                     style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.redAccent),
                   ),
                   const SizedBox(height: 8),
@@ -441,7 +441,7 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
                     controller: confirmController,
                     textCapitalization: TextCapitalization.characters,
                     decoration: InputDecoration(
-                      hintText: 'XÓA',
+                      hintText: 'YES',
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -494,11 +494,11 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
     if (widget.user.ngayKhoiTao != null &&
         widget.user.ngayKhoiTao!.isNotEmpty) {
       try {
-        final DateTime dateTime = DateTime.parse(widget.user.ngayKhoiTao);
+        final DateTime dateTime = DateTime.parse(widget.user.ngayKhoiTao!);
         ngayKhoiTaoFormatted =
             DateFormat('dd/MM/yyyy').format(dateTime.toLocal());
       } catch (_) {
-        ngayKhoiTaoFormatted = widget.user.ngayKhoiTao;
+        ngayKhoiTaoFormatted = widget.user.ngayKhoiTao!;
       }
     }
 
@@ -555,7 +555,7 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         border:
-                            Border.all(color: Colors.grey.shade200, width: 2),
+                        Border.all(color: Colors.grey.shade200, width: 2),
                       ),
                       child: CircleAvatar(
                         radius: 46,
@@ -596,6 +596,8 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
                 // --- THÔNG TIN TEXT ---
                 Text(
                   widget.user.tenTaiKhoan ?? "Tài khoản",
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w700,
@@ -621,8 +623,8 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
                   validator: (value) {
                     if (value != null && value.isNotEmpty) {
                       final bool emailValid =
-                          RegExp(r"^[a-zA-Z0-9.]+@[a-zA-Z0-9]+\.[a-zA-Z]+")
-                              .hasMatch(value);
+                      RegExp(r"^[a-zA-Z0-9.]+@[a-zA-Z0-9]+\.[a-zA-Z]+")
+                          .hasMatch(value);
                       if (!emailValid) return 'Email không đúng định dạng';
                     }
                     return null;
@@ -660,7 +662,7 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
 
                   const SizedBox(height: 12),
 
-                  // Nút Xóa tài khoản (Màu Đỏ sáng) - ĐÃ CẬP NHẬT
+                  // Nút Xóa tài khoản (Màu Đỏ sáng)
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(
@@ -694,7 +696,7 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
                       style: ElevatedButton.styleFrom(
                         elevation: 0,
                         backgroundColor:
-                            const Color(0xFF2D2D2D), // Màu đen xám Dark Mode
+                        const Color(0xFF2D2D2D), // Màu đen xám Dark Mode
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(
@@ -807,7 +809,7 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
               borderSide:
-                  BorderSide(color: Theme.of(context).primaryColor, width: 1.5),
+              BorderSide(color: Theme.of(context).primaryColor, width: 1.5),
             ),
             errorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
@@ -818,7 +820,7 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
               borderSide: const BorderSide(color: Colors.redAccent, width: 1.5),
             ),
             contentPadding:
-                const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
           ),
         ),
       ],
@@ -827,7 +829,7 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
 }
 
 // ==========================================
-// WIDGET DIALOG ĐỔI MẬT KHẨU
+// WIDGET DIALOG ĐỔI MẬT KHẨU (UI MỚI)
 // ==========================================
 class ChangePasswordDialog extends StatefulWidget {
   const ChangePasswordDialog({Key? key}) : super(key: key);
@@ -867,7 +869,7 @@ class _ChangePasswordDialogState extends State<ChangePasswordDialog> {
         Navigator.pop(context);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${repose?.message}hh!')),
+          SnackBar(content: Text('${repose?.message}')),
         );
       }
     }
@@ -875,81 +877,129 @@ class _ChangePasswordDialogState extends State<ChangePasswordDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      title: const Text("Đổi mật khẩu"),
-      content: SingleChildScrollView(
-        child: Form(
-          key: _passFormKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _buildPassField(
-                controller: _oldPassController,
-                label: "Mật khẩu hiện tại",
-                obscure: _obscureOld,
-                onToggle: () => setState(() => _obscureOld = !_obscureOld),
-              ),
-              const SizedBox(height: 16),
-              _buildPassField(
-                controller: _newPassController,
-                label: "Mật khẩu mới",
-                obscure: _obscureNew,
-                onToggle: () => setState(() => _obscureNew = !_obscureNew),
-              ),
-              const SizedBox(height: 16),
-              _buildPassField(
-                controller: _confirmPassController,
-                label: "Nhập lại mật khẩu mới",
-                obscure: _obscureConfirm,
-                onToggle: () =>
-                    setState(() => _obscureConfirm = !_obscureConfirm),
-                validator: (val) {
-                  if (val != _newPassController.text)
-                    return "Mật khẩu không khớp";
-                  return null;
-                },
-              ),
-            ],
+    final primaryColor = Theme.of(context).primaryColor;
+
+    return Dialog(
+      backgroundColor: Colors.white, // Nền trắng chuẩn xác
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)), // Bo góc đồng bộ
+      insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+      child: Container(
+        width: double.infinity,
+        constraints: const BoxConstraints(maxWidth: 400),
+        padding: const EdgeInsets.all(24),
+        child: SingleChildScrollView(
+          child: Form(
+            key: _passFormKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // --- HEADER CHUẨN ---
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Đổi mật khẩu',
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    InkWell(
+                      onTap: () => Navigator.of(context).pop(),
+                      borderRadius: BorderRadius.circular(50),
+                      child: Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade100,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.close, size: 20, color: Colors.black54),
+                      ),
+                    )
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Vui lòng nhập mật khẩu hiện tại và mật khẩu mới để bảo mật tài khoản.',
+                  style: TextStyle(fontSize: 14, color: Colors.grey.shade600, height: 1.4),
+                ),
+                const SizedBox(height: 24),
+
+                // --- CÁC TRƯỜNG NHẬP LIỆU ---
+                _buildPassField(
+                  controller: _oldPassController,
+                  label: "Mật khẩu hiện tại",
+                  obscure: _obscureOld,
+                  onToggle: () => setState(() => _obscureOld = !_obscureOld),
+                ),
+                const SizedBox(height: 16),
+                _buildPassField(
+                  controller: _newPassController,
+                  label: "Mật khẩu mới",
+                  obscure: _obscureNew,
+                  onToggle: () => setState(() => _obscureNew = !_obscureNew),
+                ),
+                const SizedBox(height: 16),
+                _buildPassField(
+                  controller: _confirmPassController,
+                  label: "Nhập lại mật khẩu mới",
+                  obscure: _obscureConfirm,
+                  onToggle: () => setState(() => _obscureConfirm = !_obscureConfirm),
+                  validator: (val) {
+                    if (val == null || val.isEmpty) return "Vui lòng nhập trường này";
+                    if (val != _newPassController.text) return "Mật khẩu không khớp";
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 32),
+
+                // --- NÚT BẤM (HỦY & XÁC NHẬN) ---
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () => Navigator.pop(context),
+                        style: ElevatedButton.styleFrom(
+                          elevation: 0,
+                          backgroundColor: Colors.grey.shade200,
+                          foregroundColor: Colors.black87,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                        child: const Text('Hủy bỏ', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: _handleChangePassword,
+                        style: ElevatedButton.styleFrom(
+                          elevation: 0,
+                          backgroundColor: primaryColor,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                        child: const Text('Xác nhận', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
-      actions: [
-        // 1. Nút HỦY (Nền trắng, viền xám)
-        ElevatedButton(
-          onPressed: () => Navigator.pop(context),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.white,
-            foregroundColor: Colors.black87,
-            elevation: 1,
-            side: BorderSide(color: Colors.grey.shade300, width: 1),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-            // Padding này quyết định độ cao của nút
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-          ),
-          child: const Text("Hủy"),
-        ),
-        ElevatedButton(
-          onPressed: _handleChangePassword,
-          style: ElevatedButton.styleFrom(
-            backgroundColor:
-                Theme.of(context).primaryColor, // Màu chủ đạo của app
-            foregroundColor: Colors.white, // Chữ màu trắng
-            elevation: 2, // Bóng đổ cao hơn nút Hủy xíu
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8), // Bo góc giống nút Hủy
-            ),
-            // Padding PHẢI GIỐNG nút Hủy để 2 nút cao bằng nhau
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-          ),
-          child: const Text("Xác nhận"),
-        ),
-      ],
     );
   }
 
+  // --- UI Ô NHẬP LIỆU ĐỒNG BỘ VỚI BÊN NGOÀI ---
   Widget _buildPassField({
     required TextEditingController controller,
     required String label,
@@ -957,20 +1007,54 @@ class _ChangePasswordDialogState extends State<ChangePasswordDialog> {
     required VoidCallback onToggle,
     String? Function(String?)? validator,
   }) {
-    return TextFormField(
-      controller: controller,
-      obscureText: obscure,
-      validator: validator ??
-          (val) =>
-              (val == null || val.isEmpty) ? "Vui lòng nhập trường này" : null,
-      decoration: InputDecoration(
-        labelText: label,
-        border: const OutlineInputBorder(),
-        suffixIcon: IconButton(
-          icon: Icon(obscure ? Icons.visibility_off : Icons.visibility),
-          onPressed: onToggle,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 4, bottom: 8),
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: Colors.grey.shade700,
+            ),
+          ),
         ),
-      ),
+        TextFormField(
+          controller: controller,
+          obscureText: obscure,
+          validator: validator ?? (val) => (val == null || val.isEmpty) ? "Vui lòng nhập trường này" : null,
+          style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.w500, fontSize: 15),
+          decoration: InputDecoration(
+            prefixIcon: Icon(Icons.lock_outline_rounded, color: Colors.grey.shade400, size: 22),
+            suffixIcon: IconButton(
+              icon: Icon(obscure ? Icons.visibility_off_outlined : Icons.visibility_outlined),
+              color: Colors.grey.shade500,
+              onPressed: onToggle,
+            ),
+            filled: true,
+            fillColor: Colors.grey.shade50,
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide(color: Colors.grey.shade300, width: 1),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide(color: Theme.of(context).primaryColor, width: 1.5),
+            ),
+            errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: const BorderSide(color: Colors.redAccent, width: 1),
+            ),
+            focusedErrorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: const BorderSide(color: Colors.redAccent, width: 1.5),
+            ),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          ),
+        ),
+      ],
     );
   }
 }
