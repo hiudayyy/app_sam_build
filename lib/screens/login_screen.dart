@@ -35,7 +35,16 @@ class _LoginScreenState extends State<LoginScreen> {
     FocusScope.of(context).unfocus();
 
     if (_formKey.currentState!.validate()) {
-      var token = await FirebaseMessaging.instance.getToken();
+      // 1. Gán token mặc định
+      String? token = "";
+
+      // 2. Bọc try-catch và đặt timeout 3 giây để tránh bị treo app
+      try {
+        token = await FirebaseMessaging.instance.getToken().timeout(const Duration(seconds: 3));
+      } catch (e) {
+        // Nếu lỗi (do iOS chặn Sideloadly), tự động bỏ qua để chạy tiếp
+        token = "dummy_token_for_test";
+      }
 
       var model = LoginModel(
         uname: _usernameController.text,
@@ -49,28 +58,26 @@ class _LoginScreenState extends State<LoginScreen> {
       if (isSuccess) {
         if (!mounted) return;
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => HomeScreen()),
+          MaterialPageRoute(builder: (_) => const HomeScreen()),
         );
       }
     }
   }
 
-  // THÊM MỚI: Hàm xử lý Đăng nhập bằng Google
   void _handleGoogleLogin() async {
     FocusScope.of(context).unfocus();
 
     final authProvider = context.read<AuthProvider>();
-
-    // Gọi hàm đăng nhập Google (đảm bảo hàm này trả về true/false trong AuthProvider)
     bool isSuccess = await authProvider.loginWithGoogle();
 
     if (isSuccess) {
       if (!mounted) return;
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => HomeScreen()),
+        MaterialPageRoute(builder: (_) => const HomeScreen()),
       );
     }
   }
+
   void _handleAppleLogin() async {
     FocusScope.of(context).unfocus();
 
@@ -80,7 +87,7 @@ class _LoginScreenState extends State<LoginScreen> {
     if (isSuccess) {
       if (!mounted) return;
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => HomeScreen()),
+        MaterialPageRoute(builder: (_) => const HomeScreen()),
       );
     }
   }
@@ -97,20 +104,20 @@ class _LoginScreenState extends State<LoginScreen> {
     final width = size.width;
     final height = size.height;
 
-    final primaryColor = Color(0xFF15803D);
-    final secondaryColor = Color(0xFF166534);
+    final primaryColor = const Color(0xFF15803D);
+    final secondaryColor = const Color(0xFF166534);
 
     return Scaffold(
       backgroundColor: Colors.white,
       resizeToAvoidBottomInset: true,
       body: AnnotatedRegion<SystemUiOverlayStyle>(
         value: SystemUiOverlayStyle.light,
-        child: Container(
+        child: SizedBox(
           height: height,
           width: width,
           child: Stack(
             children: [
-              // 1. HEADER
+              // 1. HEADER MÀU XANH
               Positioned(
                 top: 0,
                 left: 0,
@@ -150,7 +157,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                     BoxShadow(
                                       color: Colors.black.withOpacity(0.1),
                                       blurRadius: 15,
-                                      offset: Offset(0, 5),
+                                      offset: const Offset(0, 5),
                                     )
                                   ],
                                 ),
@@ -173,7 +180,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   letterSpacing: 0.5,
                                 ),
                               ),
-                              SizedBox(height: 5),
+                              const SizedBox(height: 5),
                               Text(
                                 'Sâm thật, giá trị thật',
                                 style: TextStyle(
@@ -191,14 +198,14 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
 
-              // 2. FORM CONTAINER
+              // 2. FORM CONTAINER MÀU TRẮNG
               Align(
                 alignment: Alignment.bottomCenter,
                 child: Container(
-                  height: height * 0.68, // Tăng thêm một chút để đủ chỗ cho nút Google
+                  height: height * 0.68,
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.only(
+                    borderRadius: const BorderRadius.only(
                       topLeft: Radius.circular(30),
                       topRight: Radius.circular(30),
                     ),
@@ -206,7 +213,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       BoxShadow(
                         color: Colors.black.withOpacity(0.1),
                         blurRadius: 20,
-                        offset: Offset(0, -5),
+                        offset: const Offset(0, -5),
                       ),
                     ],
                   ),
@@ -242,8 +249,8 @@ class _LoginScreenState extends State<LoginScreen> {
                             builder: (context, authProvider, child) {
                               if (authProvider.error != null) {
                                 return Container(
-                                  padding: EdgeInsets.all(12),
-                                  margin: EdgeInsets.only(bottom: 20),
+                                  padding: const EdgeInsets.all(12),
+                                  margin: const EdgeInsets.only(bottom: 20),
                                   decoration: BoxDecoration(
                                     color: Colors.red[50],
                                     borderRadius: BorderRadius.circular(12),
@@ -252,7 +259,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   child: Row(
                                     children: [
                                       Icon(Icons.warning_amber_rounded, color: Colors.red[400], size: 20),
-                                      SizedBox(width: 10),
+                                      const SizedBox(width: 10),
                                       Expanded(
                                         child: Text(
                                           authProvider.error!,
@@ -263,7 +270,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   ),
                                 );
                               }
-                              return SizedBox.shrink();
+                              return const SizedBox.shrink();
                             },
                           ),
 
@@ -289,24 +296,9 @@ class _LoginScreenState extends State<LoginScreen> {
                             validator: (val) => val!.isEmpty ? 'Vui lòng nhập mật khẩu' : null,
                           ),
 
-                          // Quên mật khẩu
-                          // Align(
-                          //   alignment: Alignment.centerRight,
-                          //   child: TextButton(
-                          //     onPressed: () {},
-                          //     child: Text(
-                          //       'Quên mật khẩu?',
-                          //       style: TextStyle(
-                          //         color: primaryColor,
-                          //         fontWeight: FontWeight.w600,
-                          //         fontSize: (width * 0.035).clamp(12.0, 14.0),
-                          //       ),
-                          //     ),
-                          //   ),
-                          // ),
-
                           SizedBox(height: height * 0.025),
-                          // Login Button (Tài khoản)
+
+                          // Login Button
                           Consumer<AuthProvider>(
                             builder: (context, authProvider, child) {
                               return Container(
@@ -317,7 +309,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                     BoxShadow(
                                       color: primaryColor.withOpacity(0.3),
                                       blurRadius: 12,
-                                      offset: Offset(0, 6),
+                                      offset: const Offset(0, 6),
                                     ),
                                   ],
                                 ),
@@ -332,7 +324,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                     elevation: 0,
                                   ),
                                   child: authProvider.isLoading
-                                      ? SizedBox(
+                                      ? const SizedBox(
                                       width: 24,
                                       height: 24,
                                       child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white)
@@ -352,12 +344,12 @@ class _LoginScreenState extends State<LoginScreen> {
 
                           SizedBox(height: height * 0.025),
 
-                          // Dải phân cách (Divider)
+                          // Dải phân cách
                           Row(
                             children: [
                               Expanded(child: Divider(color: Colors.grey[300], thickness: 1)),
                               Padding(
-                                padding: EdgeInsets.symmetric(horizontal: 16),
+                                padding: const EdgeInsets.symmetric(horizontal: 16),
                                 child: Text(
                                   'Hoặc đăng nhập với',
                                   style: TextStyle(color: Colors.grey[500], fontSize: (width * 0.035).clamp(12.0, 14.0)),
@@ -369,7 +361,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
                           SizedBox(height: height * 0.025),
 
-                          // THÊM MỚI: Nút Google Sign In
                           // Cụm nút đăng nhập Social
                           Consumer<AuthProvider>(
                               builder: (context, authProvider, child) {
@@ -381,7 +372,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                         child: ElevatedButton(
                                           onPressed: authProvider.isLoading ? null : _handleAppleLogin,
                                           style: ElevatedButton.styleFrom(
-                                            backgroundColor: Colors.black, // Apple bắt buộc nút màu đen hoặc trắng
+                                            backgroundColor: Colors.black,
                                             foregroundColor: Colors.white,
                                             elevation: 0,
                                             shape: RoundedRectangleBorder(
@@ -391,8 +382,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                           child: Row(
                                             mainAxisAlignment: MainAxisAlignment.center,
                                             children: [
-                                              Icon(Icons.apple, size: 28, color: Colors.white),
-                                              SizedBox(width: 8),
+                                              const Icon(Icons.apple, size: 28, color: Colors.white),
+                                              const SizedBox(width: 8),
                                               Text(
                                                 'Đăng nhập bằng Apple',
                                                 style: TextStyle(
@@ -404,7 +395,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                           ),
                                         ),
                                       ),
-                                    SizedBox(height: 16),
+                                    const SizedBox(height: 16),
+
                                     // Nút Google Sign In
                                     Container(
                                       height: (height * 0.065).clamp(45.0, 55.0),
@@ -430,7 +422,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                               height: 24,
                                               width: 24,
                                             ),
-                                            SizedBox(width: 8),
+                                            const SizedBox(width: 8),
                                             Text(
                                               'Đăng nhập bằng Google',
                                               style: TextStyle(
@@ -442,11 +434,6 @@ class _LoginScreenState extends State<LoginScreen> {
                                         ),
                                       ),
                                     ),
-
-                                     // Khoảng cách giữa 2 nút
-
-                                    // Nút Apple Sign In (Chỉ nên hiển thị trên iOS)
-
                                   ],
                                 );
                               }
@@ -484,13 +471,35 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                             ],
                           ),
-                          SizedBox(height: 20),
+                          const SizedBox(height: 20),
                         ],
                       ),
                     ),
                   ),
                 ),
               ),
+
+              // 3. NÚT QUAY LẠI TRANG HOME
+              Positioned(
+                top: MediaQuery.of(context).padding.top + 10,
+                left: 16,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2), // Nền mờ mờ sang trọng
+                    shape: BoxShape.circle,
+                  ),
+                  child: IconButton(
+                    icon: const Icon(Icons.home, color: Colors.white, size: 20),
+                    onPressed: () {
+                      // Thay vì pop(), điều hướng thẳng về màn hình HomeScreen
+                      Navigator.of(context).pushReplacement(
+                        MaterialPageRoute(builder: (_) => const HomeScreen()),
+                      );
+                    },
+                  ),
+                ),
+              ),
+
             ],
           ),
         ),
@@ -551,10 +560,10 @@ class _LoginScreenState extends State<LoginScreen> {
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: Color(0xFF15803D), width: 1.5),
+          borderSide: const BorderSide(color: Color(0xFF15803D), width: 1.5),
         ),
         errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: Colors.red.shade200, width: 1.5)),
-        focusedErrorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: Colors.red, width: 1.5)),
+        focusedErrorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Colors.red, width: 1.5)),
       ),
       validator: validator,
     );

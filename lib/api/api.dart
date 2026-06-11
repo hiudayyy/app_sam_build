@@ -1,6 +1,6 @@
 
 class API {
-  // final String host = "https://10.0.2.2:7261/";
+  //final String host = "https://10.0.2.2:7261/";
   final String host = "https://samnft.vecoi.com/";
   // final String hostData = "https://svkt1.huetechcoop.com/";
 

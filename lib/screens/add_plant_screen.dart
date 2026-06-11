@@ -548,7 +548,7 @@ class _AddPlantScreenState extends State<AddPlantScreen> {
                     prefixIcon: Icon(Icons.timeline),
                   ),
                   items: OptionLoSamLoaiTuoi.map((opt) {
-                    IconData icon;
+                    dynamic icon;
                     switch (opt.value) {
                       case '1':
                         icon = FontAwesomeIcons.seedling;
@@ -570,7 +570,7 @@ class _AddPlantScreenState extends State<AddPlantScreen> {
                       value: opt.value,
                       child: Row(
                         children: [
-                          Icon(icon, size: 18, color: Colors.green),
+                          FaIcon(icon, size: 18, color: Colors.green),
                           const SizedBox(width: 8),
                           Text(opt.text),
                         ],

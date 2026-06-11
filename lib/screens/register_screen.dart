@@ -89,7 +89,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           email: _emailController.text.trim(),
           id: '',
           ngayKhoiTao: DateTime.now().toString(),
-          trangThai: 0,
+          trangThai: 1,
           htPhanQuyenTaiKhoans: []);
 
       final authProvider = context.read<AuthProvider>();

@@ -9,17 +9,24 @@ import 'package:nftsam/models/vuontrong/caysam_model.dart';
 import 'package:nftsam/models/vuontrong/losam_model.dart';
 import 'package:nftsam/screens/plant_management_view_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:nftsam/screens/weather_screen.dart';
 import 'package:overlay_support/overlay_support.dart'; // Bổ sung
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../api/api.dart';
 import '../main.dart'; // Bổ sung (để lấy navigatorKey)
+import '../models/kttoken.dart';
 import '../models/user_model.dart';
 import '../services/nfc_service.dart';
 import '../services/phantom_service.dart';
 import '../services/signalr_service.dart';
+import '../widgets/account_screen.dart';
 import '../widgets/lazyIndexedStack.dart';
 import 'add_plant_screen.dart';
 import 'dashboard_screen.dart';
+import 'dashboardnew_screen.dart';
+import 'investment_screen.dart';
+import 'login_screen.dart';
 import 'plant_detail_screen.dart';
 import 'diary_form_screen.dart';
 import '../data/mock_data.dart';
@@ -50,6 +57,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   final AppLinks _appLinks = AppLinks();
   final SignalRService signalRService = SignalRService();
+  late bool isGuest = false;
   StreamSubscription<Uri>? _linkSubscription;
 
   // (1) BỔ SUNG: Biến để quản lý listener
@@ -76,36 +84,36 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     }
   }
 
-  Widget _getScreenForTab(NavTab tab) {
-    switch (tab) {
-      case NavTab.dashboard:
-        return ProtectedRoute(
-          requiredPermission: Permission.viewDashboard,
-          fallback: AccessDenied(feature: 'Tổng quan'),
-          child: DashboardScreen(plants: MockData.mockPlants),
-        );
-      case NavTab.plants:
-        return PlantManagementViewScreen(key: plantScreenKey);
-      // case NavTab.diary:
-      //   return ProtectedRoute(
-      //     requiredPermission: Permission.updateDiary,
-      //     fallback: AccessDenied(feature: 'Nhật ký'),
-      //     child: DiaryManagementScreen(),
-      //   );
-      /*case NavTab.environment:
-        return ProtectedRoute(
-          requiredPermission: Permission.viewEnvironment,
-          fallback: AccessDenied(feature: 'Môi trường'),
-          child: EnvironmentManagementScreen(),
-        );
-      case NavTab.verification:
-        return ProtectedRoute(
-          requiredPermission: Permission.verifyQuality,
-          fallback: AccessDenied(feature: 'Xác thực'),
-          child: VerificationScreen(),
-        );*/
-    }
-  }
+  // Widget _getScreenForTab(NavTab tab) {
+  //   switch (tab) {
+  //     case NavTab.dashboard:
+  //       return ProtectedRoute(
+  //         requiredPermission: Permission.viewDashboard,
+  //         fallback: AccessDenied(feature: 'Tổng quan'),
+  //         child: DashboardScreen(plants: MockData.mockPlants),
+  //       );
+  //     case NavTab.plants:
+  //       return PlantManagementViewScreen(key: plantScreenKey);
+  //     // case NavTab.diary:
+  //     //   return ProtectedRoute(
+  //     //     requiredPermission: Permission.updateDiary,
+  //     //     fallback: AccessDenied(feature: 'Nhật ký'),
+  //     //     child: DiaryManagementScreen(),
+  //     //   );
+  //     /*case NavTab.environment:
+  //       return ProtectedRoute(
+  //         requiredPermission: Permission.viewEnvironment,
+  //         fallback: AccessDenied(feature: 'Môi trường'),
+  //         child: EnvironmentManagementScreen(),
+  //       );
+  //     case NavTab.verification:
+  //       return ProtectedRoute(
+  //         requiredPermission: Permission.verifyQuality,
+  //         fallback: AccessDenied(feature: 'Xác thực'),
+  //         child: VerificationScreen(),
+  //       );*/
+  //   }
+  // }
 
   void _handleAddPlantSubmit(
       Map<String, dynamic> plantData, List<File?> image, String? caysamid) {
@@ -117,6 +125,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
+    _Guest();
     _currentTab = widget.tabcurrent == 2 ? NavTab.plants : NavTab.dashboard;
     WidgetsBinding.instance.addObserver(this);
     // NfcService.startNfcSession(context);
@@ -138,6 +147,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     // });
 
     // (3) ĐÃ THAY THẾ: Gọi hàm khởi tạo SignalR
+  }
+  Future<void> _Guest() async {
+    final prefs = await SharedPreferences.getInstance();
+    final userJson = prefs.getString("ginseng_user");
+    isGuest = userJson == null;
   }
 
   void _setupSignalRListener() async {
@@ -323,6 +337,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         }
 
         return Scaffold(
+
           backgroundColor: Color(0xFFF8F9FA),
           appBar: AppBar(
             automaticallyImplyLeading: false,
@@ -366,50 +381,50 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 ),
               ],
             ),
-            actions: [
-              Container(
-                width: 34 * scale,
-                height: 34 * scale,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: Colors.green.shade200,
-                    width: 1.2 * scale,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.green.withOpacity(0.15),
-                      blurRadius: 6 * scale,
-                      offset: Offset(0, 3 * scale),
-                    ),
-                  ],
-                ),
-                child: Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    customBorder: const CircleBorder(),
-                    onTap: () {
-                      // Hiệu ứng rung nhẹ khi chạm (tăng cảm giác thao tác)
-                      HapticFeedback.lightImpact();
-                      _startManualNfcScan(context);
-                    },
-                    // Màu phản hồi khi nhấn (Ripple effect)
-                    splashColor: Colors.green.withOpacity(0.2),
-                    child: Icon(
-                      Icons.nfc, // Icon sóng hiện đại, gọn gàng
-                      color: Colors.green.shade700,
-                      size: 20 * scale, // Icon cũng lớn dần theo màn hình
-                    ),
-                  ),
-                ),
-              ),
-              SizedBox(width: 2),
-              Padding(
-                padding: EdgeInsets.only(right: 4),
-                child: UserProfile(),
-              ),
-            ],
+            // actions: [
+            //   Container(
+            //     width: 34 * scale,
+            //     height: 34 * scale,
+            //     decoration: BoxDecoration(
+            //       color: Colors.white,
+            //       shape: BoxShape.circle,
+            //       border: Border.all(
+            //         color: Colors.green.shade200,
+            //         width: 1.2 * scale,
+            //       ),
+            //       boxShadow: [
+            //         BoxShadow(
+            //           color: Colors.green.withOpacity(0.15),
+            //           blurRadius: 6 * scale,
+            //           offset: Offset(0, 3 * scale),
+            //         ),
+            //       ],
+            //     ),
+            //     child: Material(
+            //       color: Colors.transparent,
+            //       child: InkWell(
+            //         customBorder: const CircleBorder(),
+            //         onTap: () {
+            //           // Hiệu ứng rung nhẹ khi chạm (tăng cảm giác thao tác)
+            //           HapticFeedback.lightImpact();
+            //           _startManualNfcScan(context);
+            //         },
+            //         // Màu phản hồi khi nhấn (Ripple effect)
+            //         splashColor: Colors.green.withOpacity(0.2),
+            //         child: Icon(
+            //           Icons.nfc, // Icon sóng hiện đại, gọn gàng
+            //           color: Colors.green.shade700,
+            //           size: 20 * scale, // Icon cũng lớn dần theo màn hình
+            //         ),
+            //       ),
+            //     ),
+            //   ),
+            //   SizedBox(width: 2),
+            //   Padding(
+            //     padding: EdgeInsets.only(right: 4),
+            //     child: UserProfile(),
+            //   ),
+            // ],
           ),
           //body: _getScreenForTab(_currentTab),
           body: LazyIndexedStack(
@@ -417,89 +432,244 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             index: _currentTab.index,
             children: [
               // Tab 1: Dashboard (Vẫn giữ AutomaticKeepAliveClientMixin bên trong nó nhé)
-              ProtectedRoute(
-                requiredPermission: Permission.viewDashboard,
-                fallback: AccessDenied(feature: 'Tổng quan'),
-                child: DashboardScreen(plants: MockData.mockPlants),
-              ),
-
+              // ProtectedRoute(
+              //   requiredPermission: Permission.viewDashboard,
+              //   fallback: AccessDenied(feature: 'Tổng quan'),
+              //   child: DashboardScreen(plants: MockData.mockPlants),
+              // ),
+              // ProtectedRoute(
+              //   requiredPermission: Permission.viewDashboard,
+              //   fallback: AccessDenied(feature: 'Tổng quan'),
+              //   child: DashboardGuestScreen(),
+              // ),
+              const DashboardGuestScreen(),
               // Tab 2: Plants
-              PlantManagementViewScreen(key: plantScreenKey),
+              const WeatherScreen(),
+
+              // Tab 2: Đầu tư (Có thể bọc bằng ProtectedRoute bên trong nếu cần)
+              isGuest
+                  ? _buildRequireLoginScreen()
+                  : const InvestmentScreen(),
+
+              // Tab 3: Tài khoản
+              const AccountScreen(),
+              //PlantManagementViewScreen(key: plantScreenKey),
+
 
               // Tab 3...
               // Tab 4...
             ],
           ),
 
-          extendBody: false,
+          extendBody: true,
 
           bottomNavigationBar: availableTabs.isNotEmpty
-              ? Container(
-                  // Không dùng margin để nó dính sát cạnh dưới
+              ? SizedBox(
+            height: 95 * scale, // Chiều cao tổng (bao gồm cả nút quét nổi)
+            child: Stack(
+              alignment: Alignment.bottomCenter,
+              children: [
+                // 1. THANH NỀN BOTTOM BAR
+                Container(
+                  height: 70 * scale,
                   decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius:
-                        BorderRadius.vertical(top: Radius.circular(20 * scale)),
+                    color: const Color(0xFF1B5E20), // Xanh lá đậm (đổi thành 0xFF8B1D1D nếu bạn muốn màu đỏ rực như ảnh)
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.05), // Bóng rất nhẹ
+                        color: Colors.black.withOpacity(0.2),
                         blurRadius: 10,
-                        offset: const Offset(
-                            0, -5), // Đẩy bóng lên TRÊN để tách biệt nội dung
+                        offset: const Offset(0, -2),
+                      )
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      // 1. Render phân nửa số tab nằm bên Trái
+                      for (int i = 0; i < (availableTabs.length / 2).ceil(); i++)
+                        _buildCustomNavItem(i, availableTabs, scale, isGuest),
+
+                      // 2. Khoảng trống ở giữa cho nút Quét nổi lên
+                      SizedBox(width: 70 * scale),
+
+                      // 3. Render phân nửa số tab còn lại nằm bên Phải
+                      for (int i = (availableTabs.length / 2).ceil(); i < availableTabs.length; i++)
+                        _buildCustomNavItem(i, availableTabs, scale, isGuest),
+                    ],
+                  ),
+                ),
+
+                // 2. NÚT NỔI Ở GIỮA (QUÉT TRUY XUẤT)
+                Positioned(
+                  top: 0,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      GestureDetector(
+                        onTap: () {
+                          // TODO: Viết logic mở Camera Quét Truy Xuất ở đây
+                        },
+                        child: Container(
+                          height: 62 * scale,
+                          width: 62 * scale,
+                          decoration: BoxDecoration(
+                              color: const Color(0xFF1B5E20), // Trùng màu nền
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                  color: const Color(0xFFFFD54F), // Viền Vàng Gold
+                                  width: 3.5 * scale),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.3),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 4),
+                                )
+                              ]
+                          ),
+                          child: Center(
+                            child: Icon(
+                                Icons.qr_code_scanner_rounded,
+                                color: const Color(0xFFFFD54F),
+                                size: 28 * scale
+                            ),
+                          ),
+                        ),
+                      ),
+                      SizedBox(height: 6 * scale),
+                      Text(
+                        'Quét truy xuất',
+                        style: TextStyle(
+                          color: const Color(0xFFFFD54F),
+                          fontSize: 12 * scale,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ],
                   ),
-                  child: ClipRRect(
-                    borderRadius:
-                        BorderRadius.vertical(top: Radius.circular(20 * scale)),
-                    child: BottomNavigationBar(
-                      type: BottomNavigationBarType.fixed,
-                      currentIndex: _getValidTabIndex(availableTabs),
-                      backgroundColor: Colors.white,
-                      elevation: 0, // Tắt bóng mặc định
-
-                      onTap: (index) {
-                        if (index >= 0 && index < availableTabs.length) {
-                          // HapticFeedback.selectionClick(); // Bỏ rung nếu không thích
-                          setState(() {
-                            _currentTab = availableTabs[index].id;
-                          });
-                        }
-                      },
-
-                      // --- STYLE ---
-                      // Màu khi chọn
-                      selectedItemColor: Theme.of(context).primaryColor,
-                      // Màu khi chưa chọn (đậm hơn chút cho rõ)
-                      unselectedItemColor: Colors.grey.shade500,
-
-                      selectedLabelStyle: TextStyle(
-                        fontSize: 12 * scale, // Chữ to hơn một chút cho rõ ràng
-                        fontWeight: FontWeight.w700,
-                        height: 1.5,
-                      ),
-                      unselectedLabelStyle: TextStyle(
-                        fontSize: 12 * scale,
-                        fontWeight: FontWeight.w500,
-                        height: 1.5,
-                      ),
-
-                      items: _buildBottomNavItems(availableTabs),
-                    ),
-                  ),
-                )
+                ),
+              ],
+            ),
+          )
               : null, // Hide bottom nav completely if no tabs available
         );
       },
     );
   }
-
+  Widget _buildRequireLoginScreen() {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF8F9FA),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: Colors.orange.shade50,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(Icons.lock_outline_rounded, size: 64, color: Colors.orange.shade700),
+              ),
+              const SizedBox(height: 24),
+              const Text(
+                'Yêu cầu đăng nhập',
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Bạn cần đăng nhập tài khoản để sử dụng tính năng Đầu tư và Giao dịch tài sản.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey.shade600,
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: 32),
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: ElevatedButton(
+                  onPressed: () {
+                     Navigator.push(context, MaterialPageRoute(builder: (_) => LoginScreen()));
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF2E7D32), // Nền xanh lá
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text(
+                    'Đăng nhập ngay',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
   // Helper method to get valid tab index
   int _getValidTabIndex(List<TabConfig> availableTabs) {
     final index = availableTabs.indexWhere((tab) => tab.id == _currentTab);
     return index >= 0 ? index : 0;
   }
+  // Cập nhật hàm: Thêm tham số bool isGuest
+  Widget _buildCustomNavItem(int index, List<TabConfig> tabs, double scale, bool isGuest) {
+    if (index >= tabs.length) {
+      return SizedBox(width: 65 * scale);
+    }
 
+    final tab = tabs[index];
+    final int currentIndex = _getValidTabIndex(tabs);
+    final bool isSelected = currentIndex == index;
+
+    final Color goldAccent = const Color(0xFFFFD54F);
+    final Color unselectedColor = Colors.white60;
+    final Color color = isSelected ? goldAccent : unselectedColor;
+
+    return GestureDetector(
+      onTap: () {
+        // Trả lại sự kiện chuyển tab bình thường cho tất cả mọi người
+        setState(() {
+          _currentTab = tab.id;
+        });
+      },
+      behavior: HitTestBehavior.opaque,
+      child: SizedBox(
+        width: 65 * scale,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(tab.icon, color: color, size: 24 * scale),
+            SizedBox(height: 4 * scale),
+            Text(
+              tab.label,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: color,
+                fontSize: 11 * scale,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                height: 1.2,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
   // Helper method to build bottom navigation items - only for available tabs
   List<BottomNavigationBarItem> _buildBottomNavItems(
       List<TabConfig> availableTabs) {

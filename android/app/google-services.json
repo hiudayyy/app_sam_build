@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "525482222879-t6h3vcauaa6gs4lbmk2rra0h05jg6aij.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.huetechcoop.nftsam",
+            "certificate_hash": "651e5d063c15379ad5e1e45d802b63d60fb7d3b6"
+          }
+        },
+        {
           "client_id": "525482222879-48iplli6p73kap7go2dbk4iuv56js9ep.apps.googleusercontent.com",
           "client_type": 3
         }

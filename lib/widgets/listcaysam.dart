@@ -11,7 +11,8 @@ import '../screens/plant_detail_screen.dart'; // import nơi có hàm listCaySam
 import '/app_config.dart';
 
 class DanhSachCaySamPage extends StatefulWidget {
-  const DanhSachCaySamPage({super.key});
+  final int? initialHealth;
+  const DanhSachCaySamPage({super.key, this.initialHealth});
 
   @override
   State<DanhSachCaySamPage> createState() => _DanhSachCaySamPageState();
@@ -50,6 +51,7 @@ class _DanhSachCaySamPageState extends State<DanhSachCaySamPage> {
   @override
   void initState() {
     super.initState();
+    _selectedHealth = widget.initialHealth;
     _initializeData();
     _fetchCaySam();
 
@@ -270,8 +272,8 @@ class _DanhSachCaySamPageState extends State<DanhSachCaySamPage> {
 
   Widget _buildDropdown({
     required String label,
-    required int? value, // Đổi thành int?
-    required Map<int, String> items, // Đổi thành Map
+    required int? value,
+    required Map<int, String> items,
     required Function(dynamic) onChanged,
     IconData? icon,
     Color? iconColor,
@@ -286,41 +288,52 @@ class _DanhSachCaySamPageState extends State<DanhSachCaySamPage> {
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<int>(
-          // Kiểu dữ liệu là int
           value: value,
-          hint: Row(
-            children: [
-              if (icon != null) ...[
-                Icon(icon, size: 18, color: iconColor ?? Colors.grey),
-                const SizedBox(width: 8),
-              ],
-              Expanded(
-                child: Text(
-                  label,
-                  style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-          ),
           icon: const Icon(Icons.arrow_drop_down, color: Colors.grey),
           isExpanded: true,
           style: const TextStyle(color: Colors.black87, fontSize: 13),
           borderRadius: BorderRadius.circular(12),
           onChanged: onChanged,
+          selectedItemBuilder: (BuildContext context) {
+            return [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  if (icon != null) ...[
+                  //  Icon(icon, size: 18, color: iconColor ?? Colors.grey),
+                    const SizedBox(width: 8),
+                  ],
+                  Text(
+                    label,
+                    style: TextStyle(fontSize: 14, color: Colors.grey.shade800),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+              ...items.entries.map((entry) {
+                return Container(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    entry.value,
+                    style: const TextStyle(
+                        color: Colors.black87,
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                );
+              }).toList(),
+            ];
+          },
           items: [
-            // Item "Tất cả" -> Giá trị null
             const DropdownMenuItem<int>(
               value: null,
-              child:
-                  Text("Tất cả", style: TextStyle(fontWeight: FontWeight.bold)),
+              child: Text("Tất cả", style: TextStyle(fontWeight: FontWeight.bold)),
             ),
-
-            // Duyệt qua Map để tạo item
             ...items.entries.map((entry) {
               return DropdownMenuItem<int>(
-                value: entry.key, // Lưu số (1, 2...)
-                child: Text(entry.value), // Hiển thị chữ (Rất yếu, Yếu...)
+                value: entry.key,
+                child: Text(entry.value),
               );
             }).toList(),
           ],

@@ -5,12 +5,14 @@ class DashBoardtotal {
   final int totalLoSam;
   final int totalCaySam;
   final int totalSuckhoeYeu;
+  final int totalNhaDauTu;
 
   DashBoardtotal({
     required this.totalVuonTrong,
     required this.totalLoSam,
     required this.totalCaySam,
     required this.totalSuckhoeYeu,
+    required this.totalNhaDauTu,
   });
 
   factory DashBoardtotal.fromJson(Map<String, dynamic> json) {
@@ -19,6 +21,7 @@ class DashBoardtotal {
       totalLoSam: json['totalLoSam'] ?? 0,
       totalCaySam: json['totalCaySam'] ?? 0,
       totalSuckhoeYeu: json['totalSucKhoeYeu'] ?? 0,
+      totalNhaDauTu: json['totalNhaDauTu'] ?? 0,
     );
   }
 }

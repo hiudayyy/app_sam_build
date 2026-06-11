@@ -5,6 +5,7 @@ import 'package:home_widget/home_widget.dart';
 import 'package:http/http.dart' as http;
 import 'package:nftsam/api/api_caysam.dart';
 import 'package:nftsam/api/api_dashboard.dart';
+import 'package:nftsam/screens/dashboardnew_screen.dart';
 import '/app_config.dart';
 import 'package:nftsam/screens/plant_detail_screen.dart';
 import 'package:nftsam/services/http_override.dart';
@@ -345,8 +346,10 @@ class AuthWrapper extends StatelessWidget {
       builder: (context, authProvider, child) {
         if (authProvider.isAuthenticated) {
           return HomeScreen();
+           // return DashboardGuestScreen();
         } else {
-          return LoginScreen();
+          // return LoginScreen();
+          return HomeScreen();
         }
       },
     );

@@ -52,7 +52,6 @@ class DashboardScreen extends StatefulWidget {
   State<DashboardScreen> createState() => _DashboardScreenState();
 }
 
-// 1. THÊM AutomaticKeepAliveClientMixin VÀO ĐÂY
 class _DashboardScreenState extends State<DashboardScreen>
     with TickerProviderStateMixin, AutomaticKeepAliveClientMixin {
   DashBoardtotal? numbertotal;
@@ -64,10 +63,8 @@ class _DashboardScreenState extends State<DashboardScreen>
   List<CaySamModel>? _itemsCaySam = [];
   int _currentIndex = 0;
 
-  // --- TRẠNG THÁI LOADING RIÊNG BIỆT ---
   bool _isLoadingBanner = true;
   bool _isLoadingCanhBao = true;
-  // Không dùng 1 biến _isLoading chung nữa mà check null trực tiếp trên biến dữ liệu
 
   Kttoken? user;
   StreamSubscription? _sensorSubscription;
@@ -92,16 +89,15 @@ class _DashboardScreenState extends State<DashboardScreen>
     LatLng(15.111600, 108.016650),
   ];
 
-  // ===== QUẢN LÝ LỚP BẢN ĐỒ =====
   String _currentMapLayer = 'googleRoad';
 
-  // ===== DỮ LIỆU THỜI TIẾT =====
   Map<String, dynamic>? _weatherData;
   bool _isLoadingWeather = true;
   bool _isWeatherExpanded = false;
 
   @override
   bool get wantKeepAlive => true;
+
   Future<void> _fetchWeather() async {
     final url =
         'https://api.open-meteo.com/v1/forecast?latitude=${_center?.latitude}&longitude=${_center?.longitude}&current=temperature_2m,wind_speed_10m,precipitation,weather_code&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,weather_code&timezone=auto';
@@ -122,7 +118,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     if (points.length < 3) return 0.0;
     final double lat0 = points[0].latitude;
     final double lng0 = points[0].longitude;
-    final double rY = 111319.9;
+    const double rY = 111319.9;
     final double rX = 111319.9 * math.cos(lat0 * math.pi / 180.0);
     double area = 0.0;
     for (int i = 0; i < points.length; i++) {
@@ -202,31 +198,29 @@ class _DashboardScreenState extends State<DashboardScreen>
 
     _tabController = TabController(length: 2, vsync: this);
 
-    // Khởi tạo và tải dữ liệu song song
-
     _areaHa = calculateAreaInHectares(_loSamPoints);
     _sensorSubscription =
-        signalRService.sensorStream.listen((dynamic allDeviceData_dynamic) {
-      SensorDeviceModel allDeviceData;
-      try {
-        allDeviceData = allDeviceData_dynamic as SensorDeviceModel;
-      } catch (e) {
-        AppConfig.printEx("❌ Lỗi ép kiểu stream: $e");
-        return;
-      }
-      if (allDeviceData != null) {
-        final SensorDeviceModel firstDevice = allDeviceData;
-        List<int> bytes = latin1.encode(firstDevice.deviceName ?? "");
-        String correctText = utf8.decode(bytes);
-        firstDevice.deviceName = correctText;
-        _updateDeviceFromSignalR(firstDevice);
-        if (firstDevice.deviceId == _selectedDevice?.deviceId) {
-          updateEnvironmentData(_selectedDevice?.sensors);
-        }
-      }
-    }, onError: (error) {
-      AppConfig.printEx("❌ Lỗi trên sensorStream: $error");
-    });
+        signalRService.sensorStream.listen((dynamic allDeviceDataDynamic) {
+          SensorDeviceModel allDeviceData;
+          try {
+            allDeviceData = allDeviceDataDynamic as SensorDeviceModel;
+          } catch (e) {
+            AppConfig.printEx("❌ Lỗi ép kiểu stream: $e");
+            return;
+          }
+          if (allDeviceData != null) {
+            final SensorDeviceModel firstDevice = allDeviceData;
+            List<int> bytes = latin1.encode(firstDevice.deviceName ?? "");
+            String correctText = utf8.decode(bytes);
+            firstDevice.deviceName = correctText;
+            _updateDeviceFromSignalR(firstDevice);
+            if (firstDevice.deviceId == _selectedDevice?.deviceId) {
+              updateEnvironmentData(_selectedDevice?.sensors);
+            }
+          }
+        }, onError: (error) {
+          AppConfig.printEx("❌ Lỗi trên sensorStream: $error");
+        });
   }
 
   @override
@@ -320,7 +314,6 @@ class _DashboardScreenState extends State<DashboardScreen>
             _center = LatLng(apifarm.first.viTriCenterLat ?? 15.111,
                 apifarm.first.viTriCenterLng ?? 108.017);
           });
-          // Sau khi có _center mới đi tải thời tiết
           _fetchWeather();
         }
       }
@@ -359,20 +352,59 @@ class _DashboardScreenState extends State<DashboardScreen>
         viewCounts = Map<String, int>.from(jsonDecode(historyJson));
       }
 
-      ApiResponse<CaySamModel>? res;
+      List<CaySamModel> allPlants = [];
+
       bool isAdmin = user?.htTaiKhoan.htPhanQuyenTaiKhoans.any((pq) =>
-              pq.maVaiTro != "nft_invester" && pq.maVaiTro == "nft_admin") ??
-          false;
+      pq.maVaiTro != "nft_invester" && pq.maVaiTro == "nft_admin") ?? false;
 
       if (isAdmin) {
-        res = await API().listCaySam(status: "1", skip: 0, top: 10);
+        var sortedViewEntries = viewCounts.entries.toList()
+          ..sort((a, b) => b.value.compareTo(a.value));
+        List<String> topViewedIds = sortedViewEntries.take(10).map((e) => e.key).toList();
+
+        if (topViewedIds.isNotEmpty) {
+          String searchIn = topViewedIds.map((id) => "Id == \"$id\"").join(" or ");
+
+          var viewedRes = await API().listCaySam(
+              status: "1",
+              top: 10,
+              searchBy: [searchIn]
+          );
+
+          if (viewedRes?.items != null) {
+            allPlants.addAll(viewedRes!.items!);
+          }
+        }
+
+        if (allPlants.length < 10) {
+          int needMore = 10 - allPlants.length;
+          List<String> searchByParams = [];
+
+          if (topViewedIds.isNotEmpty) {
+            String searchNotIn = topViewedIds.map((id) => "Id != \"$id\"").join(" and ");
+            searchByParams.add(searchNotIn);
+          }
+
+          var extraRes = await API().listCaySam(
+              status: "1",
+              skip: 0,
+              top: needMore,
+              searchBy: searchByParams.isNotEmpty ? searchByParams : null
+          );
+
+          if (extraRes?.items != null) {
+            allPlants.addAll(extraRes!.items!);
+          }
+        }
       } else {
-        res = await API().listCaySam(status: "1", skip: 0);
+        var res = await API().listCaySam(status: "1", skip: 0);
+        if (res?.items != null) {
+          allPlants = res!.items!;
+        }
       }
 
-      if (res?.items != null) {
-        List<CaySamModel>? allPlants = res?.items;
-        allPlants?.sort((a, b) {
+      if (allPlants.isNotEmpty) {
+        allPlants.sort((a, b) {
           int viewA = viewCounts[a.caySamId.toString()] ?? 0;
           int viewB = viewCounts[b.caySamId.toString()] ?? 0;
           if (viewB != viewA) return viewB.compareTo(viewA);
@@ -381,7 +413,7 @@ class _DashboardScreenState extends State<DashboardScreen>
 
         if (mounted) {
           setState(() {
-            _itemsCaySam = allPlants?.take(10).toList();
+            _itemsCaySam = allPlants;
             _isLoadingBanner = false;
           });
         }
@@ -413,7 +445,7 @@ class _DashboardScreenState extends State<DashboardScreen>
   String getNametagLosam(int? name) {
     if (_listLoSam == null) return "...";
     final result = _listLoSam?.firstWhere(
-      (item) => item.loSamId == name,
+          (item) => item.loSamId == name,
       orElse: () => LoSamModel(
           loSamId: 0,
           vuonTrongId: 0,
@@ -486,7 +518,7 @@ class _DashboardScreenState extends State<DashboardScreen>
       if (_selectedDevice != null) {
         if (deviceList?.first != null) {
           _selectedDevice = deviceList?.firstWhere(
-              (d) => d.deviceId == _selectedDevice!.deviceId,
+                  (d) => d.deviceId == _selectedDevice!.deviceId,
               orElse: () => deviceList!.first);
         }
       }
@@ -554,8 +586,6 @@ class _DashboardScreenState extends State<DashboardScreen>
       }
     });
   }
-
-  // --- CÁC WIDGET UI ---
 
   @override
   Widget build(BuildContext context) {
@@ -753,7 +783,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                                   "${current['temperature_2m']}°C",
                                   style: TextStyle(
                                     fontSize:
-                                        (20 * textScale).clamp(18.0, 28.0),
+                                    (20 * textScale).clamp(18.0, 28.0),
                                     fontWeight: FontWeight.bold,
                                     color: const Color(0xFF1565C0),
                                   ),
@@ -767,7 +797,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                                   "${current['wind_speed_10m']} km/h",
                                   style: TextStyle(
                                       fontSize:
-                                          (10 * textScale).clamp(9.0, 14.0)),
+                                      (10 * textScale).clamp(9.0, 14.0)),
                                 ),
                                 const SizedBox(width: 10),
                                 Icon(Icons.water_drop_outlined,
@@ -778,7 +808,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                                   "${current['precipitation']} mm",
                                   style: TextStyle(
                                       fontSize:
-                                          (10 * textScale).clamp(9.0, 14.0)),
+                                      (10 * textScale).clamp(9.0, 14.0)),
                                 ),
                               ],
                             ),
@@ -838,12 +868,12 @@ class _DashboardScreenState extends State<DashboardScreen>
     final healthColor = healthPercentage >= 80
         ? Colors.green
         : healthPercentage >= 60
-            ? Colors.orange
-            : Colors.red;
+        ? Colors.orange
+        : Colors.red;
     final daily = _weatherData?['daily'];
     final myBounds = LatLngBounds(
-      const LatLng(10.611, 103.347), // Góc dưới trái
-      const LatLng(19.611, 112.687), // Góc trên phải
+      const LatLng(10.611, 103.347),
+      const LatLng(19.611, 112.687),
     );
     bool isInsideBounds = _center != null && myBounds.contains(_center!);
 
@@ -898,7 +928,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                                     children: [
                                       CachedNetworkImage(
                                         imageUrl: item.caySamNhatKys.firstOrNull
-                                                ?.hinhAnhTongQuan ??
+                                            ?.hinhAnhTongQuan ??
                                             "",
                                         fit: BoxFit.cover,
                                         width: double.infinity,
@@ -906,10 +936,10 @@ class _DashboardScreenState extends State<DashboardScreen>
                                             Container(color: Colors.grey[300]),
                                         errorWidget: (context, url, error) =>
                                             Container(
-                                          color: Colors.grey[200],
-                                          child: Icon(Icons.image_not_supported,
-                                              color: Colors.grey),
-                                        ),
+                                              color: Colors.grey[200],
+                                              child: Icon(Icons.image_not_supported,
+                                                  color: Colors.grey),
+                                            ),
                                       ),
                                       Container(
                                         decoration: BoxDecoration(
@@ -930,7 +960,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                                         right: 15,
                                         child: Column(
                                           crossAxisAlignment:
-                                              CrossAxisAlignment.start,
+                                          CrossAxisAlignment.start,
                                           children: [
                                             Row(
                                               children: [
@@ -942,28 +972,28 @@ class _DashboardScreenState extends State<DashboardScreen>
                                                 Flexible(
                                                   child: Text(
                                                     getNametagLosam(
-                                                            item.loSamId)
+                                                        item.loSamId)
                                                         .toUpperCase(),
                                                     style: TextStyle(
                                                       color:
-                                                          Colors.yellowAccent,
+                                                      Colors.yellowAccent,
                                                       fontWeight:
-                                                          FontWeight.bold,
+                                                      FontWeight.bold,
                                                       fontSize: 12,
                                                       letterSpacing: 0.5,
                                                       shadows: [
                                                         Shadow(
                                                             offset:
-                                                                Offset(0, 1),
+                                                            Offset(0, 1),
                                                             blurRadius: 2.0,
                                                             color: Colors.black
                                                                 .withOpacity(
-                                                                    0.5))
+                                                                0.5))
                                                       ],
                                                     ),
                                                     maxLines: 1,
                                                     overflow:
-                                                        TextOverflow.ellipsis,
+                                                    TextOverflow.ellipsis,
                                                   ),
                                                 ),
                                               ],
@@ -1008,7 +1038,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                           left: 12,
                           child: Row(
                             children:
-                                _itemsCaySam!.asMap().entries.map((entry) {
+                            _itemsCaySam!.asMap().entries.map((entry) {
                               return AnimatedContainer(
                                 duration: Duration(milliseconds: 300),
                                 width: _currentIndex == entry.key ? 10.0 : 8.0,
@@ -1051,53 +1081,53 @@ class _DashboardScreenState extends State<DashboardScreen>
                   childAspectRatio: 1.3,
                   children: [
                     if (user?.htTaiKhoan.htPhanQuyenTaiKhoans.any((pq) =>
-                            pq.maVaiTro != "nft_invester" &&
-                            pq.maVaiTro == "nft_admin") ??
+                    pq.maVaiTro != "nft_invester" &&
+                        pq.maVaiTro == "nft_admin") ??
                         false)
                       _buildStatCard(context,
                           icon: Icons.business_rounded,
                           title: 'Tổng số vườn',
                           value: numbertotal?.totalVuonTrong.toString() ?? "0",
                           color: Colors.blue.shade700, onTap: () {
-                        Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (_) => HomeScreen(tabcurrent: 2)));
-                      }),
+                            Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (_) => HomeScreen(tabcurrent: 2)));
+                          }),
                     if (user?.htTaiKhoan.htPhanQuyenTaiKhoans.any((pq) =>
-                            pq.maVaiTro != "nft_invester" &&
-                            pq.maVaiTro == "nft_admin") ??
+                    pq.maVaiTro != "nft_invester" &&
+                        pq.maVaiTro == "nft_admin") ??
                         false)
                       _buildStatCard(context,
                           icon: Icons.map_rounded,
                           title: 'Tổng số lô',
                           value: numbertotal?.totalLoSam.toString() ?? "0",
                           color: Colors.green.shade700, onTap: () {
-                        Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (_) => const DanhSachLoSamPage()));
-                      }),
+                            Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (_) => const DanhSachLoSamPage()));
+                          }),
                     _buildStatCard(context,
                         icon: Icons.eco_rounded,
                         title: 'Tổng số cây',
                         value: numbertotal?.totalCaySam.toString() ?? "0",
                         color: Colors.teal.shade600, onTap: () {
-                      Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (_) => const DanhSachCaySamPage()));
-                    }),
+                          Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (_) => const DanhSachCaySamPage()));
+                        }),
                     _buildStatCard(context,
                         icon: Icons.sentiment_dissatisfied_rounded,
                         title: 'Cây yếu',
                         value: numbertotal?.totalSuckhoeYeu.toString() ?? "0",
                         color: Colors.orange.shade800, onTap: () {
-                      Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (_) => const DanhSachCayYeuPage()));
-                    }),
+                          Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (_) => const DanhSachCayYeuPage()));
+                        }),
                   ],
                 ),
               const SizedBox(height: 24),
@@ -1114,12 +1144,12 @@ class _DashboardScreenState extends State<DashboardScreen>
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Row(children: [
-                          Icon(Icons.favorite_border_rounded, size: 22),
-                          SizedBox(width: 8),
+                        Row(children: const [
+                          Icon(Icons.favorite_rounded, size: 24, color: Colors.pinkAccent),
+                          SizedBox(width: 10),
                           Text('Tổng quan sức khỏe',
                               style: TextStyle(
-                                  fontSize: 18, fontWeight: FontWeight.bold))
+                                  fontSize: 18, fontWeight: FontWeight.w800, letterSpacing: 0.2))
                         ]),
                         const SizedBox(height: 16),
                         Row(
@@ -1143,10 +1173,12 @@ class _DashboardScreenState extends State<DashboardScreen>
                               value: healthPercentage / 100,
                               backgroundColor: healthColor.withOpacity(0.2),
                               valueColor:
-                                  AlwaysStoppedAnimation<Color>(healthColor),
+                              AlwaysStoppedAnimation<Color>(healthColor),
                               minHeight: 10),
                         ),
                         const Divider(height: 32),
+
+                        // --- GIAO DIỆN LƯỚI SỨC KHỎE CŨ ĐƯỢC GIỮ LẠI THEO ẢNH ---
                         GridView.count(
                           shrinkWrap: true,
                           physics: const NeverScrollableScrollPhysics(),
@@ -1159,27 +1191,32 @@ class _DashboardScreenState extends State<DashboardScreen>
                                 'Rất tốt',
                                 numbertotalSucKhoe?.totalRatTot ?? 0,
                                 Colors.green.shade600,
-                                Icons.sentiment_very_satisfied_rounded),
+                                Icons.sentiment_very_satisfied_rounded,
+                                5),
                             _buildHealthStatItem(
                                 'Khá tốt',
                                 numbertotalSucKhoe?.totalKhaTot ?? 0,
                                 Colors.teal.shade500,
-                                Icons.sentiment_satisfied_rounded),
+                                Icons.sentiment_satisfied_rounded,
+                                4),
                             _buildHealthStatItem(
                                 'Trung bình',
                                 numbertotalSucKhoe?.totalTrungBinh ?? 0,
                                 Colors.orange.shade600,
-                                Icons.sentiment_neutral_rounded),
+                                Icons.sentiment_neutral_rounded,
+                                3),
                             _buildHealthStatItem(
                                 'Yếu',
                                 numbertotalSucKhoe?.totalYeu ?? 0,
                                 Colors.deepOrange.shade500,
-                                Icons.sentiment_dissatisfied_rounded),
+                                Icons.sentiment_dissatisfied_rounded,
+                                2),
                             _buildHealthStatItem(
                                 'Rất yếu',
                                 numbertotalSucKhoe?.totalRatYeu ?? 0,
                                 Colors.red.shade700,
-                                Icons.sentiment_very_dissatisfied_rounded),
+                                Icons.sentiment_very_dissatisfied_rounded,
+                                1),
                           ],
                         ),
                       ],
@@ -1190,7 +1227,7 @@ class _DashboardScreenState extends State<DashboardScreen>
               const SizedBox(height: 24),
               if (apilistsensor != null &&
                   (_isValidAndNotZero(
-                          environmentStatus['soilMoisture']!['value']) ||
+                      environmentStatus['soilMoisture']!['value']) ||
                       _isValidAndNotZero(
                           environmentStatus['dewPoint']!['value']) ||
                       _isValidAndNotZero(
@@ -1250,7 +1287,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                                 }
                               },
                               items:
-                                  deviceList?.map((SensorDeviceModel device) {
+                              deviceList?.map((SensorDeviceModel device) {
                                 return DropdownMenuItem<SensorDeviceModel>(
                                     value: device,
                                     child: Text(device.deviceName ?? "",
@@ -1269,7 +1306,10 @@ class _DashboardScreenState extends State<DashboardScreen>
                                     fontSize: 14,
                                     color: Colors.grey.shade600))),
                         const SizedBox(height: 24),
+
+                        // --- GIAO DIỆN SENSOR GỐC THEO YÊU CẦU ---
                         _buildEnvironmentOverview(),
+
                         Padding(
                             padding: const EdgeInsets.only(left: 8, top: 15),
                             child: Row(children: [
@@ -1288,8 +1328,8 @@ class _DashboardScreenState extends State<DashboardScreen>
 
               // 5. CẢNH BÁO
               if ((user?.htTaiKhoan.htPhanQuyenTaiKhoans.any((pq) =>
-                      pq.maVaiTro != "nft_invester" &&
-                      pq.maVaiTro == "nft_admin") ??
+              pq.maVaiTro != "nft_invester" &&
+                  pq.maVaiTro == "nft_admin") ??
                   false))
                 if (_isLoadingCanhBao)
                   _buildShimmerBox(height: 150)
@@ -1338,7 +1378,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                   const SizedBox(width: 8),
                   const Text('Bản đồ & Thời tiết khu vực',
                       style:
-                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                      TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                 ],
               ),
               const SizedBox(height: 16),
@@ -1438,10 +1478,10 @@ class _DashboardScreenState extends State<DashboardScreen>
 
   Widget _buildStatCard(BuildContext context,
       {required IconData icon,
-      required String title,
-      required String value,
-      required Color color,
-      VoidCallback? onTap}) {
+        required String title,
+        required String value,
+        required Color color,
+        VoidCallback? onTap}) {
     return Card(
       elevation: 4,
       shadowColor: Colors.black.withOpacity(0.08),
@@ -1490,6 +1530,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     );
   }
 
+  // --- CÁC HÀM XÂY DỰNG GIAO DIỆN SENSOR VÀ SỨC KHỎE CŨ ---
   Widget _buildEnvironmentOverview() {
     final LinearGradient tempGradient = LinearGradient(
         colors: [Colors.orange[700]!, Colors.yellow[500]!],
@@ -1509,7 +1550,7 @@ class _DashboardScreenState extends State<DashboardScreen>
               Expanded(
                   child: _buildTemperatureBar(
                       value: double.tryParse(
-                              environmentStatus['temperature']!['value']) ??
+                          environmentStatus['temperature']!['value']) ??
                           0.0,
                       unit: '°C',
                       label: 'Nhiệt độ',
@@ -1523,7 +1564,7 @@ class _DashboardScreenState extends State<DashboardScreen>
               Expanded(
                   child: _buildTemperatureBar(
                       value: double.tryParse(
-                              environmentStatus['dewPoint']!['value']) ??
+                          environmentStatus['dewPoint']!['value']) ??
                           0.0,
                       unit: '°C',
                       label: 'Điểm sương',
@@ -1542,7 +1583,7 @@ class _DashboardScreenState extends State<DashboardScreen>
               Expanded(
                   child: _buildCircularProgress(
                       value: double.tryParse(
-                              environmentStatus['humidity']!['value']) ??
+                          environmentStatus['humidity']!['value']) ??
                           0.0,
                       label: 'Độ ẩm không khí',
                       unit: '%',
@@ -1554,7 +1595,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                 Expanded(
                     child: _buildCircularProgress(
                         value: double.tryParse(
-                                environmentStatus['soilMoisture']!['value']) ??
+                            environmentStatus['soilMoisture']!['value']) ??
                             0.0,
                         label: 'Độ ẩm đất',
                         unit: '%',
@@ -1568,11 +1609,11 @@ class _DashboardScreenState extends State<DashboardScreen>
 
   Widget _buildTemperatureBar(
       {required double value,
-      required String unit,
-      required String label,
-      required double min,
-      required double max,
-      required LinearGradient gradient}) {
+        required String unit,
+        required String label,
+        required double min,
+        required double max,
+        required LinearGradient gradient}) {
     const double barHeight = 91.0;
     const double barWidth = 19.0;
     const double circleDiameter = 32.0;
@@ -1619,7 +1660,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                         fontSize: 16,
                         fontWeight: FontWeight.bold)))),
         const SizedBox(height: 12),
-        Text('$label ${value.toStringAsFixed(1)}$unit',
+        Text('$label\n${value.toStringAsFixed(1)}$unit',
             textAlign: TextAlign.center,
             style: const TextStyle(
                 fontSize: 14,
@@ -1631,10 +1672,10 @@ class _DashboardScreenState extends State<DashboardScreen>
 
   Widget _buildCircularProgress(
       {required double value,
-      required String label,
-      required String unit,
-      required Color color,
-      double maxValue = 100.0}) {
+        required String label,
+        required String unit,
+        required Color color,
+        double maxValue = 100.0}) {
     double progress = value / maxValue;
     if (progress.isNaN || progress.isInfinite) progress = 0.0;
     progress = progress.clamp(0.0, 1.0);
@@ -1666,10 +1707,10 @@ class _DashboardScreenState extends State<DashboardScreen>
                     value < 0
                         ? '0$unit'
                         : (value > 100
-                            ? '100$unit'
-                            : (value == 100
-                                ? '${value.toStringAsFixed(0)}$unit'
-                                : '${value.toStringAsFixed(1)}$unit')),
+                        ? '100$unit'
+                        : (value == 100
+                        ? '${value.toStringAsFixed(0)}$unit'
+                        : '${value.toStringAsFixed(1)}$unit')),
                     style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
@@ -1687,12 +1728,12 @@ class _DashboardScreenState extends State<DashboardScreen>
 
   Widget _buildAlertItem(
       {required IconData icon,
-      required Color iconColor,
-      required String title,
-      required String subtitle,
-      List<CaySamModel>? caySams,
-      bool isLastItem = false,
-      int? idzone}) {
+        required Color iconColor,
+        required String title,
+        required String subtitle,
+        List<CaySamModel>? caySams,
+        bool isLastItem = false,
+        int? idzone}) {
     Color cardBackgroundColor = Colors.white;
     if (iconColor == Colors.orange.shade600 ||
         iconColor == Colors.red.shade600 ||
@@ -1778,56 +1819,72 @@ class _DashboardScreenState extends State<DashboardScreen>
                       child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                        Text(title,
-                            style: const TextStyle(
-                                fontWeight: FontWeight.bold, fontSize: 15),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis),
-                        const SizedBox(height: 4),
-                        Text('$subtitle$plantPositionsInfo',
-                            style: TextStyle(
-                                color: Colors.grey.shade700, fontSize: 13),
-                            maxLines: plantPositionsInfo.isNotEmpty ? 3 : 2,
-                            overflow: TextOverflow.ellipsis)
-                      ])),
+                            Text(title,
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.bold, fontSize: 15),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis),
+                            const SizedBox(height: 4),
+                            Text('$subtitle$plantPositionsInfo',
+                                style: TextStyle(
+                                    color: Colors.grey.shade700, fontSize: 13),
+                                maxLines: plantPositionsInfo.isNotEmpty ? 3 : 2,
+                                overflow: TextOverflow.ellipsis)
+                          ])),
                   const SizedBox(width: 8),
                   Icon(Icons.chevron_right,
                       color: Colors.grey.shade400, size: 20)
                 ]))));
   }
 
+  // --- HÀM TẠO THẺ GRID SỨC KHỎE (CÓ CHUYỂN HƯỚNG) ---
   Widget _buildHealthStatItem(
-      String title, int count, Color color, IconData icon) {
-    return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 5),
-        decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(12)),
-        child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-          Icon(icon,
-              color: color,
-              size: AppDimensions.responsiveWidth(
-                  context, AppDimensions.fontSizeExtraLarge)),
-          SizedBox(
-              height:
+      String title, int count, Color color, IconData icon, int healthId) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => DanhSachCaySamPage(initialHealth: healthId),
+            ),
+          );
+        },
+        child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 5),
+            decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                border: Border.all(color: color.withOpacity(0.3), width: 1.0),
+                borderRadius: BorderRadius.circular(12)),
+            child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+              Icon(icon,
+                  color: color,
+                  size: AppDimensions.responsiveWidth(
+                      context, AppDimensions.fontSizeExtraLarge)),
+              SizedBox(
+                  height:
                   AppDimensions.responsiveHeight(context, AppDimensions.sp2)),
-          Text(count.toString(),
-              style: TextStyle(
-                  fontSize: AppDimensions.responsiveWidth(
-                      context, AppDimensions.fontSizeSmall),
-                  fontWeight: FontWeight.bold),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis),
-          const SizedBox(height: 2),
-          Text(title,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                  fontSize: AppDimensions.responsiveWidth(
-                      context, AppDimensions.fontSizeExtraSmall),
-                  color: Colors.grey.shade700),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis)
-        ]));
+              Text(count.toString(),
+                  style: TextStyle(
+                      fontSize: AppDimensions.responsiveWidth(
+                          context, AppDimensions.fontSizeSmall),
+                      fontWeight: FontWeight.bold),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis),
+              const SizedBox(height: 2),
+              Text(title,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                      fontSize: AppDimensions.responsiveWidth(
+                          context, AppDimensions.fontSizeExtraSmall),
+                      color: Colors.grey.shade700),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis)
+            ])),
+      ),
+    );
   }
 }
 
@@ -1842,13 +1899,12 @@ String getSucKhoeText(int? diem) {
     case 4:
       return "Tốt";
     case 5:
-      return "Rất tốt"; // Theo yêu cầu của bạn 1 và 5 đều là Rất tốt
+      return "Rất tốt";
     default:
       return "Không xác định";
   }
 }
 
-// Chuyển đổi tuổi cây
 String getTuoiCayText(int? id) {
   switch (id) {
     case 1:

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/user.dart';
 
-enum NavTab { dashboard, plants/*, diary*//*, environment, verification*/ }
+enum NavTab { dashboard,weather,invest,account, plants/*, diary*//*, environment, verification*/, }
 
 class TabConfig {
   final NavTab id;
@@ -23,9 +23,9 @@ class RoleBasedNavigation {
   static const List<TabConfig> tabConfigs = [
     TabConfig(
       id: NavTab.dashboard,
-      label: 'Tổng quan',
-      icon: Icons.grid_view_outlined,
-      activeIcon: Icons.grid_view_outlined,
+      label: 'Trang chủ',
+      icon: Icons.home_rounded,
+      activeIcon: Icons.home_rounded,
       roles: [
         UserRole.nft_admin,
         UserRole.nft_invester,
@@ -35,10 +35,10 @@ class RoleBasedNavigation {
       ],
     ),
     TabConfig(
-      id: NavTab.plants,
-      label: 'Cây trồng',
-      icon: Icons.spa_outlined,
-      activeIcon: Icons.spa_outlined,
+      id: NavTab.weather,
+      label: 'Thời tiết',
+      icon: Icons.cloud_rounded,
+      activeIcon: Icons.cloud_rounded,
       roles: [
         UserRole.nft_admin,
         UserRole.nft_garden,
@@ -46,6 +46,42 @@ class RoleBasedNavigation {
         UserRole.nft_invester,
       ],
     ),
+    TabConfig(
+      id: NavTab.invest,
+      label: 'Đầu tư',
+      icon: Icons.shield_outlined,
+      activeIcon: Icons.shield_outlined,
+      roles: [
+        UserRole.nft_admin,
+        UserRole.nft_garden,
+        UserRole.nft_user,
+        UserRole.nft_invester,
+      ],
+    ),
+    TabConfig(
+      id: NavTab.account,
+      label: 'Tài khoản',
+      icon: Icons.person_outline_rounded,
+      activeIcon: Icons.person_outline_rounded,
+      roles: [
+        UserRole.nft_admin,
+        UserRole.nft_garden,
+        UserRole.nft_user,
+        UserRole.nft_invester,
+      ],
+    ),
+    // TabConfig(
+    //   id: NavTab.plants,
+    //   label: 'Cây trồng',
+    //   icon: Icons.spa_outlined,
+    //   activeIcon: Icons.spa_outlined,
+    //   roles: [
+    //     UserRole.nft_admin,
+    //     UserRole.nft_garden,
+    //     UserRole.nft_user,
+    //     UserRole.nft_invester,
+    //   ],
+    // ),
     /*TabConfig(
       id: NavTab.diary,
       label: 'Nhật ký',
@@ -81,10 +117,18 @@ class RoleBasedNavigation {
   ];
 
   static List<TabConfig> getAvailableTabs(List<UserRole> userRoles) {
+    if (userRoles.isEmpty) {
+      return tabConfigs.where((tab) =>
+      tab.id == NavTab.dashboard ||
+          tab.id == NavTab.weather ||
+          tab.id == NavTab.invest ||
+          tab.id == NavTab.account).toList();
+    }
     return tabConfigs.where((tab) => tab.roles.any((r) => userRoles.contains(r))).toList();
   }
 
   static bool isTabVisible(NavTab tab, List<UserRole> userRoles) {
+    if (userRoles.isEmpty) return true;
     final config = tabConfigs.firstWhere(
           (config) => config.id == tab,
       orElse: () => throw Exception('Tab configuration not found for $tab'),
